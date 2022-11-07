@@ -1,9 +1,9 @@
 package dynamo
 
 import (
-	"appattest-challenge/pkg/random"
 	"context"
 	"log"
+	"nugg-crypto/go/pkg/random"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"

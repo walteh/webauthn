@@ -1,4 +1,4 @@
-package attest
+package appattest
 
 import (
 	"bytes"
@@ -9,9 +9,6 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"fmt"
-
-	"appattest-lambda/pkg/authentication"
-	"appattest-lambda/pkg/utils"
 
 	"github.com/ugorji/go/codec"
 )
@@ -34,13 +31,13 @@ oyFraWVIyd/dganmrduC1bmTBGwD
 const attestationKey = "apple-appattest"
 
 type AuthenticatorAttestationResponse struct {
-	ClientData        utils.URLEncodedBase64 `json:"clientData"`
-	KeyID             string                 `json:"keyID"`
-	AttestationObject utils.URLEncodedBase64 `json:"attestationObject"`
+	ClientData        URLEncodedBase64 `json:"clientData"`
+	KeyID             string           `json:"keyID"`
+	AttestationObject URLEncodedBase64 `json:"attestationObject"`
 }
 
 type AttestationObject struct {
-	AuthData     authentication.AuthenticatorData
+	AuthData     AuthenticatorData
 	RawAuthData  []byte                 `json:"authData"`
 	Format       string                 `json:"fmt"`
 	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
@@ -57,13 +54,13 @@ func (aar *AuthenticatorAttestationResponse) Verify(appID string, production boo
 
 	// Check if we have the right format.
 	if a.Format != attestationKey {
-		return nil, nil, utils.ErrAttestationFormat.WithDetails(fmt.Sprintf("Wrong attestation format unsupported: %s", a.Format))
+		return nil, nil, ErrAttestationFormat.WithDetails(fmt.Sprintf("Wrong attestation format unsupported: %s", a.Format))
 	}
 
 	// Decode the key ID
 	keyIdData, err := base64.StdEncoding.DecodeString(aar.KeyID)
 	if err != nil {
-		return nil, nil, utils.ErrParsingData.WithDetails(fmt.Sprintf("The KeyID was not valid base64: %s", aar.KeyID))
+		return nil, nil, ErrParsingData.WithDetails(fmt.Sprintf("The KeyID was not valid base64: %s", aar.KeyID))
 	}
 
 	// Handle Steps 6 through 9
@@ -85,7 +82,7 @@ func (aar *AuthenticatorAttestationResponse) parse() (*AttestationObject, error)
 
 	err := codec.NewDecoderBytes(aar.AttestationObject, &cborHandler).Decode(&a)
 	if err != nil {
-		return nil, utils.ErrParsingData.WithDetails(err.Error())
+		return nil, ErrParsingData.WithDetails(err.Error())
 	}
 
 	err = a.AuthData.Unmarshal(a.RawAuthData)
@@ -94,7 +91,7 @@ func (aar *AuthenticatorAttestationResponse) parse() (*AttestationObject, error)
 	}
 
 	if !a.AuthData.Flags.HasAttestedCredentialData() {
-		return nil, utils.ErrAttestationFormat.WithDetails("Attestation missing attested credential data flag")
+		return nil, ErrAttestationFormat.WithDetails("Attestation missing attested credential data flag")
 	}
 
 	return &a, nil
@@ -110,27 +107,27 @@ func verifyAttestation(att AttestationObject, clientDataHash, keyID []byte) ([]b
 	// Add Apple root Cert
 	ok := roots.AppendCertsFromPEM([]byte(APPLE_ROOT_CERT))
 	if !ok {
-		return nil, nil, utils.ErrAttestationFormat.WithDetails("Error adding root certificate to pool.")
+		return nil, nil, ErrAttestationFormat.WithDetails("Error adding root certificate to pool.")
 	}
 
 	x5c, x509present := att.AttStatement["x5c"].([]interface{})
 	if !x509present {
-		return nil, nil, utils.ErrAttestationFormat.WithDetails("Error retrieving x5c value")
+		return nil, nil, ErrAttestationFormat.WithDetails("Error retrieving x5c value")
 	}
 
 	receipt, receiptPresent := att.AttStatement["receipt"].([]byte)
 	if !receiptPresent {
-		return nil, nil, utils.ErrAttestationFormat.WithDetails("Error retreiving receipt value")
+		return nil, nil, ErrAttestationFormat.WithDetails("Error retreiving receipt value")
 	}
 
 	for _, c := range x5c {
 		cb, cv := c.([]byte)
 		if !cv {
-			return nil, nil, utils.ErrAttestationCertificate.WithDetails("Error getting certificate from x5c cert chain 1")
+			return nil, nil, ErrAttestationCertificate.WithDetails("Error getting certificate from x5c cert chain 1")
 		}
 		ct, err := x509.ParseCertificate(cb)
 		if err != nil {
-			return nil, nil, utils.ErrAttestationCertificate.WithDetails(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+			return nil, nil, ErrAttestationCertificate.WithDetails(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
 		}
 		if ct.IsCA {
 			intermediates.AddCert(ct)
@@ -139,12 +136,12 @@ func verifyAttestation(att AttestationObject, clientDataHash, keyID []byte) ([]b
 
 	credCertBytes, valid := x5c[0].([]byte)
 	if !valid {
-		return nil, nil, utils.ErrAttestationCertificate.WithDetails("Error getting certificate from x5c cert chain 2")
+		return nil, nil, ErrAttestationCertificate.WithDetails("Error getting certificate from x5c cert chain 2")
 	}
 
 	credCert, err := x509.ParseCertificate(credCertBytes)
 	if err != nil {
-		return nil, nil, utils.ErrAttestationCertificate.WithDetails(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+		return nil, nil, ErrAttestationCertificate.WithDetails(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
 	}
 
 	// Create verification options.
@@ -158,7 +155,7 @@ func verifyAttestation(att AttestationObject, clientDataHash, keyID []byte) ([]b
 	// Verify the validity of the certificates using Apple’s root certificate.
 	_, err = credCert.Verify(verifyOptions)
 	if err != nil {
-		return nil, nil, utils.ErrAttestationCertificate.WithDetails(fmt.Sprintf("Invalid certificate %+v", err))
+		return nil, nil, ErrAttestationCertificate.WithDetails(fmt.Sprintf("Invalid certificate %+v", err))
 	}
 
 	// 2. Create clientDataHash as the SHA256 hash of the one-time challenge sent to your app before performing the attestation,
@@ -180,14 +177,14 @@ func verifyAttestation(att AttestationObject, clientDataHash, keyID []byte) ([]b
 	}
 
 	if len(credCertId) <= 0 {
-		return nil, nil, utils.ErrInvalidAttestation.WithDetails("Certificate did not contain credCert extension")
+		return nil, nil, ErrInvalidAttestation.WithDetails("Certificate did not contain credCert extension")
 	}
 	var unMarshalledCredCertOctet []asn1.RawValue
 	var unMarshalledCredCert asn1.RawValue
 	asn1.Unmarshal(credCertId, &unMarshalledCredCertOctet)
 	asn1.Unmarshal(unMarshalledCredCertOctet[0].Bytes, &unMarshalledCredCert)
 	if !bytes.Equal(nonce[:], unMarshalledCredCert.Bytes) {
-		return nil, nil, utils.ErrInvalidAttestation.WithDetails("Certificate CredCert extension does not match nonce.")
+		return nil, nil, ErrInvalidAttestation.WithDetails("Certificate CredCert extension does not match nonce.")
 	}
 
 	// 5. Create the SHA256 hash of the public key in credCert, and verify that it matches the key identifier from your app.
@@ -197,10 +194,10 @@ func verifyAttestation(att AttestationObject, clientDataHash, keyID []byte) ([]b
 		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
 		pubKeyHash := sha256.Sum256(publicKeyBytes)
 		if !bytes.Equal(pubKeyHash[:], keyID) {
-			return nil, nil, utils.ErrInvalidAttestation.WithDetails("The key id is not a valid SHA256 hash of the certificate public key.")
+			return nil, nil, ErrInvalidAttestation.WithDetails("The key id is not a valid SHA256 hash of the certificate public key.")
 		}
 	default:
-		return nil, nil, utils.ErrInvalidAttestation.WithDetails("Wrong algorithm")
+		return nil, nil, ErrInvalidAttestation.WithDetails("Wrong algorithm")
 	}
 
 	// Return x963-encoded public key and receipt.

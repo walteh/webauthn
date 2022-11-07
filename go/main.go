@@ -1,9 +1,9 @@
 package main
 
 import (
-	"appattest-challenge/pkg/env"
-	"appattest-challenge/pkg/handler"
 	"context"
+	"nugg-crypto/go/pkg/env"
+	"nugg-crypto/go/pkg/handler"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )

@@ -1,4 +1,4 @@
-package utils
+package appattest
 
 type Error struct {
 	// Short name for the type of error that has occurred

@@ -1,4 +1,4 @@
-package assert
+package appattest
 
 import (
 	"bytes"
@@ -7,9 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-
-	"appattest-lambda/pkg/authentication"
-	"appattest-lambda/pkg/utils"
 
 	"github.com/ugorji/go/codec"
 )
@@ -20,12 +17,12 @@ type ClientData struct {
 
 type AuthenticatorAssertionResponse struct {
 	ClientDataJSON ClientData
-	RawClientData  utils.URLEncodedBase64 `json:"clientData"`
-	Assertion      utils.URLEncodedBase64 `json:"assertion"`
+	RawClientData  URLEncodedBase64 `json:"clientData"`
+	Assertion      URLEncodedBase64 `json:"assertion"`
 }
 
 type Assertion struct {
-	AuthenticatorData    authentication.AuthenticatorData
+	AuthenticatorData    AuthenticatorData
 	RawAuthenticatorData []byte `json:"authenticatorData"`
 	Signature            []byte `json:"signature"`
 }
@@ -46,7 +43,7 @@ func (aar *AuthenticatorAssertionResponse) Verify(storedChallenge string, relyin
 	// 3. Use the public key that you stored from the attestation object to verify that the assertion’s signature is valid for nonce.
 	x, y := elliptic.Unmarshal(elliptic.P256(), publicKey)
 	if x == nil {
-		return 0, utils.ErrParsingData.WithDetails("Failed to parse the public key")
+		return 0, ErrParsingData.WithDetails("Failed to parse the public key")
 	}
 	pubkey := &ecdsa.PublicKey{
 		Curve: elliptic.P256(),
@@ -56,23 +53,23 @@ func (aar *AuthenticatorAssertionResponse) Verify(storedChallenge string, relyin
 	nonceHash := sha256.Sum256(nonce[:])
 	valid := ecdsa.VerifyASN1(pubkey, nonceHash[:], a.Signature)
 	if !valid {
-		return 0, utils.ErrAssertionSignature.WithDetails("Error validating the assertion signature.\n")
+		return 0, ErrAssertionSignature.WithDetails("Error validating the assertion signature.\n")
 	}
 
 	// 4. Compute the SHA256 hash of the client’s App ID, and verify that it matches the RP ID in the authenticator data.
 	rpIDHash := sha256.Sum256([]byte(relyingPartyID))
 	if !bytes.Equal(a.AuthenticatorData.RPIDHash[:], rpIDHash[:]) {
-		return 0, utils.ErrVerification.WithDetails(fmt.Sprintf("RP Hash mismatch. Expected %x and Received %x\n", a.AuthenticatorData.RPIDHash, rpIDHash))
+		return 0, ErrVerification.WithDetails(fmt.Sprintf("RP Hash mismatch. Expected %x and Received %x\n", a.AuthenticatorData.RPIDHash, rpIDHash))
 	}
 
 	// 5. Verify that the authenticator data’s counter value is greater than the value from the previous assertion, or greater than 0 on the first assertion.
 	if a.AuthenticatorData.Counter <= previousCounter {
-		return 0, utils.ErrVerification.WithDetails(fmt.Sprintf("Counter was not not greater than previous  %d\n", a.AuthenticatorData.Counter))
+		return 0, ErrVerification.WithDetails(fmt.Sprintf("Counter was not not greater than previous  %d\n", a.AuthenticatorData.Counter))
 	}
 
 	// 6. Verify that the challenge embedded in the client data matches the earlier challenge to the client.
 	if storedChallenge != aar.ClientDataJSON.Challenge {
-		err := utils.ErrChallengeMismatch.WithDetails("Error validating challenge")
+		err := ErrChallengeMismatch.WithDetails("Error validating challenge")
 		return 0, err.WithDetails(fmt.Sprintf("Expected b Value: %#v\nReceived b: %#v\n", storedChallenge, aar.ClientDataJSON))
 	}
 
@@ -87,7 +84,7 @@ func (aar *AuthenticatorAssertionResponse) parse() (*Assertion, error) {
 	// Decode the attestation data with unmarshalled auth data
 	err := codec.NewDecoderBytes(aar.Assertion, &cborHandler).Decode(&a)
 	if err != nil {
-		return nil, utils.ErrParsingData.WithDetails(err.Error())
+		return nil, ErrParsingData.WithDetails(err.Error())
 	}
 
 	err = a.AuthenticatorData.Unmarshal(a.RawAuthenticatorData)

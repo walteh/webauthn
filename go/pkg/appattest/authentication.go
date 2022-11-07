@@ -1,11 +1,9 @@
-package authentication
+package appattest
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-
-	"appattest-lambda/pkg/utils"
 
 	"github.com/ugorji/go/codec"
 )
@@ -19,7 +17,7 @@ type AuthenticatorResponse struct {
 	// From the spec https://www.w3.org/TR/webauthn/#dom-authenticatorresponse-clientdatajson
 	// This attribute contains a JSON serialization of the client data passed to the authenticator
 	// by the client in its call to either create() or get().
-	ClientDataJSON utils.URLEncodedBase64 `json:"clientDataJSON"`
+	ClientDataJSON URLEncodedBase64 `json:"clientDataJSON"`
 }
 
 // AuthenticatorData From §6.1 of the spec.
@@ -149,7 +147,7 @@ func (flag AuthenticatorFlags) HasExtensions() bool {
 // https://www.w3.org/TR/webauthn/#table-authData
 func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) error {
 	if minAuthDataLength > len(rawAuthData) {
-		err := utils.ErrBadRequest.WithDetails("Authenticator data length too short")
+		err := ErrBadRequest.WithDetails("Authenticator data length too short")
 		info := fmt.Sprintf("Expected data greater than %d bytes. Got %d bytes\n", minAuthDataLength, len(rawAuthData))
 		return err.WithDetails(info)
 	}
@@ -168,7 +166,7 @@ func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) error {
 	}
 
 	if remaining != 0 {
-		return utils.ErrBadRequest.WithDetails("Leftover bytes decoding AuthenticatorData")
+		return ErrBadRequest.WithDetails("Leftover bytes decoding AuthenticatorData")
 	}
 
 	return nil
@@ -209,12 +207,12 @@ func (a *AuthenticatorData) Verify(appIDHash []byte, credentialId []byte, produc
 
 	// 6. Compute the SHA256 hash of your app’s App ID, and verify that this is the same as the authenticator data’s RP ID hash.
 	if !bytes.Equal(a.RPIDHash[:], appIDHash) {
-		return utils.ErrVerification.WithDetails(fmt.Sprintf("RP Hash mismatch. Expected %+s and Received %+s\n", a.RPIDHash, appIDHash))
+		return ErrVerification.WithDetails(fmt.Sprintf("RP Hash mismatch. Expected %+s and Received %+s\n", a.RPIDHash, appIDHash))
 	}
 
 	// 7. Verify that the authenticator data’s counter field equals 0.
 	if a.Counter != 0 {
-		return utils.ErrVerification.WithDetails(fmt.Sprintf("Counter was not 0, but %d\n", a.Counter))
+		return ErrVerification.WithDetails(fmt.Sprintf("Counter was not 0, but %d\n", a.Counter))
 	}
 
 	// 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the development environment,
@@ -226,12 +224,12 @@ func (a *AuthenticatorData) Verify(appIDHash []byte, credentialId []byte, produc
 		copy(aaguid, []byte("appattestdevelop"))
 	}
 	if !bytes.Equal(a.AttData.AAGUID, aaguid) {
-		return utils.ErrVerification.WithDetails("AAGUID was not appattestdevelop\n")
+		return ErrVerification.WithDetails("AAGUID was not appattestdevelop\n")
 	}
 
 	// 9. Verify that the authenticator data’s credentialId field is the same as the key identifier.
 	if !bytes.Equal(a.AttData.CredentialID, credentialId) {
-		return utils.ErrVerification.WithDetails("Credential ID did not equal the provided key identifier\n")
+		return ErrVerification.WithDetails("Credential ID did not equal the provided key identifier\n")
 	}
 
 	return nil

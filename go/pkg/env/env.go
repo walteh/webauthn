@@ -12,6 +12,7 @@ import (
 
 type Environment struct {
 	// evnironment variables
+	// AppsyncSchema             *graphql.Schema
 	ChallengeTableName        string
 	AppleIdentityPoolName     string
 	AppleJwtPublicKeyEndpoint *url.URL
@@ -39,6 +40,16 @@ func NewEnv(ctx context.Context) (env Environment, err error) {
 		}
 
 	}
+
+	// if val, err := osGet("APPSYNC_SCHEMA"); err != nil {
+	// 	return env, err
+	// } else {
+	// 	// parse schema
+	// 	env.AppsyncSchema = graphql.MustParseSchema(val, nil)
+	// 	if err != nil {
+	// 		return env, err
+	// 	}
+	// }
 
 	if env.ChallengeTableName, err = osGet("CHALLENGE_TABLE_NAME"); err != nil {
 		return env, err

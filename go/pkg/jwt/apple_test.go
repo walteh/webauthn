@@ -68,7 +68,7 @@ func TestJwtApple(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.client.Decode(tt.args.ctx, tt.args.token)
+			got, err := tt.client.Verify(tt.args.ctx, tt.args.token)
 
 			pp.Println(got)
 

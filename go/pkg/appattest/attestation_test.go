@@ -1,4 +1,4 @@
-package attest
+package appattest
 
 import (
 	"bytes"
