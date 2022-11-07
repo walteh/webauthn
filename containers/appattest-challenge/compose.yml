@@ -8,7 +8,6 @@
      build:
        dockerfile: Dockerfile
      volumes:
-       - ${HOME}/.aws/credentials:/root/.aws/credentials:ro
        - ~/.aws-lambda-rie:/aws-lambda
      entrypoint:
         - /aws-lambda/aws-lambda-rie

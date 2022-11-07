@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"appattest-lambda/pkg/auth"
+	"appattest-lambda/pkg/authentication"
 	"appattest-lambda/pkg/utils"
 
 	"github.com/ugorji/go/codec"
@@ -25,7 +25,7 @@ type AuthenticatorAssertionResponse struct {
 }
 
 type Assertion struct {
-	AuthenticatorData    auth.AuthenticatorData
+	AuthenticatorData    authentication.AuthenticatorData
 	RawAuthenticatorData []byte `json:"authenticatorData"`
 	Signature            []byte `json:"signature"`
 }

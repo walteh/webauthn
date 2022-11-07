@@ -20,7 +20,9 @@ func NewHandler(ctx context.Context, httpClient *http.Client) *LambdaHander {
 	}
 }
 
-func (handler LambdaHander) Run(ctx context.Context, event events.APIGatewayCustomAuthorizerRequest) (string, error) {
+func (handler LambdaHander) Run(ctx context.Context, event events.APIGatewayV2CustomAuthorizerV2Request) (string, error) {
+
+	event.
 	return "", nil
 }
 

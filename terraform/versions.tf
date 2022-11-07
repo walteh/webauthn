@@ -22,7 +22,7 @@ provider "aws" {
     tags = {
       env       = local.env
       stack     = local.app_stack
-      namespace = local.namespace
+      namespace = local.rs_mesh_namespace
       app       = local.app
     }
   }

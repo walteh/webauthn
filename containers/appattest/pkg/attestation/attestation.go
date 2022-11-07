@@ -10,7 +10,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"appattest-lambda/pkg/auth"
+	"appattest-lambda/pkg/authentication"
 	"appattest-lambda/pkg/utils"
 
 	"github.com/ugorji/go/codec"
@@ -40,7 +40,7 @@ type AuthenticatorAttestationResponse struct {
 }
 
 type AttestationObject struct {
-	AuthData     auth.AuthenticatorData
+	AuthData     authentication.AuthenticatorData
 	RawAuthData  []byte                 `json:"authData"`
 	Format       string                 `json:"fmt"`
 	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
