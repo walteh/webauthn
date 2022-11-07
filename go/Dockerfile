@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.19-alpine as builder
+FROM public.ecr.aws/lambda/provided:al2 as builder
 
+RUN yum install -y golang
 RUN go env -w GOPROXY=direct
 ADD go.mod go.sum ./
 RUN go mod download

@@ -86,29 +86,29 @@ func (k *appleKey) UnmarshalJSON(b []byte) error {
 
 func NewAppleClient(ctx context.Context, endpoint *url.URL) (*Client, error) {
 
-	res, err := http.Get(endpoint.String())
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer res.Body.Close()
-
-	body, err := io.ReadAll(res.Body)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var appleJWKs struct {
-		Keys []appleKey `json:"keys"`
-	}
-
-	err = json.Unmarshal(body, &appleJWKs)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	keyfunc := func(t *jwt.Token) (interface{}, error) {
+
+		res, err := http.Get(endpoint.String())
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer res.Body.Close()
+
+		body, err := io.ReadAll(res.Body)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var appleJWKs struct {
+			Keys []appleKey `json:"keys"`
+		}
+
+		err = json.Unmarshal(body, &appleJWKs)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		// check the signing method
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {

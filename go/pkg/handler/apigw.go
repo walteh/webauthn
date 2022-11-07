@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"nugg-crypto/go/pkg/constants"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -8,9 +9,17 @@ import (
 
 type ApigwV2Handler struct{}
 
-func (me ApigwV2Handler) ParseRequest(handler LambdaHander, _event interface{}) (Request, error) {
-	event := _event.(events.APIGatewayV2CustomAuthorizerV2Request)
+func (me ApigwV2Handler) ParseRequest(handler LambdaHander, _event map[string]interface{}) (Request, error) {
+	encoded, err := json.Marshal(_event)
+	if err != nil {
+		return Request{}, err
+	}
 
+	var event events.APIGatewayV2CustomAuthorizerV2Request
+	err = json.Unmarshal(encoded, &event)
+	if err != nil {
+		return Request{}, err
+	}
 	return Request{
 		AppleJwtToken: event.Headers[constants.AppleJwtHeader],
 	}, nil

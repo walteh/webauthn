@@ -6,7 +6,7 @@ import (
 
 type NoopHandler struct{}
 
-func (me NoopHandler) ParseRequest(handler LambdaHander, _event interface{}) (Request, error) {
+func (me NoopHandler) ParseRequest(handler LambdaHander, _event map[string]interface{}) (Request, error) {
 	return Request{}, fmt.Errorf("unable to parse request")
 }
 

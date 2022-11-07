@@ -1,12 +1,16 @@
 terraform {
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = "~> 4.23.0"
+      source = "hashicorp/aws"
     }
     time = {
-      source  = "hashicorp/time"
-      version = "~> 0.9.0"
+      source = "hashicorp/time"
+    }
+    null = {
+      source = "hashicorp/null"
+    }
+    archive = {
+      source = "hashicorp/archive"
     }
   }
   backend "s3" {
@@ -27,3 +31,6 @@ provider "aws" {
     }
   }
 }
+
+
+

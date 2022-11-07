@@ -12,4 +12,8 @@
      entrypoint:
         - /aws-lambda/aws-lambda-rie
         - /var/task/handler
+     environment:
+        - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
+        - CHALLENGE_TABLE_NAME=unused
+        - APPLE_IDENTITY_POOL_ID=unused
 

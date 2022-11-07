@@ -3,13 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
+	"log"
 	"nugg-crypto/go/pkg/cognito"
 	"nugg-crypto/go/pkg/dynamo"
 	"nugg-crypto/go/pkg/env"
 	"nugg-crypto/go/pkg/jwt"
-
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambdacontext"
 )
 
 type LambdaHander struct {
@@ -26,39 +24,44 @@ type Request struct {
 }
 
 type Service interface {
-	ParseRequest(handler LambdaHander, event interface{}) (Request, error)
+	ParseRequest(handler LambdaHander, event map[string]interface{}) (Request, error)
 	FormatResponse(handler LambdaHander, isAuthorized bool, result map[string]interface{}, err error) (interface{}, error)
 }
 
-func NewHandler(ctx context.Context, env env.Environment) *LambdaHander {
+func NewHandler(ctx context.Context, env env.Environment) (*LambdaHander, error) {
 
 	jwtclient, err := jwt.NewAppleClient(ctx, env.AppleJwtPublicKeyEndpoint)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
+	log.Println("Apple JWT client created")
 
 	return &LambdaHander{
 		ctx:     ctx,
 		dynamo:  dynamo.NewClient(env.AwsConfig, env.ChallengeTableName),
-		cognito: cognito.NewClient(env.AwsConfig, env.AppleIdentityPoolName),
+		cognito: cognito.NewClient(env.AwsConfig, env.AppleIdentityPoolId),
 		jwt:     jwtclient,
 		env:     env,
-	}
+	}, nil
 }
 
-func GetService(event interface{}) Service {
-	switch event.(type) {
-	case events.AppSyncLambdaAuthorizerRequest:
-		return &AppSyncHandler{}
-	case events.APIGatewayV2CustomAuthorizerV2Request:
-		return &ApigwV2Handler{}
-	default:
-		return &NoopHandler{}
+func GetService(event map[string]interface{}) Service {
+	if event["authorizationToken"] == nil && event["requestContext"] == nil {
+		return NoopHandler{}
 	}
+
+	if event["version"] != nil {
+		return ApigwV2Handler{}
+	}
+
+	return AppSyncHandler{}
+
 }
 
-func (handler LambdaHander) Run(ctx lambdacontext.LambdaContext, event interface{}) (interface{}, error) {
+func (handler LambdaHander) Run(ctx context.Context, event map[string]interface{}) (interface{}, error) {
 
+	log.Println("event", event)
 	service := GetService(event)
 
 	request, err := service.ParseRequest(handler, event)

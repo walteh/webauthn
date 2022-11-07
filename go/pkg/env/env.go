@@ -14,7 +14,7 @@ type Environment struct {
 	// evnironment variables
 	// AppsyncSchema             *graphql.Schema
 	ChallengeTableName        string
-	AppleIdentityPoolName     string
+	AppleIdentityPoolId       string
 	AppleJwtPublicKeyEndpoint *url.URL
 
 	// aws config
@@ -55,7 +55,7 @@ func NewEnv(ctx context.Context) (env Environment, err error) {
 		return env, err
 	}
 
-	if env.AppleIdentityPoolName, err = osGet("APPLE_IDENTITY_POOL_NAME"); err != nil {
+	if env.AppleIdentityPoolId, err = osGet("APPLE_IDENTITY_POOL_ID"); err != nil {
 		return env, err
 	}
 

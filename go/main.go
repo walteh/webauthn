@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"nugg-crypto/go/pkg/env"
 	"nugg-crypto/go/pkg/handler"
 
@@ -10,6 +12,8 @@ import (
 
 func main() {
 
+	log.Println("Starting lambda handler")
+
 	ctx := context.Background()
 
 	env, err := env.NewEnv(ctx)
@@ -17,7 +21,15 @@ func main() {
 		panic(err)
 	}
 
-	handler := handler.NewHandler(ctx, env)
+	log.Println("Environment loaded")
+
+	handler, err := handler.NewHandler(ctx, env)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	log.Println("Handler created")
 
 	lambda.Start(handler.Run)
 }

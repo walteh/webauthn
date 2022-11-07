@@ -12,8 +12,18 @@ import (
 
 type AppSyncHandler struct{}
 
-func (me AppSyncHandler) ParseRequest(handler LambdaHander, _event interface{}) (Request, error) {
-	event := _event.(events.AppSyncLambdaAuthorizerRequest)
+func (me AppSyncHandler) ParseRequest(handler LambdaHander, _event map[string]interface{}) (Request, error) {
+
+	encoded, err := json.Marshal(_event)
+	if err != nil {
+		return Request{}, err
+	}
+
+	var event events.AppSyncLambdaAuthorizerRequest
+	err = json.Unmarshal(encoded, &event)
+	if err != nil {
+		return Request{}, err
+	}
 
 	// unbase 64 the token
 
