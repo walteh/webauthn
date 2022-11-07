@@ -1,0 +1,22 @@
+{
+	"configurations": [
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Debug AppAttestLambda (AppAttestLambda)",
+			"program": "${workspaceFolder:nugg-crypto}/AppAttestLambda/.build/debug/AppAttestLambda",
+			"args": [],
+			"cwd": "${workspaceFolder:nugg-crypto}/AppAttestLambda",
+			"preLaunchTask": "swift: Build Debug AppAttestLambda (AppAttestLambda)"
+		},
+		{
+			"type": "lldb",
+			"request": "launch",
+			"name": "Release AppAttestLambda (AppAttestLambda)",
+			"program": "${workspaceFolder:nugg-crypto}/AppAttestLambda/.build/release/AppAttestLambda",
+			"args": [],
+			"cwd": "${workspaceFolder:nugg-crypto}/AppAttestLambda",
+			"preLaunchTask": "swift: Build Release AppAttestLambda (AppAttestLambda)"
+		}
+	]
+}

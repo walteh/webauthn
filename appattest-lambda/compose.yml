@@ -1,0 +1,16 @@
+ version: "3.8"
+ services:
+   lambda:
+     container_name: lambda
+     ports:
+       - "9000:8080"
+     platform: "linux/arm64"
+     build:
+       dockerfile: Dockerfile
+     volumes:
+       - ${HOME}/.aws/credentials:/root/.aws/credentials:ro
+       - ~/.aws-lambda-rie:/aws-lambda
+     entrypoint:
+        - /aws-lambda/aws-lambda-rie
+        - /var/task/handler
+
