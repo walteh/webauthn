@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"nugg-crypto/go/pkg/constants"
+	"nugg-auth/apple/pkg/constants"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"

@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"nugg-crypto/go/pkg/cognito"
-	"nugg-crypto/go/pkg/dynamo"
-	"nugg-crypto/go/pkg/env"
-	"nugg-crypto/go/pkg/jwt"
+	"nugg-auth/apple/pkg/cognito"
+	"nugg-auth/apple/pkg/dynamo"
+	"nugg-auth/apple/pkg/env"
+	"nugg-auth/apple/pkg/jwt"
 )
 
 type LambdaHander struct {

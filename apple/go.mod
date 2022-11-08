@@ -1,4 +1,4 @@
-module nugg-crypto/go
+module nugg-auth/apple
 
 go 1.19
 

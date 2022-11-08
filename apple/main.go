@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"nugg-crypto/go/pkg/env"
-	"nugg-crypto/go/pkg/handler"
+	"nugg-auth/apple/pkg/env"
+	"nugg-auth/apple/pkg/handler"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )

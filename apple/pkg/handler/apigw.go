@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"nugg-crypto/go/pkg/constants"
+	"nugg-auth/apple/pkg/constants"
 
 	"github.com/aws/aws-lambda-go/events"
 )

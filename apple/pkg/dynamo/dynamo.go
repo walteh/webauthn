@@ -3,7 +3,7 @@ package dynamo
 import (
 	"context"
 	"log"
-	"nugg-crypto/go/pkg/random"
+	"nugg-auth/apple/pkg/random"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"

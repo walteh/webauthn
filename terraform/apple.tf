@@ -1,10 +1,14 @@
-
-resource "aws_ecr_repository" "apple_auth" {
-  name = "${local.app_stack}-apple-auth-image"
+locals {
+  image_name = "${local.app_stack}-apple-image"
 }
 
-resource "aws_ecr_repository_policy" "apple_auth" {
-  repository = aws_ecr_repository.apple_auth.name
+
+resource "aws_ecr_repository" "apple" {
+  name = local.image_name
+}
+
+resource "aws_ecr_repository_policy" "apple" {
+  repository = aws_ecr_repository.apple.name
 
   policy = jsonencode({
     "Version" : "2008-10-17",
@@ -34,16 +38,16 @@ resource "aws_ecr_repository_policy" "apple_auth" {
 
 
 
-resource "aws_lambda_function" "apple_auth" {
-  function_name    = "${local.app_stack}-apple-auth"
-  image_uri        = "${aws_ecr_repository.apple_auth.repository_url}:${local.latest}"
-  role             = aws_iam_role.apple_auth.arn
+resource "aws_lambda_function" "apple" {
+  function_name    = "${local.app_stack}-apple"
+  image_uri        = "${aws_ecr_repository.apple.repository_url}:${local.latest}"
+  role             = aws_iam_role.apple.arn
   memory_size      = 128
   timeout          = 120
   package_type     = "Image"
   publish          = true
   architectures    = ["arm64"]
-  source_code_hash = trimprefix(data.aws_ecr_image.apple_auth.image_digest, "sha256:")
+  source_code_hash = trimprefix(data.aws_ecr_image.apple.image_digest, "sha256:")
   environment {
     variables = {
       CHALLENGE_TABLE_NAME          = "unused"
@@ -59,46 +63,47 @@ resource "aws_lambda_function" "apple_auth" {
     security_group_ids = [local.rs_mesh_egress_all_security_group]
   }
   depends_on = [
-    aws_ecr_repository.apple_auth,
-    data.aws_ecr_image.apple_auth
+    aws_ecr_repository.apple,
+    data.aws_ecr_image.apple
   ]
 }
 
-data "archive_file" "apple_auth" {
+data "archive_file" "apple" {
   type        = "zip"
-  source_dir  = "../go"
-  excludes    = ["../go/bin/**"]
-  output_path = "bin/apple_auth.zip"
+  source_dir  = "../apple"
+  excludes    = ["../apple/bin/**"]
+  output_path = "bin/apple.zip"
 }
 
-resource "null_resource" "apple_auth" {
+resource "null_resource" "apple" {
   triggers = {
-    src_hash = "${data.archive_file.apple_auth.output_sha}"
+    src_hash = "${data.archive_file.apple.output_sha}"
   }
   provisioner "local-exec" {
     command = <<EOF
            aws ecr get-login-password --region ${data.aws_region.current.name} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com
-           cd ${path.module}/../go
-		   docker build --platform=linux/arm64 -t ${aws_ecr_repository.apple_auth.repository_url}:${local.latest} .
-           docker push ${aws_ecr_repository.apple_auth.repository_url}:${local.latest}
+           cd ${path.module}/../apple
+		   docker tag ${local.image_name}:latest ${aws_ecr_repository.apple.repository_url}:${local.latest}
+		   docker build --platform=linux/arm64 -t ${local.image_name}:latest .
+           docker push ${local.image_name}:latest
        EOF
   }
 }
 
-data "aws_ecr_image" "apple_auth" {
+data "aws_ecr_image" "apple" {
   depends_on = [
-    null_resource.apple_auth
+    null_resource.apple
   ]
-  repository_name = aws_ecr_repository.apple_auth.name
+  repository_name = aws_ecr_repository.apple.name
   image_tag       = local.latest
 }
 
-resource "aws_iam_role" "apple_auth" {
-  name               = "${local.app_stack}-apple-auth-ExecutionRole"
-  assume_role_policy = data.aws_iam_policy_document.apple_auth_assume.json
+resource "aws_iam_role" "apple" {
+  name               = "${local.app_stack}-apple-ExecutionRole"
+  assume_role_policy = data.aws_iam_policy_document.apple_assume.json
   inline_policy {
-    name   = "${local.app_stack}-apple-auth-ExecutionRolePolicy"
-    policy = data.aws_iam_policy_document.apple_auth_inline.json
+    name   = "${local.app_stack}-apple-ExecutionRolePolicy"
+    policy = data.aws_iam_policy_document.apple_inline.json
   }
 
   managed_policy_arns = [
@@ -108,7 +113,7 @@ resource "aws_iam_role" "apple_auth" {
   ]
 }
 
-data "aws_iam_policy_document" "apple_auth_assume" {
+data "aws_iam_policy_document" "apple_assume" {
   statement {
     effect = "Allow"
     actions = [
@@ -123,7 +128,7 @@ data "aws_iam_policy_document" "apple_auth_assume" {
   }
 }
 
-data "aws_iam_policy_document" "apple_auth_inline" {
+data "aws_iam_policy_document" "apple_inline" {
   statement {
     effect = "Allow"
     actions = [
@@ -142,10 +147,10 @@ data "aws_iam_policy_document" "apple_auth_inline" {
   }
 }
 
-/* resource "aws_lambda_permission" "apple_auth" {
-  statement_id  = "${local.app_stack}-apple-auth-AllowExecutionFromAppSync"
+/* resource "aws_lambda_permission" "apple" {
+  statement_id  = "${local.app_stack}-apple-AllowExecutionFromAppSync"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.apple_auth.function_name
+  function_name = aws_lambda_function.apple.function_name
   principal     = "appsync.amazonaws.com"
   source_arn    = aws_appsync_graphql_api.appsync.arn
 } */
