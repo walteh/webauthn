@@ -10,6 +10,10 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC | log.Lmicroseconds)
+}
+
 func main() {
 
 	log.Println("Starting lambda handler")

@@ -14,7 +14,7 @@ type LambdaHander struct {
 	ctx     context.Context
 	dynamo  *dynamo.Client
 	cognito *cognito.Client
-	jwt     *jwt.Client
+	jwt     jwt.Client
 	env     env.Environment
 }
 
@@ -30,7 +30,7 @@ type Service interface {
 
 func NewHandler(ctx context.Context, env env.Environment) (*LambdaHander, error) {
 
-	jwtclient, err := jwt.NewAppleClient(ctx, env.AppleJwtPublicKeyEndpoint)
+	jwtclient, err := jwt.NewAppleJwtClient(env.AppleJwtPublicKeyEndpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (handler LambdaHander) Run(ctx context.Context, event map[string]interface{
 		return service.FormatResponse(handler, false, nil, fmt.Errorf("missing apple jwt token"))
 	}
 
-	tkn, err := handler.jwt.Verify(handler.ctx, request.AppleJwtToken)
+	tkn, err := jwt.VerifyJwt(handler.ctx, request.AppleJwtToken, handler.jwt)
 	if err != nil {
 		return service.FormatResponse(handler, false, nil, err)
 	}

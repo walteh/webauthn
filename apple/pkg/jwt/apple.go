@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"context"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -27,7 +26,8 @@ func (k appleKey) RSA() *rsa.PublicKey {
 func decodeBase64BigInt(s string) *big.Int {
 	buffer, err := base64.URLEncoding.WithPadding(base64.NoPadding).DecodeString(s)
 	if err != nil {
-		log.Fatalf("failed to decode base64: %v", err)
+		log.Println("error decoding base64: ", err.Error())
+		return big.NewInt(0)
 	}
 
 	return big.NewInt(0).SetBytes(buffer)
@@ -52,13 +52,6 @@ type stringfiedAppleKey struct {
 	E   string `json:"e"`
 }
 
-func (k *stringfiedAppleKey) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &k); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (k *stringfiedAppleKey) toAppleKey() appleKey {
 	return appleKey{
 		KTY: k.KTY,
@@ -70,73 +63,85 @@ func (k *stringfiedAppleKey) toAppleKey() appleKey {
 	}
 }
 
-// UnmarshalJSON parses a JSON-encoded value and stores the result in the object.
-func (k *appleKey) UnmarshalJSON(b []byte) error {
-	var tmp stringfiedAppleKey
-
-	err := tmp.UnmarshalJSON(b)
-	if err != nil {
-		return err
-	}
-
-	*k = tmp.toAppleKey()
-
-	return nil
+type AppleJwtClient struct {
+	endpoint *url.URL
 }
 
-func NewAppleClient(ctx context.Context, endpoint *url.URL) (*Client, error) {
+func NewAppleJwtClient(endpoint *url.URL) (*AppleJwtClient, error) {
+	return &AppleJwtClient{
+		endpoint: endpoint,
+	}, nil
 
-	keyfunc := func(t *jwt.Token) (interface{}, error) {
+}
 
-		res, err := http.Get(endpoint.String())
-		if err != nil {
-			log.Fatal(err)
-		}
+type AppleResponsePayload struct {
+	Keys []stringfiedAppleKey `json:"keys"`
+}
 
-		defer res.Body.Close()
+func (me *AppleJwtClient) BuildKeyFunc() (jwt.Keyfunc, error) {
 
-		body, err := io.ReadAll(res.Body)
+	res, err := http.Get(me.endpoint.String())
+	if err != nil {
+		log.Println("error getting apple keys: ", err.Error())
+		log.Println("endpoint: ", me.endpoint)
+		return nil, fmt.Errorf("error fetching keys from apple: %v", err)
+	}
 
-		if err != nil {
-			log.Fatal(err)
-		}
+	log.Println("response status from apple: ", res.Status)
 
-		var appleJWKs struct {
-			Keys []appleKey `json:"keys"`
-		}
+	defer res.Body.Close()
 
-		err = json.Unmarshal(body, &appleJWKs)
-		if err != nil {
-			log.Fatal(err)
-		}
+	body, err := io.ReadAll(res.Body)
+
+	if err != nil {
+		log.Println("error reading apple keys: ", err.Error())
+		log.Println("response: ", res)
+		log.Println("body: ", string(body))
+		return nil, fmt.Errorf("error reading keys from apple: %v", err)
+	}
+
+	log.Println("body", string(body))
+
+	var payload AppleResponsePayload
+
+	err = json.Unmarshal(body, &payload)
+	if err != nil {
+		log.Println("error unmarshalling apple keys: ", err.Error())
+		return nil, err
+	}
+
+	return func(t *jwt.Token) (interface{}, error) {
 
 		// check the signing method
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			log.Println("error signing method")
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 
 		// check the kid
 		kid, ok := t.Header["kid"].(string)
 		if !ok {
+			log.Println("error kid")
 			return nil, fmt.Errorf("kid not found in token header")
 		}
 
 		var match appleKey
 
 		// find the key
-		for _, key := range appleJWKs.Keys {
+		for _, key := range payload.Keys {
 			if key.KID == kid {
-				match = key
+				match = key.toAppleKey()
 				break
 			}
 		}
 
 		if match.KID == "" {
+			log.Println("error match kid")
 			return nil, fmt.Errorf("unable to find key for kid: %s", kid)
 		}
 
 		return match.RSA(), nil
-	}
 
-	return &Client{keyfunc}, nil
+	}, nil
+
 }

@@ -52,10 +52,6 @@ resource "aws_lambda_function" "apple" {
   tracing_config {
     mode = "Active"
   }
-  vpc_config {
-    subnet_ids         = [local.rs_mesh_private_subnet_a, local.rs_mesh_private_subnet_b]
-    security_group_ids = [local.rs_mesh_egress_all_security_group]
-  }
   depends_on = [
     aws_ecr_repository.apple,
     data.aws_ecr_image.apple
@@ -139,12 +135,4 @@ data "aws_iam_policy_document" "apple_inline" {
     ]
   }
 }
-
-/* resource "aws_lambda_permission" "apple" {
-  statement_id  = "${local.app_stack}-apple-AllowExecutionFromAppSync"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.apple.function_name
-  principal     = "appsync.amazonaws.com"
-  source_arn    = aws_appsync_graphql_api.appsync.arn
-} */
 

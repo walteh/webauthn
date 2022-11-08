@@ -7,8 +7,9 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-type Client struct {
-	keyfunc jwt.Keyfunc
+type Client interface {
+	// GetItem gets an item from the table
+	BuildKeyFunc() (jwt.Keyfunc, error)
 }
 
 type Jwt struct {
@@ -44,8 +45,14 @@ func (me *Jwt) getClaimValue(str string) (string, error) {
 
 // Client is a wrapper for the DynamoDB client
 // decode jwt token
-func (client *Client) Verify(ctx context.Context, token string) (*Jwt, error) {
-	r, err := jwt.Parse(token, client.keyfunc)
+func VerifyJwt(ctx context.Context, token string, client Client) (*Jwt, error) {
+
+	keyfunc, err := client.BuildKeyFunc()
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := jwt.Parse(token, keyfunc)
 	if err != nil {
 		return nil, err
 	}
