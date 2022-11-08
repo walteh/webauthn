@@ -1,10 +1,6 @@
-locals {
-  image_name = "${local.app_stack}-apple-image"
-}
-
 
 resource "aws_ecr_repository" "apple" {
-  name = local.image_name
+  name = "${local.app_stack}-apple-image"
 }
 
 resource "aws_ecr_repository_policy" "apple" {
@@ -35,8 +31,6 @@ resource "aws_ecr_repository_policy" "apple" {
     ]
   })
 }
-
-
 
 resource "aws_lambda_function" "apple" {
   function_name    = "${local.app_stack}-apple"
@@ -83,9 +77,8 @@ resource "null_resource" "apple" {
     command = <<EOF
            aws ecr get-login-password --region ${data.aws_region.current.name} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com
            cd ${path.module}/../apple
-		   docker tag ${local.image_name}:latest ${aws_ecr_repository.apple.repository_url}:${local.latest}
-		   docker build --platform=linux/arm64 -t ${local.image_name}:latest .
-           docker push ${local.image_name}:latest
+		   docker build --platform=linux/arm64 -t ${aws_ecr_repository.apple.repository_url}:${local.latest} .
+           docker push ${aws_ecr_repository.apple.repository_url}:${local.latest}
        EOF
   }
 }

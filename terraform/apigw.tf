@@ -1,3 +1,11 @@
+/* resource "aws_apigatewayv2_authorizer" "example" {
+  api_id           = aws_apigatewayv2_api.example.id
+  authorizer_type  = "REQUEST"
+  authorizer_uri   = aws_lambda_function.example.invoke_arn
+  identity_sources = ["route.request.header.Auth"]
+  name             = "example-authorizer"
+} */
+
 /* resource "aws_apigatewayv2_api" "example" {
   name                       = "example-websocket-api"
   protocol_type              = "WEBSOCKET"
@@ -10,13 +18,7 @@ resource "aws_apigatewayv2_api_mapping" "example" {
   stage       = aws_apigatewayv2_stage.example.id
 }
 
-resource "aws_apigatewayv2_authorizer" "example" {
-  api_id           = aws_apigatewayv2_api.example.id
-  authorizer_type  = "REQUEST"
-  authorizer_uri   = aws_lambda_function.example.invoke_arn
-  identity_sources = ["route.request.header.Auth"]
-  name             = "example-authorizer"
-}
+
 
 resource "aws_apigatewayv2_domain_name" "example" {
   domain_name = "http-api.example.com"

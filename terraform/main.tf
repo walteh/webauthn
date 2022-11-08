@@ -1,7 +1,7 @@
 
 
 locals {
-  app                 = "crypto"
+  app                 = "auth"
   env                 = terraform.workspace
   app_stack           = "${local.env}-${local.app}"
   external_app_domain = "${local.app}.${local.env}.api.${local.rs_mesh_route53_zone}"

@@ -1,4 +1,4 @@
-# nugg-mesh
+# nugg-auth
 
 1. validate the user is the user
 2. validate the user is using the app

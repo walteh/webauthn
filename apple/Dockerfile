@@ -9,7 +9,7 @@ RUN go mod download
 ADD . .
 RUN GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o /bin/handler main.go
 
-FROM public.ecr.aws/lambda/provided:al2
+FROM alpine:latest
 
 COPY --from=builder /bin/handler ${LAMBDA_TASK_ROOT}
 
