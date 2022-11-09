@@ -17,8 +17,8 @@ teamID - Your 10-character Team ID
 clientID - Your Services ID, e.g. com.aaronparecki.services
 keyID - Find the 10-char Key ID value from the portal
 */
-func (config *ClientConfig) GenerateClientSecret() (string, error) {
-	block, _ := pem.Decode([]byte(config.Secret))
+func (config *ClientConfig) GenerateClientSecret(secret string) (string, error) {
+	block, _ := pem.Decode([]byte(secret))
 	if block == nil {
 		return "", errors.New("empty block after decoding")
 	}

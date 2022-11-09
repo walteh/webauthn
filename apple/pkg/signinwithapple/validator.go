@@ -3,13 +3,10 @@ package signinwithapple
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/golang-jwt/jwt/v4"
 )
 
 const (
@@ -18,7 +15,7 @@ const (
 	// ContentType is the one expected by Apple
 	ContentType string = "application/x-www-form-urlencoded"
 	// UserAgent is required by Apple or the request will fail
-	UserAgent string = "go-signin-with-apple"
+	UserAgent string = "nugg.xyz/aws"
 	// AcceptHeader is the content that we are willing to accept
 	AcceptHeader string = "application/json"
 )
@@ -36,14 +33,17 @@ type Client struct {
 	httpClient    *http.Client
 
 	config *ClientConfig
-
-	publicKeys *PublicKeyResponse
 }
 
 // New creates a Client object
-func NewClient(teamId string, serviceId string, keyId string, key string) *Client {
+func NewClient(url *url.URL, teamId string, serviceId string, keyId string) *Client {
+	return newClientWithUrlString(url.String(), teamId, serviceId, keyId)
+}
+
+func newClientWithUrlString(url string, teamId string, serviceId string, keyId string) *Client {
+
 	client := &Client{
-		validationURL: ValidationURL,
+		validationURL: url,
 		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
@@ -51,27 +51,13 @@ func NewClient(teamId string, serviceId string, keyId string, key string) *Clien
 			TeamID:   teamId,
 			ClientID: serviceId,
 			KeyID:    keyId,
-			Secret:   key,
 		},
-
-		publicKeys: nil,
 	}
-
-	client.RefreshPublicKeys()
 
 	return client
 }
 
 // NewWithURL creates a Client object with a custom URL provided
-func NewWithURL(url string) *Client {
-	client := &Client{
-		validationURL: url,
-		httpClient: &http.Client{
-			Timeout: 5 * time.Second,
-		},
-	}
-	return client
-}
 
 // VerifyWebToken sends the WebValidationTokenRequest and gets validation result
 func (c *Client) VerifyWebToken(ctx context.Context, reqBody WebValidationTokenRequest, result interface{}) error {
@@ -125,48 +111,4 @@ func doRequest(ctx context.Context, client *http.Client, result interface{}, url
 	defer res.Body.Close()
 
 	return json.NewDecoder(res.Body).Decode(result)
-}
-
-// getClaims decodes the id_token response and returns the JWT claims to identify the user
-func (r *PublicKeyResponse) ParseToken(token string) (*SafeJwtToken, error) {
-	keyfunc, err := r.BuildKeyFunc()
-	if err != nil {
-		return nil, err
-	}
-
-	j, err := jwt.Parse(token, keyfunc)
-	if err != nil {
-		return nil, err
-	}
-
-	return &SafeJwtToken{j}, nil
-}
-
-// Get decodes the id_token response and returns the unique subject ID to identify the user
-func (r *SafeJwtToken) GetUniqueID() (string, error) {
-	if val, ok := (r.Claims).(jwt.MapClaims)["sub"].(string); ok {
-		return val, nil
-	} else {
-		return "", fmt.Errorf("could not get unique ID from token")
-	}
-
-}
-
-// GetEmail decodes the id_token response and returns the email address of the user
-func (r *SafeJwtToken) GetEmail() (email string, emailVerified bool, isPrivate bool, err error) {
-	var ok bool
-
-	if email, ok = (r.Claims).(jwt.MapClaims)["email"].(string); !ok {
-		return "", false, false, fmt.Errorf("could not get email from token")
-	}
-
-	if emailVerified, ok = (r.Claims).(jwt.MapClaims)["email_verified"].(bool); !ok {
-		return email, false, false, fmt.Errorf("could not get email from token")
-	}
-
-	if isPrivate, ok = (r.Claims).(jwt.MapClaims)["is_private_email"].(bool); !ok {
-		return email, emailVerified, false, fmt.Errorf("could not get email from token")
-	}
-
-	return email, emailVerified, isPrivate, nil
 }

@@ -1,4 +1,4 @@
-package signinwithapple
+package applepublickey
 
 import (
 	"context"

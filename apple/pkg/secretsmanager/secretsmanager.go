@@ -6,6 +6,7 @@ package secretsmanager
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -13,15 +14,22 @@ import (
 
 type Client struct {
 	*secretsmanager.Client
+	secretName string
+	ttl        time.Time
+	cache      *secretsmanager.GetSecretValueOutput
 }
 
-func NewClient(ctx context.Context, config aws.Config) (client *Client) {
-	return &Client{secretsmanager.NewFromConfig(config)}
+func NewClient(ctx context.Context, config aws.Config, secretName string) (client *Client) {
+	return &Client{secretsmanager.NewFromConfig(config), secretName, time.Now(), nil}
 }
 
-func (c *Client) GetSecret(ctx context.Context, secretName string) (secretString string, err error) {
+func (c *Client) Refresh(ctx context.Context) (secretString string, err error) {
+	if c.cache != nil && c.ttl.Before(time.Now()) {
+		return *c.cache.SecretString, nil
+	}
+
 	input := &secretsmanager.GetSecretValueInput{
-		SecretId:     aws.String(secretName),
+		SecretId:     aws.String(c.secretName),
 		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
 	}
 
@@ -29,6 +37,9 @@ func (c *Client) GetSecret(ctx context.Context, secretName string) (secretString
 	if err != nil {
 		return "", err
 	}
+
+	c.cache = result
+	c.ttl = time.Now().Add(time.Minute * 5)
 
 	return *result.SecretString, nil
 }

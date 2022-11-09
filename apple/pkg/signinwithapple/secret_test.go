@@ -60,10 +60,10 @@ HAqVePERhISfN6cwZt5p8B3/JUwSR8el66DF7Jm57BM=
 		t.Run(tt.name, func(t *testing.T) {
 
 			config := &ClientConfig{
-				"1234567890", "com.example.app", "0987654321", tt.signingKey,
+				"1234567890", "com.example.app", "0987654321",
 			}
 
-			got, err := config.GenerateClientSecret()
+			got, err := config.GenerateClientSecret(tt.signingKey)
 			if !tt.wantErr {
 				assert.NoError(t, err, "expected no error but got %s", err)
 			}

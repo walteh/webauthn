@@ -4,18 +4,22 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"nugg-auth/apple/pkg/applepublickey"
 	"nugg-auth/apple/pkg/cognito"
 	"nugg-auth/apple/pkg/dynamo"
 	"nugg-auth/apple/pkg/env"
-	"nugg-auth/apple/pkg/jwt"
+	"nugg-auth/apple/pkg/secretsmanager"
+	"nugg-auth/apple/pkg/signinwithapple"
 )
 
 type LambdaHander struct {
-	ctx     context.Context
-	dynamo  *dynamo.Client
-	cognito *cognito.Client
-	jwt     jwt.Client
-	env     env.Environment
+	ctx             context.Context
+	dynamo          *dynamo.Client
+	cognito         *cognito.Client
+	signinwithapple *signinwithapple.Client
+	applepublickey  *applepublickey.Client
+	secretsmanager  *secretsmanager.Client
+	env             env.Environment
 }
 
 type Request struct {
@@ -29,20 +33,14 @@ type Service interface {
 }
 
 func NewHandler(ctx context.Context, env env.Environment) (*LambdaHander, error) {
-
-	jwtclient, err := jwt.NewAppleJwtClient(env.AppleJwtPublicKeyEndpoint)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Println("Apple JWT client created")
-
 	return &LambdaHander{
-		ctx:     ctx,
-		dynamo:  dynamo.NewClient(env.AwsConfig, env.ChallengeTableName),
-		cognito: cognito.NewClient(env.AwsConfig, env.AppleIdentityPoolId),
-		jwt:     jwtclient,
-		env:     env,
+		ctx:             ctx,
+		dynamo:          dynamo.NewClient(env.AwsConfig, env.ChallengeTableName),
+		cognito:         cognito.NewClient(env.AwsConfig, env.AppleIdentityPoolId),
+		signinwithapple: signinwithapple.NewClient(env.AppleJwtPublicKeyEndpoint, env.AppleTeamID, env.AppleServiceName, env.SignInWithApplePrivateKeyID),
+		applepublickey:  applepublickey.NewClient(env.AppleJwtPublicKeyEndpoint),
+		secretsmanager:  secretsmanager.NewClient(ctx, env.AwsConfig, env.SignInWithApplePrivateKeyName),
+		env:             env,
 	}, nil
 }
 
@@ -73,7 +71,12 @@ func (handler LambdaHander) Run(ctx context.Context, event map[string]interface{
 		return service.FormatResponse(handler, false, nil, fmt.Errorf("missing apple jwt token"))
 	}
 
-	tkn, err := jwt.VerifyJwt(handler.ctx, request.AppleJwtToken, handler.jwt)
+	publickey, err := handler.applepublickey.Refresh(ctx)
+	if err != nil {
+		return service.FormatResponse(handler, false, nil, err)
+	}
+
+	tkn, err := publickey.ParseToken(request.AppleJwtToken)
 	if err != nil {
 		return service.FormatResponse(handler, false, nil, err)
 	}
@@ -82,7 +85,7 @@ func (handler LambdaHander) Run(ctx context.Context, event map[string]interface{
 		return service.FormatResponse(handler, false, nil, fmt.Errorf("invalid apple jwt token"))
 	}
 
-	sub, err := tkn.Sub()
+	sub, err := tkn.GetUniqueID()
 	if err != nil {
 		return service.FormatResponse(handler, false, nil, err)
 	}

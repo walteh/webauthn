@@ -11,8 +11,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.14.3
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.17.3
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.16.4
+	github.com/aws/smithy-go v1.13.4
 	github.com/golang-jwt/jwt/v4 v4.4.2
-	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/stretchr/testify v1.8.1
 	github.com/ugorji/go/codec v1.2.7
 )
@@ -29,13 +29,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.25 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.1 // indirect
-	github.com/aws/smithy-go v1.13.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
+	golang.org/x/net v0.2.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

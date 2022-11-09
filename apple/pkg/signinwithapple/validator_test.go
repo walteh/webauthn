@@ -7,52 +7,41 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"nugg-auth/apple/pkg/applepublickey"
 	"testing"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNew(t *testing.T) {
-	c := NewClient("someClientID", "someTeamID", "someKeyID", "somePrivateKey")
-
-	assert.IsType(t, &Client{}, c, "expected New to return a Client type")
-	assert.Equal(t, ValidationURL, c.validationURL, "expected the client's url to be %s, but got %s", ValidationURL, c.validationURL)
-	assert.NotNil(t, c.httpClient, "the client's http client should not be empty")
-}
-
-func TestNewWithURL(t *testing.T) {
-	c := NewWithURL("someURL")
-
+func TestNewClientWithUrlString(t *testing.T) {
+	c := NewClient(
+		&url.URL{Scheme: "https", Host: "appleid.apple.com"},
+		"key",
+		"teamID",
+		"clientID",
+	)
 	assert.IsType(t, &Client{}, c, "expected New to return a Client type")
 	assert.Equal(t, "someURL", c.validationURL, "expected the client's url to be %s, but got %s", "someURL", c.validationURL)
 	assert.NotNil(t, c.httpClient, "the client's http client should not be empty")
 }
 
-func MockSafeJwtWithClaims(claims jwt.MapClaims) *SafeJwtToken {
-	return &SafeJwtToken{
-		Token: &jwt.Token{
-			Claims: claims,
-		},
-	}
-}
-
 func TestGetUniqueID(t *testing.T) {
 	tests := []struct {
 		name    string
-		idToken *SafeJwtToken
+		idToken *applepublickey.SafeJwtToken
 		want    string
 		wantErr bool
 	}{
 		{
 			name:    "successful decode",
-			idToken: MockSafeJwtWithClaims(jwt.MapClaims{"sub": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"}),
+			idToken: applepublickey.MockSafeJwtWithClaims(jwt.MapClaims{"sub": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"}),
 			want:    "001437.def535ddd9e24c4fa4367dca50fdfedb.1951",
 			wantErr: false,
 		},
 		{
 			name:    "bad token",
-			idToken: MockSafeJwtWithClaims(jwt.MapClaims{"notsub": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"}),
+			idToken: applepublickey.MockSafeJwtWithClaims(jwt.MapClaims{"notsub": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"}),
 			want:    "",
 			wantErr: true,
 		},
@@ -75,19 +64,19 @@ func TestGetUniqueID(t *testing.T) {
 func TestGetClaims(t *testing.T) {
 	tests := []struct {
 		name      string
-		idToken   *SafeJwtToken
+		idToken   *applepublickey.SafeJwtToken
 		wantEmail string
 		wantErr   bool
 	}{
 		{
 			name:      "successful decode",
-			idToken:   MockSafeJwtWithClaims(jwt.MapClaims{"email": "foo@bar.com", "email_verified": true, "is_private_email": false}),
+			idToken:   applepublickey.MockSafeJwtWithClaims(jwt.MapClaims{"email": "foo@bar.com", "email_verified": true, "is_private_email": false}),
 			wantEmail: "foo@bar.com",
 			wantErr:   false,
 		},
 		{
 			name:      "bad token",
-			idToken:   MockSafeJwtWithClaims(jwt.MapClaims{"notemail": ""}),
+			idToken:   applepublickey.MockSafeJwtWithClaims(jwt.MapClaims{"notemail": ""}),
 			wantEmail: "",
 			wantErr:   true,
 		},
@@ -125,20 +114,20 @@ func TestDoRequestSuccess(t *testing.T) {
 
 	var actual ValidationResponse
 
-	c := NewWithURL(srv.URL)
+	c := newClientWithUrlString(srv.URL, "", "", "")
 	assert.NoError(t, doRequest(context.Background(), c.httpClient, &actual, c.validationURL, url.Values{}))
 	assert.Equal(t, "123", actual.IDToken)
 }
 
 func TestDoRequestBadServer(t *testing.T) {
 	var actual ValidationResponse
-	c := NewWithURL("foo.test")
+	c := newClientWithUrlString("foo.test", "", "", "")
 	assert.Error(t, doRequest(context.Background(), c.httpClient, &actual, c.validationURL, url.Values{}))
 }
 
 func TestDoRequestNewRequestFail(t *testing.T) {
 	var actual ValidationResponse
-	c := NewWithURL("http://fo  o.test")
+	c := newClientWithUrlString("http://fo  o.test", "", "", "")
 	assert.Error(t, doRequest(context.Background(), c.httpClient, &actual, c.validationURL, nil))
 }
 
@@ -151,7 +140,7 @@ func TestVerifyAppToken(t *testing.T) {
 	var resp ValidationResponse
 
 	srv := setupServerCompareURL(t, "client_id=123&client_secret=foo&code=bar&grant_type=authorization_code")
-	c := NewWithURL(srv.URL)
+	c := newClientWithUrlString(srv.URL, "", "", "")
 	c.VerifyAppToken(context.Background(), req, resp) // We aren't testing whether this will error
 }
 
@@ -165,7 +154,8 @@ func TestVerifyNonAppToken(t *testing.T) {
 	var resp ValidationResponse
 
 	srv := setupServerCompareURL(t, "client_id=123&client_secret=foo&code=bar&grant_type=authorization_code&redirect_uri=http%3A%2F%2Ffoo.test")
-	c := NewWithURL(srv.URL)
+	defer srv.Close()
+	c := newClientWithUrlString(srv.URL, "", "", "")
 	c.VerifyWebToken(context.Background(), req, resp) // We aren't testing whether this will error
 }
 
@@ -178,7 +168,8 @@ func TestVerifyRefreshToken(t *testing.T) {
 	var resp ValidationResponse
 
 	srv := setupServerCompareURL(t, "client_id=123&client_secret=foo&grant_type=refresh_token&refresh_token=bar")
-	c := NewWithURL(srv.URL)
+	defer srv.Close()
+	c := newClientWithUrlString(srv.URL, "", "", "")
 	c.VerifyRefreshToken(context.Background(), req, resp) // We aren't testing whether this will error
 }
 

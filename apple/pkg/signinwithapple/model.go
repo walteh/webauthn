@@ -1,12 +1,5 @@
 package signinwithapple
 
-import "github.com/golang-jwt/jwt/v4"
-
-type SafeJwtToken struct {
-	*jwt.Token
-	// The unique identifier for the user.
-}
-
 type ClientConfig struct {
 	// ClientID is the 10-character Team ID you use to sign in to your developer account.
 	// This is the same value you use to sign in to https://developer.apple.com.
@@ -20,22 +13,6 @@ type ClientConfig struct {
 
 	// KeyID is the 10-character Key ID value from the portal
 	KeyID string
-
-	// Secret is the contents of the p8 file/key you downloaded when you made the key in the portal
-	Secret string
-}
-
-type ApplePublicKey struct {
-	KTY string `json:"kty"`
-	KID string `json:"kid"`
-	Use string `json:"use"`
-	Alg string `json:"alg"`
-	N   string `json:"n"`
-	E   string `json:"e"`
-}
-
-type PublicKeyResponse struct {
-	Keys []ApplePublicKey `json:"keys"`
 }
 
 // WebValidationTokenRequest is based off of https://developer.apple.com/documentation/signinwithapplerestapi/generate_and_validate_tokens

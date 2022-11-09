@@ -6,10 +6,10 @@ import (
 	"net/url"
 )
 
-func (me *Client) ValidateRegistrationCode(ctx context.Context, registrationCode string) (*ValidationResponse, error) {
+func (me *Client) ValidateRegistrationCode(ctx context.Context, pk string, registrationCode string) (*ValidationResponse, error) {
 
 	// Generate the client secret used to authenticate with Apple's validation servers
-	secret, err := me.config.GenerateClientSecret()
+	secret, err := me.config.GenerateClientSecret(pk)
 	if err != nil {
 		fmt.Println("error generating secret: " + err.Error())
 		return nil, err
@@ -39,10 +39,10 @@ func (me *Client) ValidateRegistrationCode(ctx context.Context, registrationCode
 
 }
 
-func (me *Client) ValidateRefreshToken(ctx context.Context, refreshToken string) (*RefreshResponse, error) {
+func (me *Client) ValidateRefreshToken(ctx context.Context, pk string, refreshToken string) (*RefreshResponse, error) {
 
 	// Generate the client secret used to authenticate with Apple's validation servers
-	secret, err := me.config.GenerateClientSecret()
+	secret, err := me.config.GenerateClientSecret(pk)
 	if err != nil {
 		fmt.Println("error generating secret: " + err.Error())
 		return nil, err
@@ -75,10 +75,10 @@ func (me *Client) ValidateRefreshToken(ctx context.Context, refreshToken string)
 This example shows you how to validate a web token for the first time
 */
 
-func (me *Client) ValidateWebToken(ctx context.Context, authorizationCode string, redirect *url.URL) (*ValidationResponse, error) {
+func (me *Client) ValidateWebToken(ctx context.Context, pk string, authorizationCode string, redirect *url.URL) (*ValidationResponse, error) {
 
 	// Generate the client secret used to authenticate with Apple's validation servers
-	secret, err := me.config.GenerateClientSecret()
+	secret, err := me.config.GenerateClientSecret(pk)
 	if err != nil {
 		fmt.Println("error generating secret: " + err.Error())
 		return nil, err
