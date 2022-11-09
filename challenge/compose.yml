@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+    lambda:
+        container_name: apple-auth
+        ports:
+            - "9000:8080"
+        platform: "linux/arm64"
+        build:
+            dockerfile: Dockerfile
+        volumes:
+            - ~/.aws-lambda-rie:/aws-lambda
+        entrypoint:
+            - /aws-lambda/aws-lambda-rie
+            - /var/task/handler
+        environment:
+            - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
+            - CHALLENGE_TABLE_NAME=unused
+            - APPLE_IDENTITY_POOL_ID=unused

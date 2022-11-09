@@ -44,13 +44,27 @@ func NewHandler(ctx context.Context, env env.Environment) (*LambdaHander, error)
 	}, nil
 }
 
+// handlers
+
+// 0 auth challenge /auth/challenge
+
+// 1 apigw register /apple/auth/register
+
+/// simple sign in check
+// 2 apigw simple signinwithapple authorizer
+// 3 appsync simple signinwithapple/passkey authorizer
+
+// 4 apigw appattest authorizer
+
+// 5 apigw
+
 func GetService(event map[string]interface{}) Service {
 	if event["authorizationToken"] == nil && event["requestContext"] == nil {
 		return NoopHandler{}
 	}
 
 	if event["version"] != nil {
-		return ApigwV2Handler{}
+		return ApiGatewayV2AuthorizerService{}
 	}
 
 	return AppSyncHandler{}

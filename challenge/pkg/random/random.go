@@ -1,7 +1,6 @@
 package random
 
 import (
-	// "crypto"
 	sha256 "crypto/sha256"
 	"encoding/base64"
 	"math/rand"
