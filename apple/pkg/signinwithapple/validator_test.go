@@ -9,15 +9,16 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {
-	c := New()
+	c := NewClient("someClientID", "someTeamID", "someKeyID", "somePrivateKey")
 
 	assert.IsType(t, &Client{}, c, "expected New to return a Client type")
 	assert.Equal(t, ValidationURL, c.validationURL, "expected the client's url to be %s, but got %s", ValidationURL, c.validationURL)
-	assert.NotNil(t, c.client, "the client's http client should not be empty")
+	assert.NotNil(t, c.httpClient, "the client's http client should not be empty")
 }
 
 func TestNewWithURL(t *testing.T) {
@@ -25,32 +26,41 @@ func TestNewWithURL(t *testing.T) {
 
 	assert.IsType(t, &Client{}, c, "expected New to return a Client type")
 	assert.Equal(t, "someURL", c.validationURL, "expected the client's url to be %s, but got %s", "someURL", c.validationURL)
-	assert.NotNil(t, c.client, "the client's http client should not be empty")
+	assert.NotNil(t, c.httpClient, "the client's http client should not be empty")
+}
+
+func MockSafeJwtWithClaims(claims jwt.MapClaims) *SafeJwtToken {
+	return &SafeJwtToken{
+		Token: &jwt.Token{
+			Claims: claims,
+		},
+	}
 }
 
 func TestGetUniqueID(t *testing.T) {
 	tests := []struct {
 		name    string
-		idToken string
+		idToken *SafeJwtToken
 		want    string
 		wantErr bool
 	}{
 		{
 			name:    "successful decode",
-			idToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FwcGxlaWQuYXBwbGUuY29tIiwiYXVkIjoiY29tLmV4YW1wbGUuYXBwIiwiZXhwIjoxNTY4Mzk1Njc4LCJpYXQiOjE1NjgzOTUwNzgsInN1YiI6IjA4MjY0OS45MzM5MWQ4ZTExOTJmNTZiOGMxY2gzOWdzMmE0N2UyLjk3MzIiLCJhdF9oYXNoIjoickU3b3Brb1BSeVBseV9Pc2Rhc2RFQ1ZnIiwiYXV0aF90aW1lIjoxNTY4Mzk1MDc2fQ.PR3mMoVMdJo8EGPy6_aJ3sJGwAgcnnFjt9UCRXqWerI",
-			want:    "082649.93391d8e1192f56b8c1ch39gs2a47e2.9732",
+			idToken: MockSafeJwtWithClaims(jwt.MapClaims{"sub": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"}),
+			want:    "001437.def535ddd9e24c4fa4367dca50fdfedb.1951",
 			wantErr: false,
 		},
 		{
 			name:    "bad token",
-			idToken: "badtoken",
+			idToken: MockSafeJwtWithClaims(jwt.MapClaims{"notsub": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"}),
 			want:    "",
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetUniqueID(tt.idToken)
+
+			got, err := tt.idToken.GetUniqueID()
 			if !tt.wantErr {
 				assert.NoError(t, err, "expected no error but received %s", err)
 			}
@@ -65,32 +75,33 @@ func TestGetUniqueID(t *testing.T) {
 func TestGetClaims(t *testing.T) {
 	tests := []struct {
 		name      string
-		idToken   string
+		idToken   *SafeJwtToken
 		wantEmail string
 		wantErr   bool
 	}{
 		{
 			name:      "successful decode",
-			idToken:   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FwcGxlaWQuYXBwbGUuY29tIiwiYXVkIjoiY29tLmV4YW1wbGUuYXBwIiwiZXhwIjoxNTY4Mzk1Njc4LCJpYXQiOjE1NjgzOTUwNzgsInN1YiI6IjA4MjY0OS45MzM5MWQ4ZTExOTJmNTZiOGMxY2gzOWdzMmE0N2UyLjk3MzIiLCJhdF9oYXNoIjoickU3b3Brb1BSeVBseV9Pc2Rhc2RFQ1ZnIiwiZW1haWwiOiJmb29AYmFyLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjoidHJ1ZSIsImlzX3ByaXZhdGVfZW1haWwiOiJ0cnVlIiwiYXV0aF90aW1lIjoxNTY4Mzk1MDc2fQ.yPyUS_5k8RMvfowGylHqiCJqYwe-AOGtpBnjvqP4Na8",
+			idToken:   MockSafeJwtWithClaims(jwt.MapClaims{"email": "foo@bar.com", "email_verified": true, "is_private_email": false}),
 			wantEmail: "foo@bar.com",
 			wantErr:   false,
 		},
 		{
 			name:      "bad token",
-			idToken:   "badtoken",
+			idToken:   MockSafeJwtWithClaims(jwt.MapClaims{"notemail": ""}),
 			wantEmail: "",
 			wantErr:   true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetClaims(tt.idToken)
+
+			got, _, _, err := tt.idToken.GetEmail()
 			if !tt.wantErr {
 				assert.NoError(t, err, "expected no error but received %s", err)
 			}
 
 			if tt.wantEmail != "" {
-				assert.Equal(t, tt.wantEmail, (*got)["email"])
+				assert.Equal(t, tt.wantEmail, got)
 			}
 		})
 	}
@@ -115,20 +126,20 @@ func TestDoRequestSuccess(t *testing.T) {
 	var actual ValidationResponse
 
 	c := NewWithURL(srv.URL)
-	assert.NoError(t, doRequest(context.Background(), c.client, &actual, c.validationURL, url.Values{}))
+	assert.NoError(t, doRequest(context.Background(), c.httpClient, &actual, c.validationURL, url.Values{}))
 	assert.Equal(t, "123", actual.IDToken)
 }
 
 func TestDoRequestBadServer(t *testing.T) {
 	var actual ValidationResponse
 	c := NewWithURL("foo.test")
-	assert.Error(t, doRequest(context.Background(), c.client, &actual, c.validationURL, url.Values{}))
+	assert.Error(t, doRequest(context.Background(), c.httpClient, &actual, c.validationURL, url.Values{}))
 }
 
 func TestDoRequestNewRequestFail(t *testing.T) {
 	var actual ValidationResponse
 	c := NewWithURL("http://fo  o.test")
-	assert.Error(t, doRequest(context.Background(), c.client, &actual, c.validationURL, nil))
+	assert.Error(t, doRequest(context.Background(), c.httpClient, &actual, c.validationURL, nil))
 }
 
 func TestVerifyAppToken(t *testing.T) {

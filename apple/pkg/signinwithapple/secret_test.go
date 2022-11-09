@@ -58,7 +58,12 @@ HAqVePERhISfN6cwZt5p8B3/JUwSR8el66DF7Jm57BM=
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GenerateClientSecret(tt.signingKey, "1234567890", "com.example.app", "0987654321")
+
+			config := &ClientConfig{
+				"1234567890", "com.example.app", "0987654321", tt.signingKey,
+			}
+
+			got, err := config.GenerateClientSecret()
 			if !tt.wantErr {
 				assert.NoError(t, err, "expected no error but got %s", err)
 			}

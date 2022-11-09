@@ -6,41 +6,29 @@ package secretsmanager
 
 import (
 	"context"
-	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
-func main() {
-	secretName := "dev02/crypto/apple"
-	region := "us-east-1"
+type Client struct {
+	*secretsmanager.Client
+}
 
-	config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
-	if err != nil {
-		log.Fatal(err)
-	}
+func NewClient(ctx context.Context, config aws.Config) (client *Client) {
+	return &Client{secretsmanager.NewFromConfig(config)}
+}
 
-	// Create Secrets Manager client
-	svc := secretsmanager.NewFromConfig(config)
-
+func (c *Client) GetSecret(ctx context.Context, secretName string) (secretString string, err error) {
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId:     aws.String(secretName),
 		VersionStage: aws.String("AWSCURRENT"), // VersionStage defaults to AWSCURRENT if unspecified
 	}
 
-	result, err := svc.GetSecretValue(context.TODO(), input)
+	result, err := c.GetSecretValue(ctx, input)
 	if err != nil {
-		// For a list of exceptions thrown, see
-		// https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
-		log.Fatal(err.Error())
+		return "", err
 	}
 
-	// Decrypts secret using the associated KMS key.
-	var secretString string = *result.SecretString
-
-	log.Println(secretString)
-
-	// Your code goes here.
+	return *result.SecretString, nil
 }

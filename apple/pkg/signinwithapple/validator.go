@@ -33,17 +33,32 @@ type ValidationClient interface {
 // Client implements ValidationClient
 type Client struct {
 	validationURL string
-	client        *http.Client
+	httpClient    *http.Client
+
+	config *ClientConfig
+
+	publicKeys *PublicKeyResponse
 }
 
 // New creates a Client object
-func New() *Client {
+func NewClient(teamId string, serviceId string, keyId string, key string) *Client {
 	client := &Client{
 		validationURL: ValidationURL,
-		client: &http.Client{
+		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
+		config: &ClientConfig{
+			TeamID:   teamId,
+			ClientID: serviceId,
+			KeyID:    keyId,
+			Secret:   key,
+		},
+
+		publicKeys: nil,
 	}
+
+	client.RefreshPublicKeys()
+
 	return client
 }
 
@@ -51,7 +66,7 @@ func New() *Client {
 func NewWithURL(url string) *Client {
 	client := &Client{
 		validationURL: url,
-		client: &http.Client{
+		httpClient: &http.Client{
 			Timeout: 5 * time.Second,
 		},
 	}
@@ -67,7 +82,7 @@ func (c *Client) VerifyWebToken(ctx context.Context, reqBody WebValidationTokenR
 	data.Set("redirect_uri", reqBody.RedirectURI)
 	data.Set("grant_type", "authorization_code")
 
-	return doRequest(ctx, c.client, &result, c.validationURL, data)
+	return doRequest(ctx, c.httpClient, &result, c.validationURL, data)
 }
 
 // VerifyAppToken sends the AppValidationTokenRequest and gets validation result
@@ -78,7 +93,7 @@ func (c *Client) VerifyAppToken(ctx context.Context, reqBody AppValidationTokenR
 	data.Set("code", reqBody.Code)
 	data.Set("grant_type", "authorization_code")
 
-	return doRequest(ctx, c.client, &result, c.validationURL, data)
+	return doRequest(ctx, c.httpClient, &result, c.validationURL, data)
 }
 
 // VerifyRefreshToken sends the WebValidationTokenRequest and gets validation result
@@ -89,31 +104,7 @@ func (c *Client) VerifyRefreshToken(ctx context.Context, reqBody ValidationRefre
 	data.Set("refresh_token", reqBody.RefreshToken)
 	data.Set("grant_type", "refresh_token")
 
-	return doRequest(ctx, c.client, &result, c.validationURL, data)
-}
-
-// GetUniqueID decodes the id_token response and returns the unique subject ID to identify the user
-func GetUniqueID(idToken string) (string, error) {
-	j, _, err := jwt.NewParser().ParseUnverified(idToken, jwt.MapClaims{})
-	if err != nil {
-		return "", err
-	}
-	r, b := j.Claims.(jwt.MapClaims)
-	if !b {
-		return "", fmt.Errorf("could not parse claims")
-	}
-	return r["sub"].(string), nil
-}
-
-// GetClaims decodes the id_token response and returns the JWT claims to identify the user
-func GetClaims(idToken string) (*jwt.MapClaims, error) {
-	j, _, err := jwt.NewParser().ParseUnverified(idToken, jwt.MapClaims{})
-	if err != nil {
-		return nil, err
-	}
-
-	claim := j.Claims.(jwt.MapClaims)
-	return &claim, nil
+	return doRequest(ctx, c.httpClient, &result, c.validationURL, data)
 }
 
 func doRequest(ctx context.Context, client *http.Client, result interface{}, url string, data url.Values) error {
@@ -134,4 +125,48 @@ func doRequest(ctx context.Context, client *http.Client, result interface{}, url
 	defer res.Body.Close()
 
 	return json.NewDecoder(res.Body).Decode(result)
+}
+
+// getClaims decodes the id_token response and returns the JWT claims to identify the user
+func (r *PublicKeyResponse) ParseToken(token string) (*SafeJwtToken, error) {
+	keyfunc, err := r.BuildKeyFunc()
+	if err != nil {
+		return nil, err
+	}
+
+	j, err := jwt.Parse(token, keyfunc)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SafeJwtToken{j}, nil
+}
+
+// Get decodes the id_token response and returns the unique subject ID to identify the user
+func (r *SafeJwtToken) GetUniqueID() (string, error) {
+	if val, ok := (r.Claims).(jwt.MapClaims)["sub"].(string); ok {
+		return val, nil
+	} else {
+		return "", fmt.Errorf("could not get unique ID from token")
+	}
+
+}
+
+// GetEmail decodes the id_token response and returns the email address of the user
+func (r *SafeJwtToken) GetEmail() (email string, emailVerified bool, isPrivate bool, err error) {
+	var ok bool
+
+	if email, ok = (r.Claims).(jwt.MapClaims)["email"].(string); !ok {
+		return "", false, false, fmt.Errorf("could not get email from token")
+	}
+
+	if emailVerified, ok = (r.Claims).(jwt.MapClaims)["email_verified"].(bool); !ok {
+		return email, false, false, fmt.Errorf("could not get email from token")
+	}
+
+	if isPrivate, ok = (r.Claims).(jwt.MapClaims)["is_private_email"].(bool); !ok {
+		return email, emailVerified, false, fmt.Errorf("could not get email from token")
+	}
+
+	return email, emailVerified, isPrivate, nil
 }

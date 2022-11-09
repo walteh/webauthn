@@ -17,8 +17,8 @@ teamID - Your 10-character Team ID
 clientID - Your Services ID, e.g. com.aaronparecki.services
 keyID - Find the 10-char Key ID value from the portal
 */
-func GenerateClientSecret(signingKey, teamID, clientID, keyID string) (string, error) {
-	block, _ := pem.Decode([]byte(signingKey))
+func (config *ClientConfig) GenerateClientSecret() (string, error) {
+	block, _ := pem.Decode([]byte(config.Secret))
 	if block == nil {
 		return "", errors.New("empty block after decoding")
 	}
@@ -31,16 +31,16 @@ func GenerateClientSecret(signingKey, teamID, clientID, keyID string) (string, e
 	// Create the Claims
 	now := time.Now()
 	claims := &jwt.RegisteredClaims{
-		Issuer:    teamID,
+		Issuer:    config.TeamID,
 		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.AddDate(0, 6, 0)), // 6 months
 		Audience:  jwt.ClaimStrings{"https://appleid.apple.com"},
-		Subject:   clientID,
+		Subject:   config.ClientID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
 	token.Header["alg"] = "ES256"
-	token.Header["kid"] = keyID
+	token.Header["kid"] = config.KeyID
 
 	return token.SignedString(privKey)
 }

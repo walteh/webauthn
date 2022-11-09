@@ -3,198 +3,107 @@ package signinwithapple
 import (
 	"context"
 	"fmt"
+	"net/url"
 )
 
-func ValidateAppTokenAndObtainID() {
-	// Your 10-character Team ID
-	teamID := "XXXXXXXXXX"
-
-	// ClientID is the "Services ID" value that you get when navigating to your "sign in with Apple"-enabled service ID
-	clientID := "com.your.app"
-
-	// Find the 10-char Key ID value from the portal
-	keyID := "XXXXXXXXXX"
-
-	// The contents of the p8 file/key you downloaded when you made the key in the portal
-	secret := `-----BEGIN PRIVATE KEY-----
-YOUR_SECRET_PRIVATE_KEY
------END PRIVATE KEY-----`
+func (me *Client) ValidateRegistrationCode(ctx context.Context, registrationCode string) (*ValidationResponse, error) {
 
 	// Generate the client secret used to authenticate with Apple's validation servers
-	secret, err := GenerateClientSecret(secret, teamID, clientID, keyID)
+	secret, err := me.config.GenerateClientSecret()
 	if err != nil {
 		fmt.Println("error generating secret: " + err.Error())
-		return
+		return nil, err
 	}
 
-	// Generate a new validation client
-	client := New()
-
 	vReq := AppValidationTokenRequest{
-		ClientID:     clientID,
+		ClientID:     me.config.ClientID,
 		ClientSecret: secret,
-		Code:         "the_authorization_code_to_validate",
+		Code:         registrationCode,
 	}
 
 	var resp ValidationResponse
 
 	// Do the verification
-	err = client.VerifyAppToken(context.Background(), vReq, &resp)
+	err = me.VerifyAppToken(ctx, vReq, &resp)
 	if err != nil {
 		fmt.Println("error verifying: " + err.Error())
-		return
+		return nil, err
 	}
 
 	if resp.Error != "" {
 		fmt.Printf("apple returned an error: %s - %s\n", resp.Error, resp.ErrorDescription)
-		return
+		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
-	// Get the unique user ID
-	unique, err := GetUniqueID(resp.IDToken)
-	if err != nil {
-		fmt.Println("failed to get unique ID: " + err.Error())
-		return
-	}
+	return &resp, nil
 
-	// Get the email
-	claim, err := GetClaims(resp.IDToken)
-	if err != nil {
-		fmt.Println("failed to get claims: " + err.Error())
-		return
-	}
-
-	email := (*claim)["email"]
-	emailVerified := (*claim)["email_verified"]
-	isPrivateEmail := (*claim)["is_private_email"]
-
-	// Voila!
-	fmt.Println(unique)
-	fmt.Println(email)
-	fmt.Println(emailVerified)
-	fmt.Println(isPrivateEmail)
 }
 
-func ValidateRefreshToken() {
-	// Your 10-character Team ID
-	teamID := "XXXXXXXXXX"
-
-	// ClientID is the "Services ID" value that you get when navigating to your "sign in with Apple"-enabled service ID
-	clientID := "com.your.app"
-
-	// Find the 10-char Key ID value from the portal
-	keyID := "XXXXXXXXXX"
-
-	// The contents of the p8 file/key you downloaded when you made the key in the portal
-	secret := `-----BEGIN PRIVATE KEY-----
-YOUR_SECRET_PRIVATE_KEY
------END PRIVATE KEY-----`
+func (me *Client) ValidateRefreshToken(ctx context.Context, refreshToken string) (*RefreshResponse, error) {
 
 	// Generate the client secret used to authenticate with Apple's validation servers
-	secret, err := GenerateClientSecret(secret, teamID, clientID, keyID)
+	secret, err := me.config.GenerateClientSecret()
 	if err != nil {
 		fmt.Println("error generating secret: " + err.Error())
-		return
+		return nil, err
 	}
 
-	// Generate a new validation client
-	client := New()
-
 	vReq := ValidationRefreshRequest{
-		ClientID:     clientID,
+		ClientID:     me.config.ClientID,
 		ClientSecret: secret,
-		RefreshToken: "the_refresh_code_to_validate",
+		RefreshToken: refreshToken,
 	}
 
 	var resp RefreshResponse
 
 	// Do the verification
-	err = client.VerifyRefreshToken(context.Background(), vReq, &resp)
+	err = me.VerifyRefreshToken(ctx, vReq, &resp)
 	if err != nil {
 		fmt.Println("error verifying: " + err.Error())
-		return
+		return nil, err
 	}
 
 	if resp.Error != "" {
 		fmt.Printf("apple returned an error: %s - %s\n", resp.Error, resp.ErrorDescription)
-		return
+		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
-	// Voila!
-	fmt.Println(resp)
+	return &resp, nil
 }
 
 /*
 This example shows you how to validate a web token for the first time
 */
 
-func ValidateWebTokenAndObtainID() {
-	// Your 10-character Team ID
-	teamID := "XXXXXXXXXX"
-
-	// ClientID is the "Services ID" value that you get when navigating to your "sign in with Apple"-enabled service ID
-	clientID := "com.your.app"
-
-	// Find the 10-char Key ID value from the portal
-	keyID := "XXXXXXXXXX"
-
-	// The contents of the p8 file/key you downloaded when you made the key in the portal
-	secret := `-----BEGIN PRIVATE KEY-----
-YOUR_SECRET_PRIVATE_KEY
------END PRIVATE KEY-----`
+func (me *Client) ValidateWebToken(ctx context.Context, authorizationCode string, redirect *url.URL) (*ValidationResponse, error) {
 
 	// Generate the client secret used to authenticate with Apple's validation servers
-	secret, err := GenerateClientSecret(secret, teamID, clientID, keyID)
+	secret, err := me.config.GenerateClientSecret()
 	if err != nil {
 		fmt.Println("error generating secret: " + err.Error())
-		return
+		return nil, err
 	}
 
-	// Generate a new validation client
-	client := New()
-
 	vReq := WebValidationTokenRequest{
-		ClientID:     clientID,
+		ClientID:     me.config.ClientID,
 		ClientSecret: secret,
-		Code:         "the_authorization_code_to_validate",
-		RedirectURI:  "https://example.com", // This URL must be validated with apple in your service
+		Code:         authorizationCode,
+		RedirectURI:  redirect.String(), // This URL must be validated with apple in your service
 	}
 
 	var resp ValidationResponse
 
 	// Do the verification
-	err = client.VerifyWebToken(context.Background(), vReq, &resp)
+	err = me.VerifyWebToken(context.Background(), vReq, &resp)
 	if err != nil {
 		fmt.Println("error verifying: " + err.Error())
-		return
+		return nil, err
 	}
 
 	if resp.Error != "" {
 		fmt.Printf("apple returned an error: %s - %s\n", resp.Error, resp.ErrorDescription)
-		return
+		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
-	// Get the unique user ID
-	unique, err := GetUniqueID(resp.IDToken)
-	if err != nil {
-		fmt.Println("failed to get unique ID: " + err.Error())
-		return
-	}
-
-	// Get the email
-	claim, err := GetClaims(resp.IDToken)
-	if err != nil {
-		fmt.Println("failed to get claims: " + err.Error())
-		return
-	}
-
-	email := (*claim)["email"]
-	emailVerified := (*claim)["email_verified"]
-	isPrivateEmail := (*claim)["is_private_email"]
-
-	// Voila!
-	fmt.Println(unique)
-	fmt.Println(email)
-	fmt.Println(emailVerified)
-	fmt.Println(isPrivateEmail)
+	return &resp, nil
 }
