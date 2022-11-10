@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"math/rand"
 	"time"
+
+	"github.com/segmentio/ksuid"
 )
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -23,4 +25,8 @@ func Sequence(seed string) string {
 	keccak.Write([]byte(string(b)))
 
 	return base64.RawStdEncoding.EncodeToString(keccak.Sum([]byte(seed)))
+}
+
+func KSUID() string {
+	return ksuid.New().String()
 }

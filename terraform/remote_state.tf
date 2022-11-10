@@ -29,4 +29,5 @@ locals {
   rs_newrelic_region                            = data.terraform_remote_state.mesh.outputs.newrelic_region
   rs_newrelic_account_id                        = data.terraform_remote_state.mesh.outputs.newrelic_account_id
   rs_newrelic_api_key                           = data.terraform_remote_state.mesh.outputs.newrelic_api_key
+  rs_mesh_apigw_host                            = data.terraform_remote_state.mesh.outputs.apigw_host
 }

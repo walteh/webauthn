@@ -38,7 +38,7 @@ func (me ApiGatewayV2Service) FormatResponse(handler LambdaHander, isAuthorized 
 		context = map[string]interface{}{}
 	}
 
-	return &events.APIGatewayV2CustomSimpleResponse{
+	return &events.APIGatewayV2CustomAuthorizerSimpleResponse{
 		IsAuthorized: isAuthorized,
 		Context:      context,
 	}, nil

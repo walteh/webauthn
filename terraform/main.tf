@@ -6,6 +6,10 @@ locals {
   app_stack           = "${local.env}-${local.app}"
   external_app_domain = "${local.app}.${local.env}.api.${local.rs_mesh_route53_zone}"
   internal_app_domain = "${local.app}.${local.rs_mesh_namespace}"
+
+  apple_team_id      = "4497QJSAD3"
+  apple_key_id       = "7K626D4KLV"
+  apple_service_name = "xyz.nugg.app"
 }
 
 locals {

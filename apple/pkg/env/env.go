@@ -16,7 +16,8 @@ type Environment struct {
 	SignInWithApplePrivateKeyID   string
 	ChallengeTableName            string
 	AppleIdentityPoolId           string
-	AppleJwtPublicKeyEndpoint     *url.URL
+	ApplePublicKeyEndpoint        *url.URL
+	AppleTokenEndpoint            *url.URL
 	AppleTeamID                   string
 	AppleServiceName              string
 
@@ -33,22 +34,29 @@ func osGet(key string) (value string, err error) {
 
 func NewEnv(ctx context.Context) (env Environment, err error) {
 
-	if val, err := osGet("APPLE_JWT_PUBLIC_KEY_ENDPOINT"); err != nil {
+	if val, err := osGet("APPLE_PUBLICKEY_ENDPOINT"); err != nil {
 		return env, err
 	} else {
-		// parse url
-		env.AppleJwtPublicKeyEndpoint, err = url.Parse(val)
+		env.ApplePublicKeyEndpoint, err = url.Parse(val)
 		if err != nil {
 			return env, err
 		}
-
 	}
 
-	if env.SignInWithApplePrivateKeyName, err = osGet("SIGN_IN_WITH_APPLE_PRIVATE_KEY_NAME"); err != nil {
+	if val, err := osGet("APPLE_TOKEN_ENDPOINT"); err != nil {
+		return env, err
+	} else {
+		env.ApplePublicKeyEndpoint, err = url.Parse(val)
+		if err != nil {
+			return env, err
+		}
+	}
+
+	if env.SignInWithApplePrivateKeyName, err = osGet("SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME"); err != nil {
 		return env, err
 	}
 
-	if env.SignInWithApplePrivateKeyID = os.Getenv("SIGN_IN_WITH_APPLE_PRIVATE_KEY_ID"); err != nil {
+	if env.SignInWithApplePrivateKeyID = os.Getenv("APPLE_KEY_ID"); err != nil {
 		return env, err
 	}
 
@@ -60,11 +68,11 @@ func NewEnv(ctx context.Context) (env Environment, err error) {
 		return env, err
 	}
 
-	if env.ChallengeTableName, err = osGet("CHALLENGE_TABLE_NAME"); err != nil {
+	if env.ChallengeTableName, err = osGet("DYNAMO_CHALLENGE_TABLE_NAME"); err != nil {
 		return env, err
 	}
 
-	if env.AppleIdentityPoolId, err = osGet("APPLE_IDENTITY_POOL_ID"); err != nil {
+	if env.AppleIdentityPoolId, err = osGet("COGNITO_IDENTITY_POOL_ID"); err != nil {
 		return env, err
 	}
 

@@ -19,34 +19,42 @@ type Client struct {
 
 func NewClient(config aws.Config, tableName string) *Client {
 	return &Client{
-		Client: dynamodb.NewFromConfig(config),
+		dynamodb.NewFromConfig(config),
+		tableName,
 	}
 }
 
 type Challenge struct {
-	Challenge string `json:"challenge"`
-	UserId    string `json:"userId"`
-	Ttl       int64  `json:"ttl"`
+	Id    string `dynamodbav:"id"`
+	State string `dynamodbav:"state"`
+	Ttl   int64  `dynamodbav:"ttl"`
 }
 
 // AddMovie adds a movie the DynamoDB table.
-func (basics *Client) GenerateChallenge(ctx context.Context, userId string, life int64) (string, error) {
+func (basics *Client) GenerateChallenge(ctx context.Context, state string, ttl time.Time) (string, error) {
 
 	challenge := Challenge{
-		Challenge: random.Sequence(userId),
-		UserId:    userId,
-		Ttl:       time.Now().Unix() + life,
+		Id:    random.KSUID(),
+		State: state,
+		Ttl:   ttl.Unix(),
 	}
+
+	log.Println("challenge", challenge)
 
 	item, err := attributevalue.MarshalMap(challenge)
 	if err != nil {
-		panic(err)
+		log.Printf("failed to marshal challenge, %v", err)
+		return "", err
 	}
+
+	log.Println("putting item in dynamo", item)
+
 	_, err = basics.Client.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(basics.TableName), Item: item,
 	})
 	if err != nil {
 		log.Printf("Couldn't add item to table. Here's why: %v\n", err)
+		return "", err
 	}
-	return challenge.Challenge, nil
+	return challenge.Id, nil
 }

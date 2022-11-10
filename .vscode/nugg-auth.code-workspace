@@ -19,19 +19,22 @@
 		"gitlens.codeLens.enabled": false,
 		"workbench.tree.indent": 16,
 		"editor.formatOnSave": true,
+		"terraform.experimentalFeatures.validateOnSave": true,
+		"terraform.languageServer.enable": true,
+		"terraform.codelens.referenceCount": true,
 		"[terraform]": {
 			"editor.defaultFormatter": "hashicorp.terraform",
 			"editor.formatOnSave": false,
 			"editor.codeActionsOnSave": {
 				"source.formatAll.terraform": true
-			}
+			},
 		},
 		"[terraform-vars]": {
 			"editor.defaultFormatter": "hashicorp.terraform",
 			"editor.formatOnSave": false,
 			"editor.codeActionsOnSave": {
 				"source.formatAll.terraform": true
-			}
+			},
 		},
 	}
 }

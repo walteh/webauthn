@@ -1,81 +1,102 @@
-/* resource "aws_apigatewayv2_authorizer" "example" {
-  api_id           = aws_apigatewayv2_api.example.id
-  authorizer_type  = "REQUEST"
-  authorizer_uri   = aws_lambda_function.example.invoke_arn
-  identity_sources = ["route.request.header.Auth"]
-  name             = "example-authorizer"
-} */
 
-resource "aws_apigatewayv2_api" "example" {
-  name                       = "example-websocket-api"
-  protocol_type              = "WEBSOCKET"
-  route_selection_expression = "$request.body.action"
-}
-
-
-resource "aws_apigatewayv2_integration" "example" {
-  api_id           = aws_apigatewayv2_api.example.id
-  integration_type = "AWS_PROXY"
-
-  connection_type           = "INTERNET"
-  content_handling_strategy = "CONVERT_TO_TEXT"
-  description               = "Lambda example"
-  integration_method        = "POST"
-  integration_uri           = aws_lambda_function.example.invoke_arn
-  passthrough_behavior      = "WHEN_NO_MATCH"
-}
-
-resource "aws_apigatewayv2_integration_response" "example" {
-  api_id                   = aws_apigatewayv2_api.example.id
-  integration_id           = aws_apigatewayv2_integration.example.id
-  integration_response_key = "/200/"
-}
-
-/*
-resource "aws_apigatewayv2_api_mapping" "example" {
-  api_id      = aws_apigatewayv2_api.example.id
-  domain_name = aws_apigatewayv2_domain_name.example.id
-  stage       = aws_apigatewayv2_stage.example.id
-}
-
-
-
-resource "aws_apigatewayv2_domain_name" "example" {
-  domain_name = "http-api.example.com"
-
-  domain_name_configuration {
-    certificate_arn = aws_acm_certificate.example.arn
-    endpoint_type   = "REGIONAL"
-    security_policy = "TLS_1_2"
+resource "aws_apigatewayv2_api" "auth" {
+  name                       = "${local.app_stack}-exp-api"
+  protocol_type              = "HTTP"
+  route_selection_expression = "$request.method $request.path"
+  cors_configuration {
+    allow_origins  = ["*"]
+    allow_methods  = ["POST"]
+    allow_headers  = ["*"]
+    expose_headers = ["*"]
   }
 }
 
-resource "aws_route53_record" "example" {
-  name    = aws_apigatewayv2_domain_name.example.domain_name
-  type    = "A"
-  zone_id = aws_route53_zone.example.zone_id
+resource "aws_apigatewayv2_authorizer" "apple" {
+  api_id                            = aws_apigatewayv2_api.auth.id
+  authorizer_type                   = "REQUEST"
+  authorizer_uri                    = aws_lambda_function.apple.invoke_arn
+  identity_sources                  = ["$request.header.Authorization"]
+  name                              = "${local.app_stack}-apigw-apple-authorizer"
+  authorizer_payload_format_version = "2.0"
+}
 
-  alias {
-    name                   = aws_apigatewayv2_domain_name.example.domain_name_configuration[0].target_domain_name
-    zone_id                = aws_apigatewayv2_domain_name.example.domain_name_configuration[0].hosted_zone_id
-    evaluate_target_health = false
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.auth.id
+  name        = "default"
+  auto_deploy = true
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.stack.arn
+    format          = "$context.identity.sourceIp - $context.identity.caller - $context.identity.user [$context.requestTime] \"$context.httpMethod $context.routeKey $context.protocol\" $context.status $context.responseLength $context.requestId $context.integrationErrorMessage $context.error.message "
   }
 }
 
-resource "aws_apigatewayv2_integration" "example" {
-  api_id           = aws_apigatewayv2_api.example.id
-  integration_type = "AWS_PROXY"
-
-  connection_type           = "INTERNET"
-  content_handling_strategy = "CONVERT_TO_TEXT"
-  description               = "Lambda example"
-  integration_method        = "POST"
-  integration_uri           = aws_lambda_function.example.invoke_arn
-  passthrough_behavior      = "WHEN_NO_MATCH"
+resource "aws_apigatewayv2_api_mapping" "auth" {
+  api_id          = aws_apigatewayv2_api.auth.id
+  domain_name     = local.rs_mesh_apigw_host
+  stage           = aws_apigatewayv2_stage.default.id
+  api_mapping_key = "auth"
 }
 
-resource "aws_apigatewayv2_integration_response" "example" {
-  api_id                   = aws_apigatewayv2_api.example.id
-  integration_id           = aws_apigatewayv2_integration.example.id
-  integration_response_key = "/200/"
+resource "aws_apigatewayv2_route" "challenge" {
+  api_id             = aws_apigatewayv2_api.auth.id
+  route_key          = "POST /challenge"
+  authorization_type = "NONE"
+  target             = "integrations/${aws_apigatewayv2_integration.challenge_lambda.id}"
+}
+
+resource "aws_lambda_permission" "challenge" {
+  statement_id  = "${local.app_stack}-challenge-AllowExecutionFromApiGatewayChallengeRoute"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.challenge.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/challenge"
+}
+
+resource "aws_apigatewayv2_deployment" "default" {
+  depends_on = [aws_apigatewayv2_route.challenge]
+  api_id     = aws_apigatewayv2_api.auth.id
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_apigatewayv2_integration" "challenge_lambda" {
+  api_id             = aws_apigatewayv2_api.auth.id
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+  integration_uri    = aws_lambda_function.challenge.invoke_arn
+  /* credentials_arn        = aws_iam_role.challenge_integration_role.arn */
+  payload_format_version = "2.0"
+}
+
+/* resource "aws_iam_role" "challenge_integration_role" {
+  name               = "${local.app_stack}-challenge-IntegrationRole"
+  assume_role_policy = data.aws_iam_policy_document.apigw_assume.json
+  inline_policy {
+    name   = "${local.app_stack}-challenge-IntegrationRolePolicy"
+    policy = data.aws_iam_policy_document.challenge_integration_inline.json
+  }
+
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+  ]
+}
+
+data "aws_iam_policy_document" "apigw_assume" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["apigateway.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "challenge_integration_inline" {
+  statement {
+    effect    = "Allow"
+    actions   = ["lambda:InvokeFunction"]
+    resources = [aws_lambda_function.challenge.arn]
+  }
 } */

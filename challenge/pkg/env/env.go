@@ -25,7 +25,7 @@ func osGet(key string) (value string, err error) {
 
 func NewEnv(ctx context.Context) (env Environment, err error) {
 
-	if env.ChallengeTableName, err = osGet("CHALLENGES_DYNAMO_TABLE_NAME"); err != nil {
+	if env.ChallengeTableName, err = osGet("DYNAMO_CHALLENGE_TABLE_NAME"); err != nil {
 		return env, err
 	}
 

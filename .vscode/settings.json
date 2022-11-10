@@ -1,19 +1,2 @@
 {
-	"editor.formatOnSave": true,
-	"[terraform]": {
-		"editor.defaultFormatter": "hashicorp.terraform",
-		"editor.formatOnSave": false,
-		"editor.codeActionsOnSave": {
-			"source.formatAll.terraform": true
-		}
-	},
-	"[terraform-vars]": {
-		"editor.defaultFormatter": "hashicorp.terraform",
-		"editor.formatOnSave": false,
-		"editor.codeActionsOnSave": {
-			"source.formatAll.terraform": true
-		}
-	},
-
-	"lldb.library": "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB"
 }

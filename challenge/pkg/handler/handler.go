@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
 	"nugg-auth/challenge/pkg/dynamo"
 	"nugg-auth/challenge/pkg/env"
 	"time"
@@ -30,23 +29,7 @@ type Request struct {
 	events.APIGatewayV2HTTPRequest
 }
 
-func (h LambdaHander) Invoke(ctx context.Context, payload []byte) ([]byte, error) {
-
-	var event events.APIGatewayV2HTTPRequest
-
-	if err := json.Unmarshal(payload, &event); err != nil {
-		return nil, err
-	}
-
-	res, err := h.invoke(ctx, event)
-	if err != nil {
-		return nil, err
-	}
-
-	return json.Marshal(res)
-}
-
-func (h LambdaHander) invoke(ctx context.Context, payload events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+func (h LambdaHander) Invoke(ctx context.Context, payload events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 
 	if payload.Headers["x-nugg-challenge-state"] == "" {
 		return events.APIGatewayV2HTTPResponse{
@@ -56,10 +39,15 @@ func (h LambdaHander) invoke(ctx context.Context, payload events.APIGatewayV2HTT
 	}
 
 	// get challenge from dynamo
-	challenge, err := h.dynamo.GenerateChallenge(ctx, payload.Headers["x-nugg-challenge-state"], time.Now().Add(time.Minute*5).Unix())
+	challenge, err := h.dynamo.GenerateChallenge(
+		ctx,
+		payload.Headers["x-nugg-challenge-state"],
+		time.Now().Add(time.Minute*5),
+	)
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
+			Body:       "Error generating challenge",
 		}, nil
 	}
 

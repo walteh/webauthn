@@ -37,8 +37,8 @@ func NewHandler(ctx context.Context, env env.Environment) (*LambdaHander, error)
 		ctx:             ctx,
 		dynamo:          dynamo.NewClient(env.AwsConfig, env.ChallengeTableName),
 		cognito:         cognito.NewClient(env.AwsConfig, env.AppleIdentityPoolId),
-		signinwithapple: signinwithapple.NewClient(env.AppleJwtPublicKeyEndpoint, env.AppleTeamID, env.AppleServiceName, env.SignInWithApplePrivateKeyID),
-		applepublickey:  applepublickey.NewClient(env.AppleJwtPublicKeyEndpoint),
+		signinwithapple: signinwithapple.NewClient(env.AppleTokenEndpoint, env.AppleTeamID, env.AppleServiceName, env.SignInWithApplePrivateKeyID),
+		applepublickey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint),
 		secretsmanager:  secretsmanager.NewClient(ctx, env.AwsConfig, env.SignInWithApplePrivateKeyName),
 		env:             env,
 	}, nil

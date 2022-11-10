@@ -2,35 +2,6 @@ resource "aws_ecr_repository" "challenge" {
   name = "${local.app_stack}-challenge-image"
 }
 
-resource "aws_ecr_repository_policy" "challenge" {
-  repository = aws_ecr_repository.challenge.name
-
-  policy = jsonencode({
-    "Version" : "2008-10-17",
-    "Statement" : [
-      {
-        "Sid" : "ReadOnlyPermissions",
-        "Effect" : "Allow",
-        "Principal" : "*",
-        "Action" : [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:BatchGetImage",
-          "ecr:DescribeImageScanFindings",
-          "ecr:DescribeImages",
-          "ecr:DescribeRepositories",
-          "ecr:GetAuthorizationToken",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:GetLifecyclePolicy",
-          "ecr:GetLifecyclePolicyPreview",
-          "ecr:GetRepositoryPolicy",
-          "ecr:ListImages",
-          "ecr:ListTagsForResource"
-        ]
-      }
-    ]
-  })
-}
-
 resource "aws_lambda_function" "challenge" {
   function_name    = "${local.app_stack}-challenge"
   image_uri        = "${aws_ecr_repository.challenge.repository_url}:${local.latest}"
@@ -41,18 +12,13 @@ resource "aws_lambda_function" "challenge" {
   publish          = true
   architectures    = ["arm64"]
   source_code_hash = trimprefix(data.aws_ecr_image.challenge.image_digest, "sha256:")
+
   environment {
     variables = {
-      CHALLENGE_TABLE_NAME = aws_dynamodb_table.challenge.name
+      DYNAMO_CHALLENGE_TABLE_NAME = aws_dynamodb_table.challenge.name
     }
   }
-  tracing_config {
-    mode = "Active"
-  }
-  depends_on = [
-    aws_ecr_repository.challenge,
-    data.aws_ecr_image.challenge
-  ]
+  /* tracing_config { mode = "Active" } */
 }
 
 data "archive_file" "challenge" {
@@ -86,10 +52,10 @@ data "aws_ecr_image" "challenge" {
 
 resource "aws_iam_role" "challenge" {
   name               = "${local.app_stack}-challenge-ExecutionRole"
-  assume_role_policy = data.aws_iam_policy_document.challenge_assume.json
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   inline_policy {
     name   = "${local.app_stack}-challenge-ExecutionRolePolicy"
-    policy = data.aws_iam_policy_document.challenge_inline.json
+    policy = data.aws_iam_policy_document.challenge_lambda_inline.json
   }
 
   managed_policy_arns = [
@@ -99,37 +65,22 @@ resource "aws_iam_role" "challenge" {
   ]
 }
 
-data "aws_iam_policy_document" "challenge_assume" {
+data "aws_iam_policy_document" "lambda_assume" {
   statement {
-    effect = "Allow"
-    actions = [
-      "sts:AssumeRole"
-    ]
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
     principals {
-      type = "Service"
-      identifiers = [
-        "lambda.amazonaws.com"
-      ]
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
     }
   }
 }
 
-data "aws_iam_policy_document" "challenge_inline" {
+data "aws_iam_policy_document" "challenge_lambda_inline" {
   statement {
-    effect = "Allow"
-    actions = [
-      "ecr:GetAuthorizationToken",
-      "ecr:BatchCheckLayerAvailability",
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:GetRepositoryPolicy",
-      "ecr:DescribeRepositories",
-      "ecr:ListImages",
-      "ecr:DescribeImages",
-      "ecr:BatchGetImage"
-    ]
-    resources = [
-      "*"
-    ]
+    effect    = "Allow"
+    actions   = ["dynamodb:PutItem"]
+    resources = [aws_dynamodb_table.challenge.arn]
   }
 }
 
