@@ -20,6 +20,14 @@ locals {
 locals {
   latest  = "latest"
   primary = "primary"
+
+  lambda_docker_deploy_command = <<EOF
+	    	aws ecr get-login-password --region ${local.aws_region} | docker login --username AWS --password-stdin ${local.aws_account}.dkr.ecr.${local.aws_region}.amazonaws.com
+			cd ../apple
+		    docker build --platform=linux/arm64 -t $tag -f Dockerfile.lambda --build-arg CMD=$cmd .
+			docker push $tag
+			docker image rm $tag
+		EOF
 }
 
 

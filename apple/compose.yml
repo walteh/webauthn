@@ -2,12 +2,13 @@ version: "3.8"
 services:
     appsync:
         container_name: apple-appsync
-        image: apple-appsync
         ports:
             - "9000:8080"
         platform: "linux/arm64"
         build:
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.lambda
+            args:
+                CMD: "cmd/apple-appsync/main.go"
         volumes:
             - ~/.aws-lambda-rie:/aws-lambda
         entrypoint:
@@ -19,12 +20,13 @@ services:
             - APPLE_IDENTITY_POOL_ID=unused
     apigw:
         container_name: apple-apigw
-        image: apple-apigw
         ports:
             - "9001:8081"
         platform: "linux/arm64"
         build:
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.lambda
+            args:
+                CMD: "cmd/apple-apigw/main.go"
         volumes:
             - ~/.aws-lambda-rie:/aws-lambda
         entrypoint:
@@ -36,12 +38,13 @@ services:
             - APPLE_IDENTITY_POOL_ID=unused
     challenge:
         container_name: challenger
-        image: challenger
         ports:
             - "9002:8082"
         platform: "linux/arm64"
         build:
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.lambda
+            args:
+                CMD: "cmd/challenge/main.go"
         volumes:
             - ~/.aws-lambda-rie:/aws-lambda
         entrypoint:

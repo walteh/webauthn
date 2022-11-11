@@ -9,6 +9,8 @@ import (
 	"nugg-auth/apple/pkg/env"
 	"nugg-auth/apple/pkg/secretsmanager"
 	"nugg-auth/apple/pkg/signinwithapple"
+
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 func init() {
@@ -22,7 +24,7 @@ type LambdaHander[I interface{}, O interface{}] struct {
 	SignInWithApple *signinwithapple.Client
 	ApplePublicKey  *applepublickey.Client
 	SecretsManager  *secretsmanager.Client
-	Env             env.Environment
+	Config          config.Config
 }
 
 type Request struct {
@@ -35,15 +37,20 @@ type Request struct {
 // 	FormatResponse(handler LambdaHander, isAuthorized bool, result map[string]interface{}, err error) (interface{}, error)
 // }
 
-func NewHandler[I interface{}, O interface{}](ctx context.Context, env env.Environment, invoker func(handler *LambdaHander[I, O], input I) (O, error)) func(ctx context.Context, input I) (O, error) {
+func NewHandler[I interface{}, O interface{}](ctx context.Context, invoker func(handler *LambdaHander[I, O], input I) (O, error)) func(ctx context.Context, input I) (O, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil
+	}
+
 	abc := &LambdaHander[I, O]{
 		Ctx:             ctx,
-		Dynamo:          dynamo.NewClient(env.AwsConfig, env.ChallengeTableName),
-		Cognito:         cognito.NewClient(env.AwsConfig, env.AppleIdentityPoolId),
-		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint, env.AppleTeamID, env.AppleServiceName, env.SignInWithApplePrivateKeyID),
-		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint),
-		SecretsManager:  secretsmanager.NewClient(ctx, env.AwsConfig, env.SignInWithApplePrivateKeyName),
-		Env:             env,
+		Dynamo:          dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
+		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
+		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
+		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
+		SecretsManager:  secretsmanager.NewClient(ctx, cfg, env.SignInWithApplePrivateKeyName()),
+		Config:          cfg,
 	}
 
 	return func(ctx context.Context, input I) (O, error) {
@@ -54,12 +61,53 @@ func NewHandler[I interface{}, O interface{}](ctx context.Context, env env.Envir
 func NewDefaultHandler[I interface{}, O interface{}](invoker func(handler *LambdaHander[I, O], input I) (O, error)) func(ctx context.Context, input I) (O, error) {
 	ctx := context.Background()
 
-	env, err := env.NewEnv(ctx)
+	return NewHandler(ctx, invoker)
+}
+
+type Stripped struct {
+	Dynamo          bool
+	Cognito         bool
+	SignInWithApple bool
+	ApplePublicKey  bool
+	SecretsManager  bool
+}
+
+func NewStrippedHandler[I interface{}, O interface{}](str Stripped, invoker func(handler *LambdaHander[I, O], input I) (O, error)) func(ctx context.Context, input I) (O, error) {
+	ctx := context.Background()
+
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		panic(err)
+		return nil
 	}
 
-	return NewHandler(ctx, env, invoker)
+	abc := &LambdaHander[I, O]{
+		Ctx:    ctx,
+		Config: cfg,
+	}
+
+	if str.Dynamo {
+		abc.Dynamo = dynamo.NewClient(cfg, env.DynamoChallengeTableName())
+	}
+
+	if str.Cognito {
+		abc.Cognito = cognito.NewClient(cfg, env.AppleIdentityPoolId())
+	}
+
+	if str.SignInWithApple {
+		abc.SignInWithApple = signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID())
+	}
+
+	if str.ApplePublicKey {
+		abc.ApplePublicKey = applepublickey.NewClient(env.ApplePublicKeyEndpoint())
+	}
+
+	if str.SignInWithApple || str.SecretsManager {
+		abc.SecretsManager = secretsmanager.NewClient(ctx, cfg, env.SignInWithApplePrivateKeyName())
+	}
+
+	return func(ctx context.Context, input I) (O, error) {
+		return invoker(abc, input)
+	}
 }
 
 // handlers

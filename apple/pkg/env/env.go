@@ -7,21 +7,9 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 type Environment struct {
-	// evnironment variables
-	SignInWithApplePrivateKeyName string
-	SignInWithApplePrivateKeyID   string
-	ChallengeTableName            string
-	AppleIdentityPoolId           string
-	ApplePublicKeyEndpoint        *url.URL
-	AppleTokenEndpoint            *url.URL
-	AppleTeamID                   string
-	AppleServiceName              string
-
-	// aws config
 	AwsConfig aws.Config
 }
 
@@ -32,53 +20,47 @@ func osGet(key string) (value string, err error) {
 	return value, nil
 }
 
+func osMustGet(key string) (value string) {
+	if value, err := osGet(key); err != nil {
+		panic(err)
+	} else {
+		return value
+	}
+}
+
+func osMustGetUrl(key string) (value *url.URL) {
+	if value, err := osGetUrl(key); err != nil {
+		panic(err)
+	} else {
+		return value
+	}
+}
+func osGetUrl(key string) (value *url.URL, err error) {
+	if value, err = url.Parse(os.Getenv(key)); err != nil {
+		return nil, err
+	}
+	return value, nil
+}
+
+func SignInWithApplePrivateKeyID() string { return osMustGet("SIGNIN_WITH_APPLE_PRIVATE_KEY_ID") }
+
+func AppleTeamID() string { return osMustGet("APPLE_TEAM_ID") }
+
+func AppleServiceName() string { return osMustGet("APPLE_SERVICE_NAME") }
+
+func ApplePublicKeyEndpoint() *url.URL { return osMustGetUrl("APPLE_PUBLIC_KEY_ENDPOINT") }
+
+func AppleTokenEndpoint() *url.URL { return osMustGetUrl("APPLE_TOKEN_ENDPOINT") }
+
+func AppleIdentityPoolId() string { return osMustGet("COGNITO_IDENTITY_POOL_ID") }
+
+func DynamoChallengeTableName() string { return osMustGet("DYNAMO_CHALLENGE_TABLE_NAME") }
+
+func SignInWithApplePrivateKeyName() string { return osMustGet("SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME") }
+
+func (e Environment) GetAwsConfig() aws.Config { return e.AwsConfig }
+
 func NewEnv(ctx context.Context) (env Environment, err error) {
-
-	if val, err := osGet("APPLE_PUBLICKEY_ENDPOINT"); err != nil {
-		return env, err
-	} else {
-		env.ApplePublicKeyEndpoint, err = url.Parse(val)
-		if err != nil {
-			return env, err
-		}
-	}
-
-	if val, err := osGet("APPLE_TOKEN_ENDPOINT"); err != nil {
-		return env, err
-	} else {
-		env.ApplePublicKeyEndpoint, err = url.Parse(val)
-		if err != nil {
-			return env, err
-		}
-	}
-
-	if env.SignInWithApplePrivateKeyName, err = osGet("SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME"); err != nil {
-		return env, err
-	}
-
-	if env.SignInWithApplePrivateKeyID = os.Getenv("APPLE_KEY_ID"); err != nil {
-		return env, err
-	}
-
-	if env.AppleTeamID, err = osGet("APPLE_TEAM_ID"); err != nil {
-		return env, err
-	}
-
-	if env.AppleServiceName, err = osGet("APPLE_SERVICE_NAME"); err != nil {
-		return env, err
-	}
-
-	if env.ChallengeTableName, err = osGet("DYNAMO_CHALLENGE_TABLE_NAME"); err != nil {
-		return env, err
-	}
-
-	if env.AppleIdentityPoolId, err = osGet("COGNITO_IDENTITY_POOL_ID"); err != nil {
-		return env, err
-	}
-
-	if env.AwsConfig, err = config.LoadDefaultConfig(ctx); err != nil {
-		return env, err
-	}
 
 	return
 }

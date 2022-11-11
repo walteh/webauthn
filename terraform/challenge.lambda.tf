@@ -4,16 +4,13 @@ resource "aws_ecr_repository" "challenge" {
 }
 
 resource "null_resource" "challenge" {
-  depends_on = [null_resource.docker]
+  triggers = { src_hash = "${data.archive_file.apple.output_sha}" }
   provisioner "local-exec" {
     environment = {
+      cmd = "cmd/challenge/main.go"
       tag = "${aws_ecr_repository.challenge.repository_url}:${local.latest}"
     }
-    command = <<EOF
-			cd ${path.module}/../apple
-		    docker build --platform=linux/arm64 --target challenge -t $tag .
-			docker push $tag
-		EOF
+    command = local.lambda_docker_deploy_command
   }
 }
 

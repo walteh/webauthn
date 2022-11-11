@@ -1,33 +1,54 @@
 package main
 
 import (
+	"context"
 	"log"
-	"nugg-auth/apple/pkg/handler"
+	"nugg-auth/apple/pkg/dynamo"
+	"nugg-auth/apple/pkg/env"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
-type Input = events.AppSyncLambdaAuthorizerRequest
-type Output = events.AppSyncLambdaAuthorizerResponse
-type AppsyncHandler = handler.LambdaHander[Input, Output]
+type Input = events.APIGatewayV2HTTPRequest
+type Output = events.APIGatewayV2HTTPResponse
+
+type LambdaHander struct {
+	Ctx     context.Context
+	Dynamo  *dynamo.Client
+	Config  config.Config
+	counter int
+}
+
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC | log.Lmicroseconds)
+}
 
 func main() {
-	lambda.Start(handler.NewDefaultHandler(Run))
+
+	ctx := context.Background()
+
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return
+	}
+
+	abc := &LambdaHander{
+		Ctx:     ctx,
+		Dynamo:  dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
+		Config:  cfg,
+		counter: 0,
+	}
+
+	lambda.Start(abc.Invoke)
 }
 
-func Run(handler *AppsyncHandler, event Input) (Output, error) {
+func (h *LambdaHander) Invoke(ctx context.Context, payload Input) (Output, error) {
+	h.counter++
 
-	return Output{}, nil
-
-}
-
-type Request struct {
-	events.APIGatewayV2HTTPRequest
-}
-
-func Invoke(h *AppsyncHandler, payload events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+	log.Printf("counter: %d", h.counter)
 
 	if payload.Headers["x-nugg-challenge-state"] == "" {
 		return events.APIGatewayV2HTTPResponse{
@@ -35,10 +56,6 @@ func Invoke(h *AppsyncHandler, payload events.APIGatewayV2HTTPRequest) (events.A
 			Body:       "Missing required headers",
 		}, nil
 	}
-
-	type Input = events.AppSyncLambdaAuthorizerRequest
-	type Output = events.AppSyncLambdaAuthorizerResponse
-	type AppsyncHandler = handler.LambdaHander[Input, Output]
 
 	// get challenge from dynamo
 	challenge, err := h.Dynamo.GenerateChallenge(
@@ -59,8 +76,4 @@ func Invoke(h *AppsyncHandler, payload events.APIGatewayV2HTTPRequest) (events.A
 			"x-nugg-challenge": challenge,
 		},
 	}, nil
-}
-
-func init() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC | log.Lmicroseconds)
 }

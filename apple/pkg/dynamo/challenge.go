@@ -34,8 +34,6 @@ func (client *Client) GenerateChallenge(ctx context.Context, state string, ttl t
 		return "", err
 	}
 
-	log.Println("putting item in dynamo", item)
-
 	_, err = client.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: aws.String(client.TableName), Item: item,
 	})

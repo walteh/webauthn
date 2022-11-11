@@ -5,7 +5,7 @@ data "archive_file" "apple" {
   output_path = "bin/apple.zip"
 }
 
-resource "null_resource" "docker" {
+/* resource "null_resource" "docker" {
   triggers = { src_hash = "${data.archive_file.apple.output_sha}" }
   provisioner "local-exec" {
     command = <<EOF
@@ -14,4 +14,4 @@ resource "null_resource" "docker" {
 		   docker build --platform=linux/arm64 --target builder .
        EOF
   }
-}
+} */

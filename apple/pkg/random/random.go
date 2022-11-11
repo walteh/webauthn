@@ -1,31 +1,26 @@
 package random
 
 import (
-	sha256 "crypto/sha256"
-	"encoding/base64"
-	"math/rand"
-	"time"
-
 	"github.com/segmentio/ksuid"
 )
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+// var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func Sequence(seed string) string {
+// func Sequence(seed string) string {
 
-	rand.Seed(time.Now().UnixNano())
+// 	rand.Seed(time.Now().UnixNano())
 
-	b := make([]rune, 64)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
+// 	b := make([]rune, 64)
+// 	for i := range b {
+// 		b[i] = letters[rand.Intn(len(letters))]
+// 	}
 
-	keccak := sha256.New()
+// 	keccak := sha256.New()
 
-	keccak.Write([]byte(string(b)))
+// 	keccak.Write([]byte(string(b)))
 
-	return base64.RawStdEncoding.EncodeToString(keccak.Sum([]byte(seed)))
-}
+// 	return base64.RawStdEncoding.EncodeToString(keccak.Sum([]byte(seed)))
+// }
 
 func KSUID() string {
 	return ksuid.New().String()

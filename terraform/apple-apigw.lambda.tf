@@ -3,17 +3,18 @@ resource "aws_ecr_repository" "apple_apigw" {
   name = "${local.app_stack}-apple-apigw-image"
 }
 
+locals {
+
+}
+
 resource "null_resource" "apple_apigw" {
-  depends_on = [null_resource.docker]
+  triggers = { src_hash = "${data.archive_file.apple.output_sha}" }
   provisioner "local-exec" {
     environment = {
+      cmd = "cmd/apple-apigw/main.go"
       tag = "${aws_ecr_repository.apple_apigw.repository_url}:${local.latest}"
     }
-    command = <<EOF
-			cd ${path.module}/../apple
-		    docker build --platform=linux/arm64 --target apple-apigw -t $tag .
-			docker push $tag
-		EOF
+    command = local.lambda_docker_deploy_command
   }
 }
 

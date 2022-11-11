@@ -8,6 +8,9 @@
 			"path": "../apple"
 		},
 		{
+			"path": "../integration"
+		},
+		{
 			"path": "../terraform"
 		}
 	],

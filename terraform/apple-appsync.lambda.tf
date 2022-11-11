@@ -4,16 +4,13 @@ resource "aws_ecr_repository" "apple_appsync" {
 }
 
 resource "null_resource" "apple_appsync" {
-  depends_on = [null_resource.docker]
+  triggers = { src_hash = "${data.archive_file.apple.output_sha}" }
   provisioner "local-exec" {
     environment = {
+      cmd = "cmd/apple-appsync/main.go"
       tag = "${aws_ecr_repository.apple_appsync.repository_url}:${local.latest}"
     }
-    command = <<EOF
-			cd ${path.module}/../apple
-		    docker build --platform=linux/arm64 --target apple-appsync -t $tag .
-			docker push $tag
-		EOF
+    command = local.lambda_docker_deploy_command
   }
 }
 
