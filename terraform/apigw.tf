@@ -14,9 +14,9 @@ resource "aws_apigatewayv2_api" "auth" {
 resource "aws_apigatewayv2_authorizer" "apple" {
   api_id                            = aws_apigatewayv2_api.auth.id
   authorizer_type                   = "REQUEST"
-  authorizer_uri                    = aws_lambda_function.apple.invoke_arn
+  authorizer_uri                    = aws_lambda_function.apple_apigw.invoke_arn
   identity_sources                  = ["$request.header.Authorization"]
-  name                              = "${local.app_stack}-apigw-apple-authorizer"
+  name                              = "${local.app_stack}-apple-apigw-authorizer"
   authorizer_payload_format_version = "2.0"
 }
 

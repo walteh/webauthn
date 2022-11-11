@@ -22,6 +22,8 @@
 		"terraform.experimentalFeatures.validateOnSave": true,
 		"terraform.languageServer.enable": true,
 		"terraform.codelens.referenceCount": true,
+		"workbench.editor.splitInGroupLayout": "vertical",
+		"workbench"
 		"[terraform]": {
 			"editor.defaultFormatter": "hashicorp.terraform",
 			"editor.formatOnSave": false,

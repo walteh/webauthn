@@ -11,12 +11,6 @@ import (
 
 // Path: challenge/pkg/handler/apigwauthorizer.go
 
-type LambdaHander struct {
-	ctx    context.Context
-	dynamo *dynamo.Client
-	env    env.Environment
-}
-
 func NewHandler(ctx context.Context, env env.Environment) (*LambdaHander, error) {
 	return &LambdaHander{
 		ctx:    ctx,
@@ -29,7 +23,7 @@ type Request struct {
 	events.APIGatewayV2HTTPRequest
 }
 
-func (h LambdaHander) Invoke(ctx context.Context, payload events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+func Invoke(ctx context.Context, payload events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 
 	if payload.Headers["x-nugg-challenge-state"] == "" {
 		return events.APIGatewayV2HTTPResponse{
@@ -39,7 +33,7 @@ func (h LambdaHander) Invoke(ctx context.Context, payload events.APIGatewayV2HTT
 	}
 
 	// get challenge from dynamo
-	challenge, err := h.dynamo.GenerateChallenge(
+	challenge, err := h.Dynamo.GenerateChallenge(
 		ctx,
 		payload.Headers["x-nugg-challenge-state"],
 		time.Now().Add(time.Minute*5),

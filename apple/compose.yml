@@ -1,15 +1,13 @@
 version: "3.8"
 services:
     appsync:
-        container_name: appsync-authorizer
-        image: appsync-authorizer
+        container_name: apple_appsync
+        image: apple_appsync
         ports:
             - "9000:8080"
         platform: "linux/arm64"
         build:
             dockerfile: Dockerfile
-            args:
-                dir: "appsync-authorizer"
         volumes:
             - ~/.aws-lambda-rie:/aws-lambda
         entrypoint:
@@ -20,15 +18,13 @@ services:
             - CHALLENGE_TABLE_NAME=unused
             - APPLE_IDENTITY_POOL_ID=unused
     apigw:
-        container_name: apigw-authorizer
-        image: apigw-authorizer
+        container_name: apple_apigw
+        image: apple_apigw
         ports:
             - "9001:8081"
         platform: "linux/arm64"
         build:
             dockerfile: Dockerfile
-            args:
-                dir: "apigw-authorizer"
         volumes:
             - ~/.aws-lambda-rie:/aws-lambda
         entrypoint:
@@ -46,8 +42,6 @@ services:
         platform: "linux/arm64"
         build:
             dockerfile: Dockerfile
-            args:
-                dir: "challenger"
         volumes:
             - ~/.aws-lambda-rie:/aws-lambda
         entrypoint:

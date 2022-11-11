@@ -13,12 +13,7 @@ type Client struct {
 
 func NewClient(config aws.Config, tableName string) *Client {
 	return &Client{
-		Client: dynamodb.NewFromConfig(config),
+		Client:    dynamodb.NewFromConfig(config),
+		TableName: tableName,
 	}
-}
-
-type Challenge struct {
-	Challenge string `json:"challenge"`
-	UserId    string `json:"userId"`
-	Ttl       int64  `json:"ttl"`
 }
