@@ -3,8 +3,22 @@ resource "aws_ecr_repository" "apple_appsync" {
   name = "${local.app_stack}-apple-appsync-image"
 }
 
+resource "null_resource" "apple_appsync" {
+  depends_on = [null_resource.docker]
+  provisioner "local-exec" {
+    environment = {
+      tag = "${aws_ecr_repository.apple_appsync.repository_url}:${local.latest}"
+    }
+    command = <<EOF
+			cd ${path.module}/../apple
+		    docker build --platform=linux/arm64 --target apple-appsync -t $tag .
+			docker push $tag
+		EOF
+  }
+}
+
 data "aws_ecr_image" "apple_appsync" {
-  depends_on      = [null_resource.docker]
+  depends_on      = [null_resource.apple_appsync]
   repository_name = aws_ecr_repository.apple_appsync.name
   image_tag       = local.latest
 }

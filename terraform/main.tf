@@ -26,12 +26,13 @@ locals {
 
 
 data "aws_caller_identity" "current" {}
-
-data "aws_availability_zones" "available_zones" {
-  state = "available"
-}
-
-data "aws_region" "current" {
-}
-
+data "aws_availability_zones" "available_zones" { state = "available" }
+data "aws_region" "current" {}
 data "aws_partition" "current" {}
+
+
+locals {
+  aws_partition = data.aws_partition.current.partition
+  aws_region    = data.aws_region.current.name
+  aws_account   = data.aws_caller_identity.current.account_id
+}

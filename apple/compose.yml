@@ -1,8 +1,8 @@
 version: "3.8"
 services:
     appsync:
-        container_name: apple_appsync
-        image: apple_appsync
+        container_name: apple-appsync
+        image: apple-appsync
         ports:
             - "9000:8080"
         platform: "linux/arm64"
@@ -18,8 +18,8 @@ services:
             - CHALLENGE_TABLE_NAME=unused
             - APPLE_IDENTITY_POOL_ID=unused
     apigw:
-        container_name: apple_apigw
-        image: apple_apigw
+        container_name: apple-apigw
+        image: apple-apigw
         ports:
             - "9001:8081"
         platform: "linux/arm64"
@@ -38,7 +38,7 @@ services:
         container_name: challenger
         image: challenger
         ports:
-            - "9001:8081"
+            - "9002:8082"
         platform: "linux/arm64"
         build:
             dockerfile: Dockerfile

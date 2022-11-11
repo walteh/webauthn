@@ -1,6 +1,28 @@
+
 resource "aws_ecr_repository" "challenge" {
   name = "${local.app_stack}-challenge-image"
 }
+
+resource "null_resource" "challenge" {
+  depends_on = [null_resource.docker]
+  provisioner "local-exec" {
+    environment = {
+      tag = "${aws_ecr_repository.challenge.repository_url}:${local.latest}"
+    }
+    command = <<EOF
+			cd ${path.module}/../apple
+		    docker build --platform=linux/arm64 --target challenge -t $tag .
+			docker push $tag
+		EOF
+  }
+}
+
+data "aws_ecr_image" "challenge" {
+  depends_on      = [null_resource.challenge]
+  repository_name = aws_ecr_repository.challenge.name
+  image_tag       = local.latest
+}
+
 
 resource "aws_lambda_function" "challenge" {
   function_name    = "${local.app_stack}-challenge"
@@ -18,37 +40,9 @@ resource "aws_lambda_function" "challenge" {
       DYNAMO_CHALLENGE_TABLE_NAME = aws_dynamodb_table.challenge.name
     }
   }
-  /* tracing_config { mode = "Active" } */
 }
 
-data "archive_file" "challenge" {
-  type        = "zip"
-  source_dir  = "../challenge"
-  excludes    = ["../challenge/bin/**"]
-  output_path = "bin/challenge.zip"
-}
 
-resource "null_resource" "challenge" {
-  triggers = {
-    src_hash = "${data.archive_file.challenge.output_sha}"
-  }
-  provisioner "local-exec" {
-    command = <<EOF
-           aws ecr get-login-password --region ${data.aws_region.current.name} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com
-           cd ${path.module}/../challenge
-		   docker build --platform=linux/arm64 -t ${aws_ecr_repository.challenge.repository_url}:${local.latest} .
-           docker push ${aws_ecr_repository.challenge.repository_url}:${local.latest}
-       EOF
-  }
-}
-
-data "aws_ecr_image" "challenge" {
-  depends_on = [
-    null_resource.challenge
-  ]
-  repository_name = aws_ecr_repository.challenge.name
-  image_tag       = local.latest
-}
 
 resource "aws_iam_role" "challenge" {
   name               = "${local.app_stack}-challenge-ExecutionRole"

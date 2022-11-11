@@ -3,14 +3,29 @@ resource "aws_ecr_repository" "apple_apigw" {
   name = "${local.app_stack}-apple-apigw-image"
 }
 
+resource "null_resource" "apple_apigw" {
+  depends_on = [null_resource.docker]
+  provisioner "local-exec" {
+    environment = {
+      tag = "${aws_ecr_repository.apple_apigw.repository_url}:${local.latest}"
+    }
+    command = <<EOF
+			cd ${path.module}/../apple
+		    docker build --platform=linux/arm64 --target apple-apigw -t $tag .
+			docker push $tag
+		EOF
+  }
+}
+
+
 data "aws_ecr_image" "apple_apigw" {
-  depends_on      = [null_resource.docker]
+  depends_on      = [null_resource.apple_apigw]
   repository_name = aws_ecr_repository.apple_apigw.name
   image_tag       = local.latest
 }
 
 resource "aws_lambda_function" "apple_apigw" {
-  function_name    = "${local.app_stack}-apple"
+  function_name    = "${local.app_stack}-apple-apigw"
   image_uri        = "${aws_ecr_repository.apple_apigw.repository_url}:${local.latest}"
   role             = aws_iam_role.apple_apigw.arn
   memory_size      = 128
@@ -33,7 +48,7 @@ resource "aws_lambda_function" "apple_apigw" {
   }
   depends_on = [
     aws_ecr_repository.apple_apigw,
-    data.aws_ecr_image.apple_apigw
+    /* data.aws_ecr_image.apple_apigw */
   ]
 }
 

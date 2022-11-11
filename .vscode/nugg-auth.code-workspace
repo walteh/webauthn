@@ -8,9 +8,6 @@
 			"path": "../apple"
 		},
 		{
-			"path": "../challenge"
-		},
-		{
 			"path": "../terraform"
 		}
 	],
@@ -23,7 +20,6 @@
 		"terraform.languageServer.enable": true,
 		"terraform.codelens.referenceCount": true,
 		"workbench.editor.splitInGroupLayout": "vertical",
-		"workbench"
 		"[terraform]": {
 			"editor.defaultFormatter": "hashicorp.terraform",
 			"editor.formatOnSave": false,
