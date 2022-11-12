@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"log"
 	"nugg-auth/apple/pkg/applepublickey"
 	"nugg-auth/apple/pkg/cognito"
@@ -57,6 +59,7 @@ func main() {
 }
 
 func (h *Handler) Error(err error, message string) (Output, error) {
+	log.Printf("Error: %s", message, err)
 	return Output{
 		IsAuthorized:    false,
 		ResolverContext: map[string]interface{}{"error": err.Error(), "message": message},
@@ -67,13 +70,24 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	h.counter++
 
+	log.Printf("Invoke: %d", h.counter, payload)
+
 	if payload.AuthorizationToken == "" {
-		return Output{
-			IsAuthorized: false,
-			ResolverContext: map[string]interface{}{
-				"error": "Missing required headers",
-			},
-		}, nil
+		return h.Error(nil, "Missing required headers")
+	}
+
+	var authToken struct {
+		Authorization string `json:"x-nugg-authorization"`
+	}
+
+	// un base64 decode the token
+	base64Token, err := base64.StdEncoding.DecodeString(payload.AuthorizationToken)
+	if err != nil {
+		return h.Error(err, "Failed to decode")
+	}
+
+	if err := json.Unmarshal(base64Token, &authToken); err != nil {
+		return h.Error(err, "Invalid authorization token")
 	}
 
 	publickey, err := h.ApplePublicKey.Refresh(ctx)
@@ -81,7 +95,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return h.Error(err, "Failed to refresh public key")
 	}
 
-	tkn, err := publickey.ParseToken(payload.AuthorizationToken)
+	tkn, err := publickey.ParseToken(authToken.Authorization)
 	if err != nil {
 		return h.Error(err, "Failed to parse token")
 	}
@@ -95,7 +109,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return h.Error(err, "Failed to get sub")
 	}
 
-	creds, err := h.Cognito.GetIdentityId(h.Ctx, payload.AuthorizationToken)
+	creds, err := h.Cognito.GetIdentityId(h.Ctx, authToken.Authorization)
 	if err != nil {
 		return h.Error(err, "Failed to get identity id")
 	}
@@ -103,9 +117,8 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	return Output{
 		IsAuthorized: true,
 		ResolverContext: map[string]interface{}{
-			"sub":    sub,
-			"creds":  creds,
-			"claims": tkn.Claims,
+			"sub":   sub,
+			"creds": creds,
 		},
 	}, nil
 }

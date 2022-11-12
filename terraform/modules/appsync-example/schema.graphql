@@ -1,0 +1,22 @@
+schema {
+	query: Query
+	mutation: Mutation
+	subscription: Subscription
+}
+
+type Payload {
+	input: String @aws_lambda @aws_iam
+	result: AWSJSON @aws_lambda @aws_iam
+}
+
+type Query {
+	dummy(): String
+}
+
+type Mutation {
+	send(input: String): Payload @aws_iam
+}
+
+type Subscription {
+	listen: Payload @aws_subscribe(mutations: ["send"]) @aws_lambda
+}

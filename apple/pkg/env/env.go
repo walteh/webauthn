@@ -48,7 +48,7 @@ func AppleTeamID() string { return osMustGet("APPLE_TEAM_ID") }
 
 func AppleServiceName() string { return osMustGet("APPLE_SERVICE_NAME") }
 
-func ApplePublicKeyEndpoint() *url.URL { return osMustGetUrl("APPLE_PUBLIC_KEY_ENDPOINT") }
+func ApplePublicKeyEndpoint() *url.URL { return osMustGetUrl("APPLE_PUBLICKEY_ENDPOINT") }
 
 func AppleTokenEndpoint() *url.URL { return osMustGetUrl("APPLE_TOKEN_ENDPOINT") }
 

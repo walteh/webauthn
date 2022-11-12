@@ -38,7 +38,7 @@ resource "aws_lambda_function" "apple_appsync" {
       APPLE_TOKEN_ENDPOINT               = "https://appleid.apple.com/auth/token"
       SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME = aws_secretsmanager_secret.apple_signinwithapple_privatekey.name
       APPLE_TEAM_ID                      = local.apple_team_id
-      APPLE_KEY_ID                       = local.apple_key_id
+      SIGNIN_WITH_APPLE_PRIVATE_KEY_ID   = local.apple_key_id
       APPLE_SERVICE_NAME                 = local.apple_service_name
     }
   }
