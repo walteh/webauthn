@@ -38,9 +38,27 @@ func TestHttp(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "successful decode",
+			name:    "pass A",
 			args:    args{endpoint: r.AuthExpApiInvokeUrl + "/challenge", meathod: http.MethodPost, body: nil, headers: map[string]string{"x-nugg-challenge-state": "abc123"}},
 			want:    want{statusCode: http.StatusNoContent, body: nil, headers: map[string]string{"x-nugg-challenge": ""}},
+			wantErr: false,
+		},
+		{
+			name:    "pass B",
+			args:    args{endpoint: r.AuthExpApiInvokeUrl + "/challenge", meathod: http.MethodPost, body: nil, headers: map[string]string{"X-Nugg-Challenge-State": "abc123"}},
+			want:    want{statusCode: http.StatusNoContent, body: nil, headers: map[string]string{"x-nugg-challenge": ""}},
+			wantErr: false,
+		},
+		{
+			name:    "fail A",
+			args:    args{endpoint: r.AuthExpApiInvokeUrl + "/challenge", meathod: http.MethodPost, body: nil, headers: map[string]string{"x-nugg-challenge-stat": "abc123"}},
+			want:    want{statusCode: http.StatusBadRequest, body: nil},
+			wantErr: false,
+		},
+		{
+			name:    "fail B",
+			args:    args{endpoint: r.AuthExpApiInvokeUrl + "/challenge", meathod: http.MethodPost, body: nil, headers: map[string]string{}},
+			want:    want{statusCode: http.StatusBadRequest, body: nil},
 			wantErr: false,
 		},
 	}

@@ -15,7 +15,7 @@ import (
 type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
-type LambdaHander struct {
+type Handler struct {
 	Ctx     context.Context
 	Dynamo  *dynamo.Client
 	Config  config.Config
@@ -35,7 +35,7 @@ func main() {
 		return
 	}
 
-	abc := &LambdaHander{
+	abc := &Handler{
 		Ctx:     ctx,
 		Dynamo:  dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
 		Config:  cfg,
@@ -45,7 +45,7 @@ func main() {
 	lambda.Start(abc.Invoke)
 }
 
-func (h *LambdaHander) Invoke(ctx context.Context, payload Input) (Output, error) {
+func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	h.counter++
 
 	log.Printf("counter: %d", h.counter)
@@ -57,12 +57,12 @@ func (h *LambdaHander) Invoke(ctx context.Context, payload Input) (Output, error
 		}, nil
 	}
 
-	// get challenge from dynamo
 	challenge, err := h.Dynamo.GenerateChallenge(
 		h.Ctx,
 		payload.Headers["x-nugg-challenge-state"],
 		time.Now().Add(time.Minute*5),
 	)
+
 	if err != nil {
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
@@ -72,8 +72,6 @@ func (h *LambdaHander) Invoke(ctx context.Context, payload Input) (Output, error
 
 	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 204,
-		Headers: map[string]string{
-			"x-nugg-challenge": challenge,
-		},
+		Headers:    map[string]string{"x-nugg-challenge": challenge},
 	}, nil
 }
