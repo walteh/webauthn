@@ -1,4 +1,4 @@
-module nugg-auth/apple
+module nugg-auth/core
 
 go 1.19
 

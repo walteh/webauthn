@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"log"
-	"nugg-auth/apple/pkg/dynamo"
-	"nugg-auth/apple/pkg/env"
+	"nugg-auth/core/pkg/dynamo"
+	"nugg-auth/core/pkg/env"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"

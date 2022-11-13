@@ -2,23 +2,22 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
+	"errors"
 	"log"
-	"nugg-auth/apple/pkg/applepublickey"
-	"nugg-auth/apple/pkg/cognito"
-	"nugg-auth/apple/pkg/dynamo"
-	"nugg-auth/apple/pkg/env"
-	"nugg-auth/apple/pkg/secretsmanager"
-	"nugg-auth/apple/pkg/signinwithapple"
+	"nugg-auth/core/pkg/applepublickey"
+	"nugg-auth/core/pkg/cognito"
+	"nugg-auth/core/pkg/dynamo"
+	"nugg-auth/core/pkg/env"
+	"nugg-auth/core/pkg/secretsmanager"
+	"nugg-auth/core/pkg/signinwithapple"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 )
 
-type Input = events.AppSyncLambdaAuthorizerRequest
-type Output = events.AppSyncLambdaAuthorizerResponse
+type Input = events.APIGatewayV2CustomAuthorizerV2Request
+type Output = events.APIGatewayV2CustomAuthorizerSimpleResponse
 
 type Handler struct {
 	Ctx             context.Context
@@ -59,10 +58,9 @@ func main() {
 }
 
 func (h *Handler) Error(err error, message string) (Output, error) {
-	log.Printf("Error: %s", message, err)
 	return Output{
-		IsAuthorized:    false,
-		ResolverContext: map[string]interface{}{"error": err.Error(), "message": message},
+		IsAuthorized: false,
+		Context:      map[string]interface{}{"error": err.Error(), "message": message},
 	}, nil
 }
 
@@ -70,24 +68,8 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	h.counter++
 
-	log.Printf("Invoke: %d", h.counter, payload)
-
-	if payload.AuthorizationToken == "" {
+	if payload.Headers["Authorization"] == "" {
 		return h.Error(nil, "Missing required headers")
-	}
-
-	var authToken struct {
-		Authorization string `json:"x-nugg-authorization"`
-	}
-
-	// un base64 decode the token
-	base64Token, err := base64.StdEncoding.DecodeString(payload.AuthorizationToken)
-	if err != nil {
-		return h.Error(err, "Failed to decode")
-	}
-
-	if err := json.Unmarshal(base64Token, &authToken); err != nil {
-		return h.Error(err, "Invalid authorization token")
 	}
 
 	publickey, err := h.ApplePublicKey.Refresh(ctx)
@@ -95,13 +77,13 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return h.Error(err, "Failed to refresh public key")
 	}
 
-	tkn, err := publickey.ParseToken(authToken.Authorization)
+	tkn, err := publickey.ParseToken(payload.Headers["Authorization"])
 	if err != nil {
 		return h.Error(err, "Failed to parse token")
 	}
 
 	if !tkn.Valid {
-		return h.Error(err, "Invalid token")
+		return h.Error(errors.New("Unathorized"), "Invalid token")
 	}
 
 	sub, err := tkn.GetUniqueID()
@@ -109,16 +91,17 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return h.Error(err, "Failed to get sub")
 	}
 
-	creds, err := h.Cognito.GetIdentityId(h.Ctx, authToken.Authorization)
+	creds, err := h.Cognito.GetIdentityId(h.Ctx, payload.Headers["Authorization"])
 	if err != nil {
 		return h.Error(err, "Failed to get identity id")
 	}
 
 	return Output{
 		IsAuthorized: true,
-		ResolverContext: map[string]interface{}{
-			"sub":   sub,
-			"creds": creds,
+		Context: map[string]interface{}{
+			"sub":    sub,
+			"creds":  creds,
+			"claims": tkn.Claims,
 		},
 	}, nil
 }

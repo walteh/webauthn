@@ -20,9 +20,17 @@ locals {
 locals {
   latest = "latest"
 
-  challenge_tag = "${local.latest}-challenge"
-  apigw_tag     = "${local.latest}-apigw"
-  appsync_tag   = "${local.latest}-appsync"
+  appsync_dir   = "lambda/appsync-authorizer"
+  apigw_dir     = "lambda/apigw-authorizer"
+  challenge_dir = "lambda/challenge"
+
+  challenge_tag = "${local.challenge_dir}/${local.latest}"
+  apigw_tag     = "${local.apigw_dir}/${local.latest}"
+  appsync_tag   = "${local.appsync_dir}/${local.latest}"
+
+  challenge_cmd = "${local.challenge_dir}/main.go"
+  appsync_cmd   = "${local.appsync_dir}/main.go"
+  apigw_cmd     = "${local.apigw_dir}/main.go"
 
   primary = "primary"
 
