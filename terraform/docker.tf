@@ -5,6 +5,12 @@ data "archive_file" "apple" {
   output_path = "bin/apple.zip"
 }
 
+
+resource "aws_ecr_repository" "lambdas" {
+  name = "${local.app_stack}-lambdas"
+}
+
+
 /* resource "null_resource" "docker" {
   triggers = { src_hash = "${data.archive_file.apple.output_sha}" }
   provisioner "local-exec" {

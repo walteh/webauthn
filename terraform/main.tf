@@ -18,12 +18,17 @@ locals {
 }
 
 locals {
-  latest  = "latest"
+  latest = "latest"
+
+  challenge_tag = "${local.latest}-challenge"
+  apigw_tag     = "${local.latest}-apigw"
+  appsync_tag   = "${local.latest}-appsync"
+
   primary = "primary"
 
   lambda_docker_deploy_command = <<EOF
 	    	aws ecr get-login-password --region ${local.aws_region} | docker login --username AWS --password-stdin ${local.aws_account}.dkr.ecr.${local.aws_region}.amazonaws.com
-			cd ../apple
+			cd ../source
 		    docker build --platform=linux/arm64 -t $tag -f Dockerfile.lambda --build-arg CMD=$cmd .
 			docker push $tag
 			docker image rm $tag

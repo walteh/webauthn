@@ -1,40 +1,40 @@
 
-resource "aws_ecr_repository" "apple_apigw" {
-  name = "${local.app_stack}-apple-apigw-image"
-}
 
-locals {
 
-}
-
-resource "null_resource" "apple_apigw" {
+resource "null_resource" "apigw_authorizer" {
   triggers = { src_hash = "${data.archive_file.apple.output_sha}" }
   provisioner "local-exec" {
     environment = {
       cmd = "cmd/apple-apigw/main.go"
-      tag = "${aws_ecr_repository.apple_apigw.repository_url}:${local.latest}"
+      tag = "${aws_ecr_repository.lambdas.repository_url}:${local.apigw_tag}"
     }
     command = local.lambda_docker_deploy_command
   }
 }
 
 
-data "aws_ecr_image" "apple_apigw" {
-  depends_on      = [null_resource.apple_apigw]
-  repository_name = aws_ecr_repository.apple_apigw.name
-  image_tag       = local.latest
+data "aws_ecr_image" "apigw_authorizer" {
+  depends_on      = [null_resource.apigw_authorizer]
+  repository_name = aws_ecr_repository.lambdas.name
+  image_tag       = local.apigw_tag
 }
 
-resource "aws_lambda_function" "apple_apigw" {
-  function_name    = "${local.app_stack}-apple-apigw"
-  image_uri        = "${aws_ecr_repository.apple_apigw.repository_url}:${local.latest}"
-  role             = aws_iam_role.apple_apigw.arn
+resource "aws_lambda_function" "apigw_authorizer" {
+  depends_on = [
+    aws_ecr_repository.lambdas,
+    data.aws_ecr_image.apigw_authorizer
+  ]
+
+  function_name    = "${local.app_stack}-apigw-authorizer"
+  image_uri        = "${aws_ecr_repository.lambdas.repository_url}:${local.apigw_tag}"
+  role             = aws_iam_role.apigw_authorizer.arn
   memory_size      = 128
   timeout          = 120
   package_type     = "Image"
   publish          = true
   architectures    = ["arm64"]
-  source_code_hash = trimprefix(data.aws_ecr_image.apple_apigw.image_digest, "sha256:")
+  source_code_hash = trimprefix(data.aws_ecr_image.apigw_authorizer.image_digest, "sha256:")
+
   environment {
     variables = {
       DYNAMO_CHALLENGE_TABLE_NAME        = aws_dynamodb_table.challenge.name
@@ -47,14 +47,11 @@ resource "aws_lambda_function" "apple_apigw" {
       APPLE_SERVICE_NAME                 = local.apple_service_name
     }
   }
-  depends_on = [
-    aws_ecr_repository.apple_apigw,
-    /* data.aws_ecr_image.apple_apigw */
-  ]
+
 }
 
-resource "aws_iam_role" "apple_apigw" {
-  name               = "${local.app_stack}-apple-apigw-ExecutionRole"
+resource "aws_iam_role" "apigw_authorizer" {
+  name               = "${local.app_stack}-apigw-authorizer-ExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   inline_policy {
     name   = "${local.app_stack}-apple-ExecutionRolePolicy"

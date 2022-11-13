@@ -137,11 +137,10 @@ func TestVerifyAppToken(t *testing.T) {
 		ClientSecret: "foo",
 		Code:         "bar",
 	}
-	var resp ValidationResponse
 
 	srv := setupServerCompareURL(t, "client_id=123&client_secret=foo&code=bar&grant_type=authorization_code")
 	c := newClientWithUrlString(srv.URL, "", "", "")
-	c.VerifyAppToken(context.Background(), req, resp) // We aren't testing whether this will error
+	c.VerifyAppToken(context.Background(), req) // We aren't testing whether this will error
 }
 
 func TestVerifyNonAppToken(t *testing.T) {
@@ -151,12 +150,11 @@ func TestVerifyNonAppToken(t *testing.T) {
 		Code:         "bar",
 		RedirectURI:  "http://foo.test",
 	}
-	var resp ValidationResponse
 
 	srv := setupServerCompareURL(t, "client_id=123&client_secret=foo&code=bar&grant_type=authorization_code&redirect_uri=http%3A%2F%2Ffoo.test")
 	defer srv.Close()
 	c := newClientWithUrlString(srv.URL, "", "", "")
-	c.VerifyWebToken(context.Background(), req, resp) // We aren't testing whether this will error
+	c.VerifyWebToken(context.Background(), req) // We aren't testing whether this will error
 }
 
 func TestVerifyRefreshToken(t *testing.T) {
@@ -165,12 +163,11 @@ func TestVerifyRefreshToken(t *testing.T) {
 		ClientSecret: "foo",
 		RefreshToken: "bar",
 	}
-	var resp ValidationResponse
 
 	srv := setupServerCompareURL(t, "client_id=123&client_secret=foo&grant_type=refresh_token&refresh_token=bar")
 	defer srv.Close()
 	c := newClientWithUrlString(srv.URL, "", "", "")
-	c.VerifyRefreshToken(context.Background(), req, resp) // We aren't testing whether this will error
+	c.VerifyRefreshToken(context.Background(), req) // We aren't testing whether this will error
 }
 
 // setupServerCompareURL sets up an httptest server to compare the given URLs. You must close the server

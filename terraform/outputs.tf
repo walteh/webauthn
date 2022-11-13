@@ -1,17 +1,17 @@
-output "apple_apigw_lambda_authorizer_function_name" {
-  value = aws_lambda_function.apple_apigw.function_name
+output "apigw_lambda_authorizer_function_name" {
+  value = aws_lambda_function.apigw_authorizer.function_name
 }
 
-output "apple_apigw_lambda_authorizer_function_arn" {
-  value = aws_lambda_function.apple_apigw.arn
+output "apigw_lambda_authorizer_function_arn" {
+  value = aws_lambda_function.apigw_authorizer.arn
 }
 
-output "apple_appsync_lambda_authorizer_function_name" {
-  value = aws_lambda_function.apple_appsync.function_name
+output "appsync_lambda_authorizer_function_name" {
+  value = aws_lambda_function.appsync_authorizer.function_name
 }
 
-output "apple_appsync_lambda_authorizer_function_arn" {
-  value = aws_lambda_function.apple_appsync.arn
+output "appsync_lambda_authorizer_function_arn" {
+  value = aws_lambda_function.appsync_authorizer.arn
 }
 
 output "challenge_lambda_authorizer_function_name" {

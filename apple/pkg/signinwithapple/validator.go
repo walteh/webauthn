@@ -60,7 +60,7 @@ func newClientWithUrlString(url string, teamId string, serviceId string, keyId s
 // NewWithURL creates a Client object with a custom URL provided
 
 // VerifyWebToken sends the WebValidationTokenRequest and gets validation result
-func (c *Client) VerifyWebToken(ctx context.Context, reqBody WebValidationTokenRequest, result interface{}) error {
+func (c *Client) VerifyWebToken(ctx context.Context, reqBody WebValidationTokenRequest) (res *ValidationResponse, err error) {
 	data := url.Values{}
 	data.Set("client_id", reqBody.ClientID)
 	data.Set("client_secret", reqBody.ClientSecret)
@@ -68,29 +68,35 @@ func (c *Client) VerifyWebToken(ctx context.Context, reqBody WebValidationTokenR
 	data.Set("redirect_uri", reqBody.RedirectURI)
 	data.Set("grant_type", "authorization_code")
 
-	return doRequest(ctx, c.httpClient, &result, c.validationURL, data)
+	err = doRequest(ctx, c.httpClient, &res, c.validationURL, data)
+
+	return
 }
 
 // VerifyAppToken sends the AppValidationTokenRequest and gets validation result
-func (c *Client) VerifyAppToken(ctx context.Context, reqBody AppValidationTokenRequest, result interface{}) error {
+func (c *Client) VerifyAppToken(ctx context.Context, reqBody AppValidationTokenRequest) (res *ValidationResponse, err error) {
 	data := url.Values{}
 	data.Set("client_id", reqBody.ClientID)
 	data.Set("client_secret", reqBody.ClientSecret)
 	data.Set("code", reqBody.Code)
 	data.Set("grant_type", "authorization_code")
 
-	return doRequest(ctx, c.httpClient, &result, c.validationURL, data)
+	err = doRequest(ctx, c.httpClient, &res, c.validationURL, data)
+
+	return
 }
 
 // VerifyRefreshToken sends the WebValidationTokenRequest and gets validation result
-func (c *Client) VerifyRefreshToken(ctx context.Context, reqBody ValidationRefreshRequest, result interface{}) error {
+func (c *Client) VerifyRefreshToken(ctx context.Context, reqBody ValidationRefreshRequest) (res *RefreshResponse, err error) {
 	data := url.Values{}
 	data.Set("client_id", reqBody.ClientID)
 	data.Set("client_secret", reqBody.ClientSecret)
 	data.Set("refresh_token", reqBody.RefreshToken)
 	data.Set("grant_type", "refresh_token")
 
-	return doRequest(ctx, c.httpClient, &result, c.validationURL, data)
+	err = doRequest(ctx, c.httpClient, &res, c.validationURL, data)
+
+	return
 }
 
 func doRequest(ctx context.Context, client *http.Client, result interface{}, url string, data url.Values) error {

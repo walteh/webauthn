@@ -15,3 +15,13 @@ resource "aws_dynamodb_table" "challenge" {
 
 }
 
+resource "aws_dynamodb_table" "user" {
+  name         = "${local.app_stack}-users"
+  hash_key     = "id"
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "id"
+    type = "S"
+  }
+}

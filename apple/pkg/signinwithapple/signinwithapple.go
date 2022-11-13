@@ -21,10 +21,8 @@ func (me *Client) ValidateRegistrationCode(ctx context.Context, pk string, regis
 		Code:         registrationCode,
 	}
 
-	var resp ValidationResponse
-
 	// Do the verification
-	err = me.VerifyAppToken(ctx, vReq, &resp)
+	resp, err := me.VerifyAppToken(ctx, vReq)
 	if err != nil {
 		fmt.Println("error verifying: " + err.Error())
 		return nil, err
@@ -35,7 +33,7 @@ func (me *Client) ValidateRegistrationCode(ctx context.Context, pk string, regis
 		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
-	return &resp, nil
+	return resp, nil
 
 }
 
@@ -54,10 +52,8 @@ func (me *Client) ValidateRefreshToken(ctx context.Context, pk string, refreshTo
 		RefreshToken: refreshToken,
 	}
 
-	var resp RefreshResponse
-
 	// Do the verification
-	err = me.VerifyRefreshToken(ctx, vReq, &resp)
+	resp, err := me.VerifyRefreshToken(ctx, vReq)
 	if err != nil {
 		fmt.Println("error verifying: " + err.Error())
 		return nil, err
@@ -68,7 +64,7 @@ func (me *Client) ValidateRefreshToken(ctx context.Context, pk string, refreshTo
 		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
-	return &resp, nil
+	return resp, nil
 }
 
 /*
@@ -91,10 +87,8 @@ func (me *Client) ValidateWebToken(ctx context.Context, pk string, authorization
 		RedirectURI:  redirect.String(), // This URL must be validated with apple in your service
 	}
 
-	var resp ValidationResponse
-
 	// Do the verification
-	err = me.VerifyWebToken(context.Background(), vReq, &resp)
+	resp, err := me.VerifyWebToken(ctx, vReq)
 	if err != nil {
 		fmt.Println("error verifying: " + err.Error())
 		return nil, err
@@ -105,5 +99,5 @@ func (me *Client) ValidateWebToken(ctx context.Context, pk string, authorization
 		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
-	return &resp, nil
+	return resp, nil
 }

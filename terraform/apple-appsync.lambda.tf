@@ -1,35 +1,36 @@
-
-resource "aws_ecr_repository" "apple_appsync" {
-  name = "${local.app_stack}-apple-appsync-image"
-}
-
-resource "null_resource" "apple_appsync" {
+resource "null_resource" "appsync_authorizer" {
   triggers = { src_hash = "${data.archive_file.apple.output_sha}" }
   provisioner "local-exec" {
     environment = {
       cmd = "cmd/apple-appsync/main.go"
-      tag = "${aws_ecr_repository.apple_appsync.repository_url}:${local.latest}"
+      tag = "${aws_ecr_repository.lambdas.repository_url}:${local.appsync_tag}"
     }
     command = local.lambda_docker_deploy_command
   }
 }
 
-data "aws_ecr_image" "apple_appsync" {
-  depends_on      = [null_resource.apple_appsync]
-  repository_name = aws_ecr_repository.apple_appsync.name
-  image_tag       = local.latest
+data "aws_ecr_image" "appsync_authorizer" {
+  depends_on      = [null_resource.appsync_authorizer]
+  repository_name = aws_ecr_repository.lambdas.name
+  image_tag       = local.appsync_tag
 }
 
-resource "aws_lambda_function" "apple_appsync" {
-  function_name    = "${local.app_stack}-apple-appsync"
-  image_uri        = "${aws_ecr_repository.apple_appsync.repository_url}:${local.latest}"
-  role             = aws_iam_role.apple_appsync.arn
+resource "aws_lambda_function" "appsync_authorizer" {
+  depends_on = [
+    aws_ecr_repository.lambdas,
+    data.aws_ecr_image.appsync_authorizer
+  ]
+
+  function_name    = "${local.app_stack}-appsync-authorizer"
+  image_uri        = "${aws_ecr_repository.lambdas.repository_url}:${local.appsync_tag}"
+  role             = aws_iam_role.appsync_authorizer.arn
   memory_size      = 128
   timeout          = 120
   package_type     = "Image"
   publish          = true
   architectures    = ["arm64"]
-  source_code_hash = trimprefix(data.aws_ecr_image.apple_appsync.image_digest, "sha256:")
+  source_code_hash = trimprefix(data.aws_ecr_image.appsync_authorizer.image_digest, "sha256:")
+
   environment {
     variables = {
       DYNAMO_CHALLENGE_TABLE_NAME        = aws_dynamodb_table.challenge.name
@@ -42,18 +43,14 @@ resource "aws_lambda_function" "apple_appsync" {
       APPLE_SERVICE_NAME                 = local.apple_service_name
     }
   }
-  depends_on = [
-    aws_ecr_repository.apple_appsync,
-    data.aws_ecr_image.apple_appsync
-  ]
 }
 
-resource "aws_iam_role" "apple_appsync" {
-  name               = "${local.app_stack}-apple-appsync-ExecutionRole"
+resource "aws_iam_role" "appsync_authorizer" {
+  name               = "${local.app_stack}-appsync-authorizer-ExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   inline_policy {
     name   = "${local.app_stack}-apple-appsync-ExecutionRolePolicy"
-    policy = data.aws_iam_policy_document.apple_appsync_inline.json
+    policy = data.aws_iam_policy_document.appsync_authorizer_inline.json
   }
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
@@ -63,7 +60,7 @@ resource "aws_iam_role" "apple_appsync" {
   ]
 }
 
-data "aws_iam_policy_document" "apple_appsync_inline" {
+data "aws_iam_policy_document" "appsync_authorizer_inline" {
   statement {
     effect    = "Allow"
     actions   = ["dynamodb:GetItem"]

@@ -1,14 +1,9 @@
-
-resource "aws_ecr_repository" "challenge" {
-  name = "${local.app_stack}-challenge-image"
-}
-
 resource "null_resource" "challenge" {
   triggers = { src_hash = "${data.archive_file.apple.output_sha}" }
   provisioner "local-exec" {
     environment = {
       cmd = "cmd/challenge/main.go"
-      tag = "${aws_ecr_repository.challenge.repository_url}:${local.latest}"
+      tag = "${aws_ecr_repository.lambdas.repository_url}:${local.challenge_tag}"
     }
     command = local.lambda_docker_deploy_command
   }
@@ -16,14 +11,19 @@ resource "null_resource" "challenge" {
 
 data "aws_ecr_image" "challenge" {
   depends_on      = [null_resource.challenge]
-  repository_name = aws_ecr_repository.challenge.name
-  image_tag       = local.latest
+  repository_name = aws_ecr_repository.lambdas.name
+  image_tag       = local.challenge_tag
 }
 
 
 resource "aws_lambda_function" "challenge" {
+  depends_on = [
+    aws_ecr_repository.lambdas,
+    data.aws_ecr_image.challenge
+  ]
+
   function_name    = "${local.app_stack}-challenge"
-  image_uri        = "${aws_ecr_repository.challenge.repository_url}:${local.latest}"
+  image_uri        = "${aws_ecr_repository.lambdas.repository_url}:${local.challenge_tag}"
   role             = aws_iam_role.challenge.arn
   memory_size      = 128
   timeout          = 120
