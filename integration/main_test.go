@@ -13,7 +13,7 @@ type Output struct {
 	// The name of the output
 	AuthExpApiInvokeUrl string `json:"auth_exp_api_invoke_url"`
 	ApiGatewayHost      string `json:"apigw_host"`
-	AppsyncAuthorizer   string `json:"apple_appsync_lambda_authorizer_function_name"`
+	AppsyncAuthorizer   string `json:"appsync_lambda_authorizer_function_name"`
 }
 
 func TestHttp(t *testing.T) {

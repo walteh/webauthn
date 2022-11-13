@@ -24,9 +24,9 @@ locals {
   apigw_dir     = "lambda/apigw-authorizer"
   challenge_dir = "lambda/challenge"
 
-  challenge_tag = "${local.challenge_dir}/${local.latest}"
-  apigw_tag     = "${local.apigw_dir}/${local.latest}"
-  appsync_tag   = "${local.appsync_dir}/${local.latest}"
+  challenge_tag = replace("${local.challenge_dir}/${local.latest}", "/", "_")
+  apigw_tag     = replace("${local.apigw_dir}/${local.latest}", "/", "_")
+  appsync_tag   = replace("${local.appsync_dir}/${local.latest}", "/", "_")
 
   challenge_cmd = "${local.challenge_dir}/main.go"
   appsync_cmd   = "${local.appsync_dir}/main.go"
@@ -36,7 +36,7 @@ locals {
 
   lambda_docker_deploy_command = <<EOF
 	    	aws ecr get-login-password --region ${local.aws_region} | docker login --username AWS --password-stdin ${local.aws_account}.dkr.ecr.${local.aws_region}.amazonaws.com
-			cd ../source
+			cd ../core
 		    docker build --platform=linux/arm64 -t $tag -f Dockerfile.lambda --build-arg CMD=$cmd .
 			docker push $tag
 			docker image rm $tag
