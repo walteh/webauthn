@@ -2,9 +2,18 @@ package signinwithapple
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 )
+
+var (
+	ErrInvalidGrant = errors.New("invalid_grant")
+)
+
+func IsInvalidGrant(err error) bool {
+	return errors.Is(err, ErrInvalidGrant)
+}
 
 func (me *Client) ValidateRegistrationCode(ctx context.Context, pk string, registrationCode string) (*ValidationResponse, error) {
 
@@ -29,8 +38,7 @@ func (me *Client) ValidateRegistrationCode(ctx context.Context, pk string, regis
 	}
 
 	if resp.Error != "" {
-		fmt.Printf("apple returned an error: %s - %s\n", resp.Error, resp.ErrorDescription)
-		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
+		return nil, ErrInvalidGrant
 	}
 
 	return resp, nil

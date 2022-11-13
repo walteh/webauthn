@@ -54,3 +54,21 @@ services:
             - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
             - CHALLENGE_TABLE_NAME=unused
             - APPLE_IDENTITY_POOL_ID=unused
+    register:
+        container_name: register
+        ports:
+            - "9003:8083"
+        platform: "linux/arm64"
+        build:
+            dockerfile: Dockerfile.lambda
+            args:
+                CMD: "lambda/register/main.go"
+        volumes:
+            - ~/.aws-lambda-rie:/aws-lambda
+        entrypoint:
+            - /aws-lambda/aws-lambda-rie
+            - /var/task/handler
+        environment:
+            - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
+            - CHALLENGE_TABLE_NAME=unused
+            - APPLE_IDENTITY_POOL_ID=unused

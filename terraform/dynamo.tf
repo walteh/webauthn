@@ -12,7 +12,6 @@ resource "aws_dynamodb_table" "challenge" {
     attribute_name = "ttl"
     enabled        = true
   }
-
 }
 
 resource "aws_dynamodb_table" "user" {
@@ -24,4 +23,43 @@ resource "aws_dynamodb_table" "user" {
     name = "id"
     type = "S"
   }
+
+  attribute {
+    name = "apple_id"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "apple_id"
+    hash_key        = "apple_id"
+    projection_type = "ALL"
+  }
 }
+
+/* resource "aws_dynamodb_table" "session" {
+  name      = "${local.app_stack}-sessions"
+  hash_key  = "user_id"
+  range_key = "auth_type"
+
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "user_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "auth_type"
+    type = "S"
+  }
+
+  attribute {
+    name = "ttl"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+} */

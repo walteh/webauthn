@@ -2,7 +2,7 @@ resource "null_resource" "appsync_authorizer" {
   triggers = { src_hash = "${data.archive_file.core.output_sha}" }
   provisioner "local-exec" {
     environment = {
-      cmd = local.appsync_cmd
+      dir = local.appsync_dir
       tag = "${aws_ecr_repository.core.repository_url}:${local.appsync_tag}"
     }
     command = local.lambda_docker_deploy_command
@@ -55,8 +55,6 @@ resource "aws_iam_role" "appsync_authorizer" {
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-    "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess",
-    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
   ]
 }
 

@@ -2,7 +2,7 @@ resource "null_resource" "challenge" {
   triggers = { src_hash = "${data.archive_file.core.output_sha}" }
   provisioner "local-exec" {
     environment = {
-      cmd = local.challenge_cmd
+      dir = local.challenge_dir
       tag = "${aws_ecr_repository.core.repository_url}:${local.challenge_tag}"
     }
     command = local.lambda_docker_deploy_command
@@ -51,8 +51,7 @@ resource "aws_iam_role" "challenge" {
 
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
-    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-    "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess",
+    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   ]
 }
 

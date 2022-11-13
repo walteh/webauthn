@@ -56,6 +56,8 @@ func AppleIdentityPoolId() string { return osMustGet("COGNITO_IDENTITY_POOL_ID")
 
 func DynamoChallengeTableName() string { return osMustGet("DYNAMO_CHALLENGE_TABLE_NAME") }
 
+func DynamoUserTableName() string { return osMustGet("DYNAMO_USER_TABLE_NAME") }
+
 func SignInWithApplePrivateKeyName() string { return osMustGet("SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME") }
 
 func (e Environment) GetAwsConfig() aws.Config { return e.AwsConfig }
