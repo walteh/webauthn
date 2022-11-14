@@ -36,6 +36,22 @@ resource "aws_dynamodb_table" "user" {
   }
 }
 
+/* resource "aws_dynamodb_table" "ceremony" {
+  name         = "${local.app_stack}-webauthn-ceremony"
+  hash_key     = "ceremony_user_id"
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "ceremony_user_id"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+} */
+
 /* resource "aws_dynamodb_table" "session" {
   name      = "${local.app_stack}-sessions"
   hash_key  = "user_id"

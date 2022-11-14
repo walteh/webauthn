@@ -58,6 +58,8 @@ func DynamoChallengeTableName() string { return osMustGet("DYNAMO_CHALLENGE_TABL
 
 func DynamoUserTableName() string { return osMustGet("DYNAMO_USER_TABLE_NAME") }
 
+func DynamoCeremonyTableName() string { return osMustGet("DYNAMO_CEREMONY_TABLE_NAME") }
+
 func SignInWithApplePrivateKeyName() string { return osMustGet("SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME") }
 
 func (e Environment) GetAwsConfig() aws.Config { return e.AwsConfig }

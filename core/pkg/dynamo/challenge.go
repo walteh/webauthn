@@ -21,7 +21,7 @@ type Challenge struct {
 func (client *Client) GenerateChallenge(ctx context.Context, state string, ttl time.Time) (string, error) {
 
 	challenge := Challenge{
-		Id:    random.KSUID(),
+		Id:    random.KSUID().String(),
 		State: state,
 		Ttl:   ttl.Unix(),
 	}

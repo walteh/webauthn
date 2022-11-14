@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"nugg-auth/core/pkg/applepublickey"
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
@@ -11,6 +10,7 @@ import (
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
 	"nugg-auth/core/pkg/webauthn"
+
 	"os"
 	"time"
 
@@ -27,15 +27,16 @@ type Output = events.APIGatewayV2HTTPResponse
 type Handler struct {
 	Id              string
 	Ctx             context.Context
-	Dynamo          *dynamo.Client
+	DynamoUser      *dynamo.Client
+	DynamoCeremony  *dynamo.Client
 	Cognito         *cognito.Client
 	SignInWithApple *signinwithapple.Client
 	ApplePublicKey  *applepublickey.Client
 	SecretsManager  *secretsmanager.Client
 	Config          config.Config
 	Logger          zerolog.Logger
-	WebAuthn        *webauthn.WebAuthn
 	counter         int
+	WebAuthn        *webauthn.WebAuthn
 }
 
 func init() {
@@ -52,22 +53,26 @@ func main() {
 	}
 
 	web, err := webauthn.NewConfig()
+
 	if err != nil {
 		return
 	}
 
 	abc := &Handler{
-		Id:              random.KSUID().String(),
-		Ctx:             ctx,
-		Dynamo:          dynamo.NewClient(cfg, env.DynamoUserTableName()),
+		Id:             random.KSUID().String(),
+		Ctx:            ctx,
+		DynamoUser:     dynamo.NewClient(cfg, env.DynamoUserTableName()),
+		DynamoCeremony: dynamo.NewClient(cfg, env.DynamoCeremonyTableName()),
+
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
 		SecretsManager:  secretsmanager.NewClient(ctx, cfg, env.SignInWithApplePrivateKeyName()),
-		Config:          cfg,
 		WebAuthn:        web,
+		Config:          cfg,
 		Logger:          zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
-		counter:         0,
+
+		counter: 0,
 	}
 
 	lambda.Start(abc.Invoke)
@@ -78,7 +83,7 @@ type Invocation struct {
 	Start time.Time
 }
 
-func (h *Handler) NewInvocation(logger zerolog.Logger) *Invocation {
+func (h *Handler) NewInvocation() *Invocation {
 	h.counter++
 	return &Invocation{
 		Logger: h.Logger.With().Int("counter", h.counter).Str("handler", h.Id).Logger(),
@@ -132,85 +137,54 @@ func (h *Invocation) Success(code int, headers map[string]string, message string
 
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
-	inv := h.NewInvocation(h.Logger)
+	inv := h.NewInvocation()
 
-	h1 := payload.Headers["x-nugg-signinwithapple-identity-token"]
-	c1 := payload.Headers["x-nugg-signinwithapple-registration-code"]
-	u1 := payload.Headers["x-nugg-signinwithapple-username"]
+	attestation := payload.Headers["x-nugg-webauthn-attestation"]
+	clientdata := payload.Headers["x-nugg-webauthn-clientdata"]
+	assertion := payload.Headers["x-nugg-webauthn-assertion"]
+	credentialId := payload.Headers["x-nugg-webauthn-credential-id"]
+	userId := payload.Headers["x-nugg-webauthn-user-id"]
+	username := payload.Headers["x-nugg-webauthn-username"]
 
-	if h1 == "" {
-		return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-identity-token")
+	if attestation == "" {
+		return inv.Error(nil, 400, "missing header x-nugg-webauthn-attestation")
 	}
 
-	if c1 == "" {
-		return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-registration-code")
+	if clientdata == "" {
+		return inv.Error(nil, 400, "missing header x-nugg-webauthn-clientdata")
 	}
 
-	if u1 == "" {
-		return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-username")
+	if assertion == "" {
+		return inv.Error(nil, 400, "missing header x-nugg-webauthn-assertion")
 	}
 
-	publickey, err := h.ApplePublicKey.Refresh(ctx)
-	if err != nil {
-		return inv.Error(err, 502, "Failed to refresh public key")
+	if credentialId == "" {
+		return inv.Error(nil, 400, "missing header x-nugg-webauthn-credential-id")
 	}
 
-	tkn, err := publickey.ParseToken(h1)
-	if err != nil {
-		return inv.Error(err, 401, "Failed to parse token")
+	if userId == "" {
+		return inv.Error(nil, 400, "missing header x-nugg-webauthn-user-id")
 	}
 
-	if !tkn.Valid {
-		return inv.Error(err, 401, "Invalid token")
+	if username == "" {
+		return inv.Error(nil, 400, "missing header x-nugg-webauthn-username")
 	}
 
-	sub, err := tkn.GetUniqueID()
-	if err != nil {
-		return inv.Error(err, 400, "Failed to get sub")
-	}
-
-	privateKey, err := h.SecretsManager.Refresh(ctx)
-	if err != nil {
-		return inv.Error(err, 502, "Failed to refresh private key")
-	}
-
-	creds, err := h.Cognito.GetIdentityId(h.Ctx, h1)
-	if err != nil {
-		return inv.Error(err, 502, "Failed to get identity id")
-	}
-
-	res, err := h.SignInWithApple.ValidateRegistrationCode(ctx, privateKey, c1)
-	if err != nil {
-		if signinwithapple.IsInvalidGrant(err) {
-			return inv.Error(err, 401, "Apple rejected the registration code, likely because it is expired")
-		}
-		return inv.Error(err, 502, "Failed to validate registration code")
-	}
-
-	newId := random.ULID()
-
-	// create a new user
-	user := webauthn.NewUser(newId.Bytes(), u1)
+	user := webauthn.NewUser([]byte(userId), username)
 
 	options, sessionData, err := h.WebAuthn.BeginRegistration(user)
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin registration")
 	}
 
-	json, err := json.Marshal(options)
+	err = h.DynamoCeremony.StartWebAuthnCeremony(ctx, userId, sessionData)
 	if err != nil {
-		return inv.Error(err, 500, "Failed to marshal options")
+		return inv.Error(err, 500, "failed to start webauthn ceremony")
 	}
 
-	err = h.Dynamo.GenerateUser(h.Ctx, newId.String(), u1, sub, creds, res, sessionData)
-	if err != nil {
-		if dynamo.IsConditionalCheckFailed(err) {
-			return inv.Error(err, 409, "User already exists")
-		}
-		return inv.Error(err, 502, "Failed to generate user")
-	}
-
-	return inv.Success(200, map[string]string{
-		"Content-Type": "application/json",
-	}, string(json))
+	return inv.Success(204, map[string]string{
+		"x-nugg-webauthn-challange": string(options.Response.Challenge),
+		"x-nugg-webauthn-user-id":   string(options.Response.User.ID),
+		"x-nugg-webauthn-username":  options.Response.User.Name,
+	}, "")
 }

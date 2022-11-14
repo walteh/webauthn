@@ -9,6 +9,3 @@ data "archive_file" "core" {
 resource "aws_ecr_repository" "core" {
   name = "${local.app_stack}-core"
 }
-
-
-

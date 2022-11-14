@@ -1,6 +1,10 @@
 package random
 
 import (
+	"crypto/rand"
+	"sync"
+
+	"github.com/oklog/ulid/v2"
 	"github.com/segmentio/ksuid"
 )
 
@@ -22,6 +26,22 @@ import (
 // 	return base64.RawStdEncoding.EncodeToString(keccak.Sum([]byte(seed)))
 // }
 
-func KSUID() string {
-	return ksuid.New().String()
+func KSUID() ksuid.KSUID {
+	return ksuid.New()
+}
+
+var randMutex = sync.Mutex{}
+
+var rander = rand.Reader
+
+func ULID() (ksuid ulid.ULID) {
+
+	randMutex.Lock()
+
+	ulid := ulid.MustNew(ulid.Now(), rander)
+
+	randMutex.Unlock()
+
+	return ulid
+
 }
