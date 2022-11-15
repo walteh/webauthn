@@ -23,7 +23,9 @@ type Credential struct {
 }
 
 // The PublicKeyCredential interface inherits from Credential, and contains
-//  the attributes that are returned to the caller when a new credential
+//
+//	the attributes that are returned to the caller when a new credential
+//
 // is created, or a new assertion is requested.
 type ParsedCredential struct {
 	ID   string `cbor:"id"`
@@ -51,6 +53,50 @@ type ParsedCredentialCreationData struct {
 	ParsedPublicKeyCredential
 	Response ParsedAttestationResponse
 	Raw      CredentialCreationResponse
+}
+
+func ParseCredentialCreation(clientData, attestationObject, credentialId, credentialType string) (*ParsedCredentialCreationData, error) {
+
+	if credentialId == "" {
+		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing ID")
+	}
+
+	testB64, err := base64.RawURLEncoding.DecodeString(credentialId)
+	if err != nil || !(len(testB64) > 0) {
+		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded")
+	}
+
+	if credentialType == "" {
+		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing type")
+	}
+
+	if credentialType != "public-key" {
+		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Type not public-key")
+	}
+
+	var pcc ParsedCredentialCreationData
+
+	pcc.ID = credentialId
+	pcc.RawID = []byte(credentialId)
+	pcc.Type = credentialType
+	pcc.ClientExtensionResults = AuthenticationExtensionsClientOutputs{}
+	pcc.Raw = CredentialCreationResponse{}
+
+	pcc.Raw.ID = credentialId
+	pcc.Raw.Type = credentialType
+	pcc.Raw.RawID = []byte(credentialId)
+	pcc.Raw.AttestationResponse.ClientDataJSON = []byte(clientData)
+	pcc.Raw.AttestationResponse.AttestationObject = []byte(attestationObject)
+
+	parsedAttestationResponse, err := pcc.Raw.AttestationResponse.Parse()
+	if err != nil {
+		return nil, ErrParsingData.WithDetails("Error parsing attestation response")
+	}
+
+	pcc.Response = *parsedAttestationResponse
+
+	return &pcc, nil
+
 }
 
 func ParseCredentialCreationResponse(response *http.Request) (*ParsedCredentialCreationData, error) {

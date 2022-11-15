@@ -8,7 +8,7 @@ import (
 	"nugg-auth/core/pkg/cwebauthn"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
-	"nugg-auth/core/pkg/random"
+	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
 	"nugg-auth/core/pkg/webauthn/protocol"
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	abc := &Handler{
-		Id:              random.KSUID().String(),
+		Id:              safeid.Make().String(),
 		Ctx:             ctx,
 		Dynamo:          dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
@@ -201,7 +201,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 502, "Failed to validate registration code")
 	}
 
-	newId := random.ULID()
+	newId := safeid.Make()
 
 	// create a new user
 	user := cwebauthn.NewUser([]byte(sub), u1)

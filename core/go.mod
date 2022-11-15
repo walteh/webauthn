@@ -16,9 +16,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/uuid v1.3.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/oklog/ulid/v2 v2.1.0
 	github.com/rs/zerolog v1.28.0
-	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.8.1
 	github.com/ugorji/go/codec v1.2.7
 	golang.org/x/crypto v0.2.0

@@ -2,14 +2,11 @@ package dynamo
 
 import (
 	"context"
-	"encoding/base32"
-	"encoding/base64"
 	"encoding/json"
 	"log"
 	"nugg-auth/core/pkg/cwebauthn"
+	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/webauthn/webauthn"
-
-	"strings"
 
 	"time"
 
@@ -26,42 +23,31 @@ type Challenge struct {
 	UserData    []byte `dynamodbav:"user_data"`
 }
 
-func Base64ToDynamoPrimaryKey(s string) string {
-	return base32.StdEncoding.EncodeToString([]byte(s))
-}
-
-func DynamoPrimaryKeyToBase64(s string) string {
-	b, err := base32.StdEncoding.DecodeString(s)
-	if err != nil {
-		log.Println(err)
-	}
-	return string(b)
-}
-
-func clientDataChallengeToDynamoPrimaryKey(clientData string, expectedChallengeType string) (string, error) {
-
+func clientDataToSafeID(clientData string, expectedChallengeType string, expectedOrigin string) (*safeid.SafeID, error) {
 	var cd ClientData
 	err := json.Unmarshal([]byte(clientData), &cd)
 	if err != nil {
 		log.Printf("failed to unmarshal client data, %v", err)
-		return "", err
+		return nil, err
 	}
 
 	if cd.Type != expectedChallengeType {
 		log.Printf("unexpected challenge type, %v", cd.Type)
-		return "", ErrUnexpectedChallengeType
+		return nil, ErrUnexpectedChallengeType
 	}
 
-	// this prob will not do anything, it is just to be safe because we are raw encoding below
-	base64Encoded := strings.TrimRight(cd.Challenge, "=")
+	if cd.Origin != expectedOrigin {
+		log.Printf("unexpected origin, %v", cd.Origin)
+		return nil, ErrUnexpectedOrigin
+	}
 
-	decoded, err := base64.RawStdEncoding.DecodeString(base64Encoded)
+	id, err := safeid.ParseStrict(cd.Challenge)
 	if err != nil {
-		log.Printf("failed to decode base64, %v", err)
-		return "", err
+		log.Printf("failed to parse challenge, %v", err)
+		return nil, err
 	}
 
-	return string(decoded), nil
+	return &id, nil
 }
 
 // AddMovie adds a movie the DynamoDB table.
@@ -80,7 +66,7 @@ func (client *Client) SaveChallenge(ctx context.Context, session *webauthn.Sessi
 	}
 
 	challenge := Challenge{
-		Id:          Base64ToDynamoPrimaryKey(session.Challenge),
+		Id:          session.Challenge,
 		SessionData: cer,
 		Ttl:         (time.Now().Unix()) + 300,
 		UserData:    jsonUserData,
@@ -109,9 +95,9 @@ type ClientData struct {
 }
 
 // / load challenge
-func (client *Client) LoadChallenge(ctx context.Context, clientData string, expectedChallengeType string) (*webauthn.SessionData, *User, *cwebauthn.User, error) {
+func (client *Client) LoadChallenge(ctx context.Context, clientData string, expectedChallengeType string, expectedOrigin string) (*webauthn.SessionData, *User, *cwebauthn.User, error) {
 
-	key, err := clientDataChallengeToDynamoPrimaryKey(clientData, expectedChallengeType)
+	key, err := clientDataToSafeID(clientData, expectedChallengeType, expectedOrigin)
 	if err != nil {
 		log.Printf("failed to get key from client data, %v", err)
 		return nil, nil, nil, err
@@ -121,7 +107,7 @@ func (client *Client) LoadChallenge(ctx context.Context, clientData string, expe
 	input := &dynamodb.GetItemInput{
 		TableName: aws.String(client.TableName),
 		Key: map[string]types.AttributeValue{
-			"id": &types.AttributeValueMemberS{Value: key},
+			"id": &types.AttributeValueMemberS{Value: key.String()},
 		},
 	}
 

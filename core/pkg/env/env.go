@@ -3,11 +3,16 @@ package env
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
+
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC | log.Lmicroseconds)
+}
 
 type Environment struct {
 	AwsConfig aws.Config

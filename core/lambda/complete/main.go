@@ -7,11 +7,10 @@ import (
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
-	"nugg-auth/core/pkg/random"
+	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
 	"nugg-auth/core/pkg/webauthn/webauthn"
-	"strings"
 
 	"os"
 	"time"
@@ -74,7 +73,7 @@ func main() {
 	}
 
 	abc := &Handler{
-		Id:              random.KSUID().String(),
+		Id:              safeid.Make().String(),
 		Ctx:             ctx,
 		DynamoUser:      dynamo.NewClient(cfg, env.DynamoUserTableName()),
 		DynamoChallenge: dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
@@ -85,8 +84,7 @@ func main() {
 		WebAuthn:        web,
 		Config:          cfg,
 		Logger:          zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
-
-		counter: 0,
+		counter:         0,
 	}
 
 	lambda.Start(abc.Invoke)
@@ -115,6 +113,9 @@ func (h *Invocation) Error(err error, code int, message string) (Output, error) 
 
 	return Output{
 		StatusCode: code,
+		Headers: map[string]string{
+			"Content-Length": "0",
+		},
 	}, nil
 }
 
@@ -169,7 +170,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-credential-id")
 	}
 
-	challenge, user, wanu, err := h.DynamoChallenge.LoadChallenge(ctx, credentialId, "webauthn.create")
+	session, user, wanu, err := h.DynamoChallenge.LoadChallenge(ctx, clientdata, "webauthn.create", "https://nugg.xyz")
 	if err != nil {
 		if err == dynamo.ErrNotFound {
 			return inv.Error(err, 404, "challenge not found")
@@ -177,14 +178,14 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to load challenge")
 	}
 
-	attestationReader := strings.NewReader(attestation)
+	// attestationReader := strings.NewReader(attestation)
 
-	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(attestationReader)
+	parsedResponse, err := protocol.ParseCredentialCreation(clientdata, attestation, credentialId, "public-key")
 	if err != nil {
 		return inv.Error(err, 500, "failed to parse attestation")
 	}
 
-	credential, err := h.WebAuthn.CreateCredential(wanu, *challenge, parsedResponse)
+	credential, err := h.WebAuthn.CreateCredential(wanu, *session, parsedResponse)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create credential")
 	}

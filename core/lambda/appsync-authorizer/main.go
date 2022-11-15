@@ -59,7 +59,7 @@ func main() {
 }
 
 func (h *Handler) Error(err error, message string) (Output, error) {
-	log.Printf("Error: %s", message, err)
+	log.Printf("Error: %s %s", message, err)
 	return Output{
 		IsAuthorized:    false,
 		ResolverContext: map[string]interface{}{"error": err.Error(), "message": message},
@@ -70,7 +70,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	h.counter++
 
-	log.Printf("Invoke: %d", h.counter, payload)
+	log.Printf("Invoke: %d %s", h.counter, payload)
 
 	if payload.AuthorizationToken == "" {
 		return h.Error(nil, "Missing required headers")
