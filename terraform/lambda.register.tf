@@ -34,7 +34,7 @@ resource "aws_lambda_function" "register" {
 
   environment {
     variables = {
-      DYNAMO_USER_TABLE_NAME             = aws_dynamodb_table.user.name
+      DYNAMO_CHALLENGE_TABLE_NAME        = aws_dynamodb_table.challenge.name
       COGNITO_IDENTITY_POOL_ID           = aws_cognito_identity_pool.main.id
       APPLE_PUBLICKEY_ENDPOINT           = "https://appleid.apple.com/auth/keys"
       APPLE_TOKEN_ENDPOINT               = "https://appleid.apple.com/auth/token"
@@ -73,7 +73,7 @@ data "aws_iam_policy_document" "register_lambda_inline" {
   statement {
     effect    = "Allow"
     actions   = ["dynamodb:PutItem"]
-    resources = [aws_dynamodb_table.user.arn]
+    resources = [aws_dynamodb_table.challenge.arn]
   }
 }
 

@@ -59,7 +59,7 @@ func main() {
 	abc := &Handler{
 		Id:              random.KSUID().String(),
 		Ctx:             ctx,
-		Dynamo:          dynamo.NewClient(cfg, env.DynamoUserTableName()),
+		Dynamo:          dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),

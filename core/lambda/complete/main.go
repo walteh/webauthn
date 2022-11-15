@@ -157,7 +157,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-credential-id")
 	}
 
-	challenge, user, wanu, err := h.DynamoChallenge.LoadChallenge(ctx, credentialId)
+	challenge, user, wanu, err := h.DynamoChallenge.LoadChallenge(ctx, credentialId, "webauthn.create")
 	if err != nil {
 		if err == dynamo.ErrNotFound {
 			return inv.Error(err, 404, "challenge not found")
