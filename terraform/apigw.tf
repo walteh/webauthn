@@ -39,7 +39,7 @@ resource "aws_apigatewayv2_api_mapping" "auth" {
 
 resource "aws_apigatewayv2_deployment" "default" {
   depends_on = [
-    aws_apigatewayv2_route.challenge,
+    aws_apigatewayv2_route.complete,
     aws_apigatewayv2_route.register,
   ]
   api_id = aws_apigatewayv2_api.auth.id
@@ -49,12 +49,12 @@ resource "aws_apigatewayv2_deployment" "default" {
 }
 
 
-/* resource "aws_iam_role" "challenge_integration_role" {
-  name               = "${local.app_stack}-challenge-IntegrationRole"
+/* resource "aws_iam_role" "complete_integration_role" {
+  name               = "${local.app_stack}-complete-IntegrationRole"
   assume_role_policy = data.aws_iam_policy_document.apigw_assume.json
   inline_policy {
-    name   = "${local.app_stack}-challenge-IntegrationRolePolicy"
-    policy = data.aws_iam_policy_document.challenge_integration_inline.json
+    name   = "${local.app_stack}-complete-IntegrationRolePolicy"
+    policy = data.aws_iam_policy_document.complete_integration_inline.json
   }
 
   managed_policy_arns = [
@@ -73,10 +73,10 @@ data "aws_iam_policy_document" "apigw_assume" {
   }
 }
 
-data "aws_iam_policy_document" "challenge_integration_inline" {
+data "aws_iam_policy_document" "complete_integration_inline" {
   statement {
     effect    = "Allow"
     actions   = ["lambda:InvokeFunction"]
-    resources = [aws_lambda_function.challenge.arn]
+    resources = [aws_lambda_function.complete.arn]
   }
 } */

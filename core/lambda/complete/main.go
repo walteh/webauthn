@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"nugg-auth/core/pkg/applepublickey"
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
@@ -10,10 +11,12 @@ import (
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
 	"nugg-auth/core/pkg/webauthn"
+	"strings"
 
 	"os"
 	"time"
 
+	"github.com/duo-labs/webauthn/protocol"
 	"github.com/rs/zerolog"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -28,7 +31,7 @@ type Handler struct {
 	Id              string
 	Ctx             context.Context
 	DynamoUser      *dynamo.Client
-	DynamoCeremony  *dynamo.Client
+	DynamoChallenge *dynamo.Client
 	Cognito         *cognito.Client
 	SignInWithApple *signinwithapple.Client
 	ApplePublicKey  *applepublickey.Client
@@ -59,11 +62,10 @@ func main() {
 	}
 
 	abc := &Handler{
-		Id:             random.KSUID().String(),
-		Ctx:            ctx,
-		DynamoUser:     dynamo.NewClient(cfg, env.DynamoUserTableName()),
-		DynamoCeremony: dynamo.NewClient(cfg, env.DynamoCeremonyTableName()),
-
+		Id:              random.KSUID().String(),
+		Ctx:             ctx,
+		DynamoUser:      dynamo.NewClient(cfg, env.DynamoUserTableName()),
+		DynamoChallenge: dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
@@ -141,10 +143,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	attestation := payload.Headers["x-nugg-webauthn-attestation"]
 	clientdata := payload.Headers["x-nugg-webauthn-clientdata"]
-	assertion := payload.Headers["x-nugg-webauthn-assertion"]
 	credentialId := payload.Headers["x-nugg-webauthn-credential-id"]
-	userId := payload.Headers["x-nugg-webauthn-user-id"]
-	username := payload.Headers["x-nugg-webauthn-username"]
 
 	if attestation == "" {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-attestation")
@@ -154,37 +153,48 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-clientdata")
 	}
 
-	if assertion == "" {
-		return inv.Error(nil, 400, "missing header x-nugg-webauthn-assertion")
-	}
-
 	if credentialId == "" {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-credential-id")
 	}
 
-	if userId == "" {
-		return inv.Error(nil, 400, "missing header x-nugg-webauthn-user-id")
-	}
-
-	if username == "" {
-		return inv.Error(nil, 400, "missing header x-nugg-webauthn-username")
-	}
-
-	user := webauthn.NewUser([]byte(userId), username)
-
-	options, sessionData, err := h.WebAuthn.BeginRegistration(user)
+	challenge, user, wanu, err := h.DynamoChallenge.LoadChallenge(ctx, credentialId)
 	if err != nil {
-		return inv.Error(err, 500, "failed to begin registration")
+		if err == dynamo.ErrNotFound {
+			return inv.Error(err, 404, "challenge not found")
+		}
+		return inv.Error(err, 500, "failed to load challenge")
 	}
 
-	err = h.DynamoCeremony.StartWebAuthnCeremony(ctx, userId, sessionData)
+	attestationReader := strings.NewReader(attestation)
+
+	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(attestationReader)
 	if err != nil {
-		return inv.Error(err, 500, "failed to start webauthn ceremony")
+		return inv.Error(err, 500, "failed to parse attestation")
 	}
 
-	return inv.Success(204, map[string]string{
-		"x-nugg-webauthn-challange": string(options.Response.Challenge),
-		"x-nugg-webauthn-user-id":   string(options.Response.User.ID),
-		"x-nugg-webauthn-username":  options.Response.User.Name,
-	}, "")
+	credential, err := h.WebAuthn.CreateCredential(wanu, *challenge, parsedResponse)
+	if err != nil {
+		return inv.Error(err, 500, "failed to create credential")
+	}
+
+	wanu.AddCredential(credential)
+
+	options, sessionData, err := h.WebAuthn.BeginLogin(wanu)
+	if err != nil {
+		return inv.Error(err, 500, "failed to begin login")
+	}
+
+	opts, err := json.Marshal(options)
+	if err != nil {
+		return inv.Error(err, 500, "Failed to marshal options")
+	}
+
+	err = h.DynamoUser.SaveNewUser(ctx, user, sessionData)
+	if err != nil {
+		return inv.Error(err, 500, "failed to save new user")
+	}
+
+	return inv.Success(200, map[string]string{
+		"Content-Type": "application/json",
+	}, string(opts))
 }

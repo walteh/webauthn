@@ -14,13 +14,13 @@ output "appsync_lambda_authorizer_function_arn" {
   value = aws_lambda_function.appsync_authorizer.arn
 }
 
-output "challenge_lambda_authorizer_function_name" {
-  value = aws_lambda_function.challenge.function_name
+output "complete_lambda_authorizer_function_name" {
+  value = aws_lambda_function.complete.function_name
 }
 
 
-output "challenge_lambda_function_arn" {
-  value = aws_lambda_function.challenge.arn
+output "complete_lambda_function_arn" {
+  value = aws_lambda_function.complete.arn
 }
 
 output "apple_identity_pool_id" {

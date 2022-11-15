@@ -19,6 +19,10 @@ func NewUser(id []byte, username string) *User {
 	}
 }
 
+func (user *User) AddCredential(cred *webauthn.Credential) {
+	user.creds = append(user.creds, *cred)
+}
+
 func NewCredentials(pub string) *webauthn.Credential {
 	return &webauthn.Credential{
 		PublicKey: []byte{},

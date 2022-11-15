@@ -14,37 +14,29 @@ import (
 )
 
 type SessionInfo struct {
-	AuthProvider string `dynamodbav:"auth_provider"`
-	AccessToken  string `dynamodbav:"access_token"`
-	Ttl          int64  `dynamodbav:"ttl"`
-	CreatedAt    int64  `dynamodbav:"created_at"`
-	UpdatedAt    int64  `dynamodbav:"updated_at"`
-	CognitoId    string `dynamodbav:"cognito_id"`
+	AuthProvider string `dynamodbav:"auth_provider" json:"auth_provider"`
+	AccessToken  string `dynamodbav:"access_token"  json:"access_token`
+	Ttl          int64  `dynamodbav:"ttl"           json:"ttl"`
+	CreatedAt    int64  `dynamodbav:"created_at"    json:"created_at"`
+	UpdatedAt    int64  `dynamodbav:"updated_at"    json:"updated_at"`
+	CognitoId    string `dynamodbav:"cognito_id"    json:"cognito_id"`
 }
 
 type User struct {
-	Id                string        `dynamodbav:"id"`
-	Username          string        `dynamodbav:"username"`
-	AppleId           string        `dynamodbav:"apple_id"`
-	AppleRefreshToken string        `dynamodbav:"apple_refresh_token"`
-	Sessions          []SessionInfo `dynamodbav:"sessions"`
-	CreatedAt         int64         `dynamodbav:"created_at"`
-	UpdatedAt         int64         `dynamodbav:"updated_at"`
-	Ceremony          []byte        `dynamodbav:"webauthn_ceremony"`
+	Id                string        `dynamodbav:"id" .                json:"id"`
+	Username          string        `dynamodbav:"username"            json:"username"`
+	AppleId           string        `dynamodbav:"apple_id"            json:"apple_id"`
+	AppleRefreshToken string        `dynamodbav:"apple_refresh_token" json:"apple_refresh_token"`
+	Sessions          []SessionInfo `dynamodbav:"sessions"            json:"sessions"`
+	CreatedAt         int64         `dynamodbav:"created_at"          json:"created_at"`
+	UpdatedAt         int64         `dynamodbav:"updated_at"          json:"updated_at"`
+	SessionData       []byte        `dynamodbav:"session_data"        json:"session_data"`
 }
 
-// AddMovie adds a movie the DynamoDB table.
-func (client *Client) GenerateUser(ctx context.Context, newId string, username string, appleId string, cognitoId string, abc *signinwithapple.ValidationResponse, session *webauthn.SessionData) error {
-
+func NewUser(newId string, username string, appleId string, cognitoId string, abc *signinwithapple.ValidationResponse) *User {
 	now := time.Now().Unix()
 
-	cer, err := json.Marshal(session)
-	if err != nil {
-		log.Printf("failed to marshal session, %v", err)
-		return err
-	}
-
-	challenge := User{
+	return &User{
 		Id:                newId,
 		AppleId:           appleId,
 		AppleRefreshToken: abc.RefreshToken,
@@ -60,10 +52,21 @@ func (client *Client) GenerateUser(ctx context.Context, newId string, username s
 				CognitoId:    cognitoId,
 			},
 		},
-		Ceremony: cer,
+	}
+}
+
+// AddMovie adds a movie the DynamoDB table.
+func (client *Client) SaveNewUser(ctx context.Context, user *User, session *webauthn.SessionData) error {
+
+	// convert session to bytes
+	sessionBytes, err := json.Marshal(session)
+	if err != nil {
+		return err
 	}
 
-	item, err := attributevalue.MarshalMap(challenge)
+	user.SessionData = sessionBytes
+
+	item, err := attributevalue.MarshalMap(user)
 	if err != nil {
 		log.Printf("failed to marshal challenge, %v", err)
 		return err
@@ -80,39 +83,3 @@ func (client *Client) GenerateUser(ctx context.Context, newId string, username s
 	}
 	return nil
 }
-
-// type WebAuthnUpdate struct {
-// 	Id      string               `dynamodbav:"id"`
-// 	Session webauthn.SessionData `dynamodbav:"webauthn_session"`
-// }
-
-// func (client *Client) AddWebAuthnSession(ctx context.Context, userId string) error {
-
-// 	now := time.Now().Unix()
-
-// 	challenge := User{
-// 		Id: random.KSUID(),
-
-// 		Sessions: webauthn.SessionData{
-// 			Challenge: random.KSUID(),
-// 			UserID:    userId,
-// 			Timestamp: now,
-// 		},
-// 	}
-
-// 	item, err := attributevalue.MarshalMap(challenge)
-// 	if err != nil {
-// 		log.Printf("failed to marshal challenge, %v", err)
-// 		return err
-// 	}
-
-// 	_, err = client.PutItem(ctx, &dynamodb.PutItemInput{
-// 		TableName: aws.String(client.TableName), Item: item,
-// 		ConditionExpression: aws.String("SET some_attr = list_append(some_attr, :i)"),
-// 	})
-// 	if err != nil {
-// 		log.Printf("Couldn't add item to table. Here's why: %v\n", err)
-// 		return err
-// 	}
-// 	return nil
-// }

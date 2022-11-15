@@ -1,4 +1,8 @@
-
+locals {
+  aws_partition = data.aws_partition.current.partition
+  aws_region    = data.aws_region.current.name
+  aws_account   = data.aws_caller_identity.current.account_id
+}
 
 locals {
   app                 = "auth"
@@ -20,15 +24,14 @@ locals {
 locals {
   latest = "latest"
 
-  appsync_dir   = "lambda/appsync-authorizer"
-  apigw_dir     = "lambda/apigw-authorizer"
-  challenge_dir = "lambda/challenge"
-  register_dir  = "lambda/register"
+  appsync_dir  = "lambda/appsync-authorizer"
+  apigw_dir    = "lambda/apigw-authorizer"
+  complete_dir = "lambda/complete"
+  register_dir = "lambda/register"
 
-  challenge_tag = replace("${local.challenge_dir}/${local.latest}", "/", "_")
-  apigw_tag     = replace("${local.apigw_dir}/${local.latest}", "/", "_")
-  appsync_tag   = replace("${local.appsync_dir}/${local.latest}", "/", "_")
-
+  complete_tag = replace("${local.complete_dir}/${local.latest}", "/", "_")
+  apigw_tag    = replace("${local.apigw_dir}/${local.latest}", "/", "_")
+  appsync_tag  = replace("${local.appsync_dir}/${local.latest}", "/", "_")
   register_tag = replace("${local.register_dir}/${local.latest}", "/", "_")
 
   primary = "primary"
@@ -42,17 +45,3 @@ locals {
 		EOF
 }
 
-
-
-
-data "aws_caller_identity" "current" {}
-data "aws_availability_zones" "available_zones" { state = "available" }
-data "aws_region" "current" {}
-data "aws_partition" "current" {}
-
-
-locals {
-  aws_partition = data.aws_partition.current.partition
-  aws_region    = data.aws_region.current.name
-  aws_account   = data.aws_caller_identity.current.account_id
-}

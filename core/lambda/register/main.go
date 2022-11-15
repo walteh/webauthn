@@ -190,19 +190,21 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	newId := random.ULID()
 
 	// create a new user
-	user := webauthn.NewUser(newId.Bytes(), u1)
+	user := webauthn.NewUser([]byte(sub), u1)
 
 	options, sessionData, err := h.WebAuthn.BeginRegistration(user)
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin registration")
 	}
 
-	json, err := json.Marshal(options)
+	opts, err := json.Marshal(options)
 	if err != nil {
 		return inv.Error(err, 500, "Failed to marshal options")
 	}
 
-	err = h.Dynamo.GenerateUser(h.Ctx, newId.String(), u1, sub, creds, res, sessionData)
+	newUser := dynamo.NewUser(newId.String(), u1, sub, creds, res)
+
+	err = h.Dynamo.SaveChallenge(h.Ctx, sessionData, newUser)
 	if err != nil {
 		if dynamo.IsConditionalCheckFailed(err) {
 			return inv.Error(err, 409, "User already exists")
@@ -212,5 +214,5 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	return inv.Success(200, map[string]string{
 		"Content-Type": "application/json",
-	}, string(json))
+	}, string(opts))
 }
