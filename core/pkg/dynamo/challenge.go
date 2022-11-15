@@ -6,7 +6,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"log"
-	wan "nugg-auth/core/pkg/webauthn"
+	"nugg-auth/core/pkg/cwebauthn"
+	"nugg-auth/core/pkg/webauthn/webauthn"
+
 	"strings"
 
 	"time"
@@ -15,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/duo-labs/webauthn/webauthn"
 )
 
 type Challenge struct {
@@ -108,7 +109,7 @@ type ClientData struct {
 }
 
 // / load challenge
-func (client *Client) LoadChallenge(ctx context.Context, clientData string, expectedChallengeType string) (*webauthn.SessionData, *User, *wan.User, error) {
+func (client *Client) LoadChallenge(ctx context.Context, clientData string, expectedChallengeType string) (*webauthn.SessionData, *User, *cwebauthn.User, error) {
 
 	key, err := clientDataChallengeToDynamoPrimaryKey(clientData, expectedChallengeType)
 	if err != nil {
@@ -155,7 +156,7 @@ func (client *Client) LoadChallenge(ctx context.Context, clientData string, expe
 		return nil, nil, nil, err
 	}
 
-	webauthnUser := wan.NewUser([]byte(user.AppleId), user.Username)
+	webauthnUser := cwebauthn.NewUser([]byte(user.AppleId), user.Username)
 
 	return &session, &user, webauthnUser, nil
 }

@@ -1,6 +1,6 @@
-package webauthn
+package cwebauthn
 
-import "github.com/duo-labs/webauthn/webauthn"
+import "nugg-auth/core/pkg/webauthn/webauthn"
 
 // WebAuthn is the main struct for the WebAuthn library. It contains the
 // configuration and state for the library.

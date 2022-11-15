@@ -7,10 +7,11 @@ import (
 	"nugg-auth/core/pkg/signinwithapple"
 	"time"
 
+	"nugg-auth/core/pkg/webauthn/webauthn"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/duo-labs/webauthn/webauthn"
 )
 
 type SessionInfo struct {

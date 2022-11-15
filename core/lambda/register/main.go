@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"nugg-auth/core/pkg/applepublickey"
 	"nugg-auth/core/pkg/cognito"
+	"nugg-auth/core/pkg/cwebauthn"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/random"
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
-	"nugg-auth/core/pkg/webauthn"
+	"nugg-auth/core/pkg/webauthn/protocol"
+	"nugg-auth/core/pkg/webauthn/webauthn"
+
 	"os"
 	"time"
 
@@ -51,7 +54,18 @@ func main() {
 		return
 	}
 
-	web, err := webauthn.NewConfig()
+	web, err := webauthn.New(&webauthn.Config{
+		RPDisplayName: "nugg.xyz",
+		RPID:          "nugg.xyz",
+		RPOrigin:      "https://auth.nugg.xyz",
+		// AuthenticatorSelection: protocol.AuthenticatorSelection{
+		// 	AuthenticatorAttachment: protocol.AuthenticatorAttachment("apple"),
+		// 	UserVerification:        protocol.VerificationRequired,
+		// 	ResidentKey:             protocol.ResidentKeyRequirementRequired,
+		// 	RequireResidentKey:      protocol.ResidentKeyRequired(),
+		// },
+		AttestationPreference: protocol.PreferDirectAttestation,
+	})
 	if err != nil {
 		return
 	}
@@ -190,7 +204,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	newId := random.ULID()
 
 	// create a new user
-	user := webauthn.NewUser([]byte(sub), u1)
+	user := cwebauthn.NewUser([]byte(sub), u1)
 
 	options, sessionData, err := h.WebAuthn.BeginRegistration(user)
 	if err != nil {

@@ -10,13 +10,14 @@ import (
 	"nugg-auth/core/pkg/random"
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
-	"nugg-auth/core/pkg/webauthn"
+	"nugg-auth/core/pkg/webauthn/webauthn"
 	"strings"
 
 	"os"
 	"time"
 
-	"github.com/duo-labs/webauthn/protocol"
+	"nugg-auth/core/pkg/webauthn/protocol"
+
 	"github.com/rs/zerolog"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -55,7 +56,18 @@ func main() {
 		return
 	}
 
-	web, err := webauthn.NewConfig()
+	web, err := webauthn.New(&webauthn.Config{
+		RPDisplayName: "nugg.xyz",
+		RPID:          "nugg.xyz",
+		RPOrigin:      "https://auth.nugg.xyz",
+		// AuthenticatorSelection: protocol.AuthenticatorSelection{
+		// 	AuthenticatorAttachment: protocol.AuthenticatorAttachment("apple"),
+		// 	UserVerification:        protocol.VerificationRequired,
+		// 	ResidentKey:             protocol.ResidentKeyRequirementRequired,
+		// 	RequireResidentKey:      protocol.ResidentKeyRequired(),
+		// },
+		AttestationPreference: protocol.PreferDirectAttestation,
+	})
 
 	if err != nil {
 		return
