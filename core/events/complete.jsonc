@@ -15,9 +15,10 @@
 		"x-forwarded-for": "181.214.226.38",
 		"x-forwarded-port": "443",
 		"x-forwarded-proto": "https",
-		"x-nugg-webauthn-attestation": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9/xGsTVktJ1c+FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFDrmO8Z+/LOTv/McpWQ4eggGKo4+pQECAyYgASFYIMA0pOSnX5qShEGchckkPtW62wZn0V1dFp/+AJbzlUJTIlggehOFmmCqRKkAs9TOP3AEKMG6S19fMqODYc6E2wLgoHA=",
-		"x-nugg-webauthn-clientdata": "{\"type\":\"webauthn.create\",\"challenge\":\"2VcRtNILBheDQ4nLkXATrA\",\"origin\":\"https://nugg.xyz\"}",
-		"x-nugg-webauthn-credential-id": "OuY7xn78s5O/8xylZDh6CAYqjj4="
+		"x-nugg-webauthn-attestation": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9/xGsTVktJ1c+FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCY5NdSMconPGlW0iJMfKJqyKKNfpQECAyYgASFYIFmeyTG8GDlVd28qvhRoKIzb/w7/2A+/+5ATgnztvYmQIlggLk7V2sw9GlIuHdbyGsELL+I36j1dlEdR7IByP68ynHA=",
+		"x-nugg-webauthn-clientdata": "{\"type\":\"webauthn.create\",\"challenge\":\"20fxslV7kyhXFe3_EvJFgQ\",\"origin\":\"https://nugg.xyz\"}",
+		"x-nugg-webauthn-credential-id": "Jjk11Ixyic8aVbSIkx8omrIoo18=",
+		"x-nugg-webauthn-apple-id": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"
 	},
 	"requestContext": {
 		"routeKey": "POST /register",

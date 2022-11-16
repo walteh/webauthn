@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"nugg-auth/core/pkg/applepublickey"
 	"nugg-auth/core/pkg/cognito"
-	"nugg-auth/core/pkg/cwebauthn"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
+	"nugg-auth/core/pkg/user"
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"nugg-auth/core/pkg/webauthn/webauthn"
 
@@ -121,7 +121,10 @@ func main() {
 		RPID:                  "nugg.xyz",
 		RPOrigin:              "https://nugg.xyz",
 		AttestationPreference: protocol.PreferDirectAttestation,
-	})
+		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			AuthenticatorAttachment: protocol.Platform,
+			UserVerification:        protocol.VerificationRequired,
+		}})
 	if err != nil {
 		return
 	}
@@ -129,7 +132,7 @@ func main() {
 	abc := &Handler{
 		Id:              ksuid.New().String(),
 		Ctx:             ctx,
-		Dynamo:          dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
+		Dynamo:          dynamo.NewClient(cfg, env.DynamoUserTableName(), env.DynamoCeremonyTableName()),
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
@@ -155,14 +158,14 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	inv := h.NewInvocation(h.Logger)
 
 	h1 := payload.Headers["x-nugg-signinwithapple-identity-token"]
-	c1 := payload.Headers["x-nugg-signinwithapple-registration-code"]
+	registrationCode := payload.Headers["x-nugg-signinwithapple-registration-code"]
 	u1 := payload.Headers["x-nugg-signinwithapple-username"]
 
 	if h1 == "" {
 		return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-identity-token")
 	}
 
-	if c1 == "" {
+	if registrationCode == "" {
 		return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-registration-code")
 	}
 
@@ -189,17 +192,17 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 400, "Failed to get sub")
 	}
 
+	cognitoId, err := h.Cognito.GetIdentityId(h.Ctx, h1)
+	if err != nil {
+		return inv.Error(err, 502, "Failed to get identity id")
+	}
+
 	privateKey, err := h.SecretsManager.Refresh(ctx)
 	if err != nil {
 		return inv.Error(err, 502, "Failed to refresh private key")
 	}
 
-	creds, err := h.Cognito.GetIdentityId(h.Ctx, h1)
-	if err != nil {
-		return inv.Error(err, 502, "Failed to get identity id")
-	}
-
-	res, err := h.SignInWithApple.ValidateRegistrationCode(ctx, privateKey, c1)
+	res, err := h.SignInWithApple.ValidateRegistrationCode(ctx, privateKey, registrationCode)
 	if err != nil {
 		if signinwithapple.IsInvalidGrant(err) {
 			return inv.Error(err, 401, "Apple rejected the registration code, likely because it is expired")
@@ -207,12 +210,9 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 502, "Failed to validate registration code")
 	}
 
-	newId := safeid.Make()
+	abc := user.NewAppleUser(safeid.Make().String(), u1, sub, cognitoId, res)
 
-	// create a new user
-	user := cwebauthn.NewUser([]byte(sub), u1)
-
-	options, sessionData, err := h.WebAuthn.BeginRegistration(user)
+	options, sessionData, err := h.WebAuthn.BeginRegistration(abc.CreateAppleWebAuthnUser())
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin registration")
 	}
@@ -222,9 +222,9 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "Failed to marshal options")
 	}
 
-	newUser := dynamo.NewUser(newId.String(), u1, sub, creds, res)
+	cer := dynamo.NewCeremony(sub, sessionData)
 
-	err = h.Dynamo.SaveChallenge(h.Ctx, sessionData, newUser)
+	err = h.Dynamo.SaveNewUser(h.Ctx, abc, cer)
 	if err != nil {
 		if dynamo.IsConditionalCheckFailed(err) {
 			return inv.Error(err, 409, "User already exists")

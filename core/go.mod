@@ -37,6 +37,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/k0kubun/pp v3.0.1+incompatible // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect

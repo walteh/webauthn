@@ -7,15 +7,13 @@ import (
 )
 
 func TestRegistration_FinishRegistrationFailure(t *testing.T) {
-	user := &defaultUser{
-		id: []byte("123"),
-	}
+
 	session := SessionData{
 		UserID: []byte("ABC"),
 	}
 
 	webauthn := &WebAuthn{}
-	credential, err := webauthn.FinishRegistration(user, session, nil)
+	credential, err := webauthn.FinishRegistration("123", session, nil)
 	if err == nil {
 		t.Errorf("FinishRegistration() error = nil, want %v", protocol.ErrBadRequest.Type)
 	}

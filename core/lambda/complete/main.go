@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"nugg-auth/core/pkg/applepublickey"
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
@@ -17,6 +16,7 @@ import (
 
 	"nugg-auth/core/pkg/webauthn/protocol"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -31,8 +31,7 @@ type Output = events.APIGatewayV2HTTPResponse
 type Handler struct {
 	Id              string
 	Ctx             context.Context
-	DynamoUser      *dynamo.Client
-	DynamoChallenge *dynamo.Client
+	Dynamo          *dynamo.Client
 	Cognito         *cognito.Client
 	SignInWithApple *signinwithapple.Client
 	ApplePublicKey  *applepublickey.Client
@@ -57,16 +56,14 @@ func main() {
 	}
 
 	web, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "nugg.xyz",
-		RPID:          "nugg.xyz",
-		RPOrigin:      "https://nugg.xyz",
-		// AuthenticatorSelection: protocol.AuthenticatorSelection{
-		// 	AuthenticatorAttachment: protocol.AuthenticatorAttachment("apple"),
-		// 	UserVerification:        protocol.VerificationRequired,
-		// 	ResidentKey:             protocol.ResidentKeyRequirementRequired,
-		// 	RequireResidentKey:      protocol.ResidentKeyRequired(),
-		// },
+		RPDisplayName:         "nugg.xyz",
+		RPID:                  "nugg.xyz",
+		RPOrigin:              "https://nugg.xyz",
 		AttestationPreference: protocol.PreferDirectAttestation,
+		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			AuthenticatorAttachment: protocol.Platform,
+			UserVerification:        protocol.VerificationRequired,
+		},
 	})
 
 	if err != nil {
@@ -76,8 +73,7 @@ func main() {
 	abc := &Handler{
 		Id:              ksuid.New().String(),
 		Ctx:             ctx,
-		DynamoUser:      dynamo.NewClient(cfg, env.DynamoUserTableName()),
-		DynamoChallenge: dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
+		Dynamo:          dynamo.NewClient(cfg, env.DynamoUserTableName(), env.DynamoCeremonyTableName()),
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
@@ -158,6 +154,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	attestation := payload.Headers["x-nugg-webauthn-attestation"]
 	clientdata := payload.Headers["x-nugg-webauthn-clientdata"]
 	credentialId := payload.Headers["x-nugg-webauthn-credential-id"]
+	appleId := payload.Headers["x-nugg-webauthn-apple-id"]
 
 	if attestation == "" {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-attestation")
@@ -171,33 +168,45 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-credential-id")
 	}
 
-	session, user, wanu, err := h.DynamoChallenge.LoadChallenge(ctx, clientdata, "webauthn.create", "https://nugg.xyz")
-	if err != nil {
-		if err == dynamo.ErrNotFound {
-			return inv.Error(err, 404, "challenge not found")
-		}
-		return inv.Error(err, 500, "failed to load challenge")
+	if appleId == "" {
+		return inv.Error(nil, 400, "missing header x-nugg-webauthn-apple-id")
 	}
-
-	log.Println("session", session)
-	log.Println("user", user)
-	log.Println("wanu", wanu)
-
-	// attestationReader := strings.NewReader(attestation)
 
 	parsedResponse, err := protocol.ParseCredentialCreation(clientdata, attestation, credentialId, "public-key")
 	if err != nil {
 		return inv.Error(err, 500, "failed to parse attestation")
 	}
 
-	credential, err := h.WebAuthn.CreateCredential(wanu, *session, parsedResponse)
+	pp.Println(parsedResponse)
+
+	if parsedResponse.Response.AttestationObject.Format != "apple" {
+		return inv.Error(nil, 400, "invalid format")
+	}
+
+	ceremony, err := h.Dynamo.LoadCeremony(ctx, parsedResponse.Response.CollectedClientData.Challenge)
+	if err != nil {
+		if err == dynamo.ErrNotFound {
+			return inv.Error(err, 404, "ceremony not found")
+		}
+		return inv.Error(err, 500, "failed to load ceremony")
+	}
+
+	credential, err := h.WebAuthn.CreateCredential(appleId, *ceremony.SessionData, parsedResponse)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create credential")
 	}
 
-	wanu.AddCredential(credential)
+	user, err := h.Dynamo.LoadUser(ctx, ceremony.UserId)
+	if err != nil {
+		if err == dynamo.ErrNotFound {
+			return inv.Error(err, 404, "user not found")
+		}
+		return inv.Error(err, 500, "failed to load user")
+	}
 
-	options, sessionData, err := h.WebAuthn.BeginLogin(wanu)
+	user.AppleAuthData.AddAppleWebAuthnCredentials(credential)
+
+	options, sessionData, err := h.WebAuthn.BeginLogin(user.CreateAppleWebAuthnUser())
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin login")
 	}
@@ -207,12 +216,12 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "Failed to marshal options")
 	}
 
-	err = h.DynamoUser.SaveNewUser(ctx, user, sessionData)
+	cer := dynamo.NewCeremony(user.Id, sessionData)
+
+	err = h.Dynamo.SaveFirstUserLogin(ctx, user, cer)
 	if err != nil {
 		return inv.Error(err, 500, "failed to save new user")
 	}
 
-	return inv.Success(200, map[string]string{
-		"Content-Type": "application/json",
-	}, string(opts))
+	return inv.Success(200, map[string]string{"Content-Type": "application/json"}, string(opts))
 }

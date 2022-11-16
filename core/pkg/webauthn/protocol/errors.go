@@ -9,6 +9,8 @@ type Error struct {
 	Details string `json:"error"`
 	// Information to help debug the error
 	DevInfo string `json:"debug"`
+
+	Parent string `json:"parent"`
 }
 
 var (
@@ -19,6 +21,10 @@ var (
 	ErrChallengeMismatch = &Error{
 		Type:    "challenge_mismatch",
 		Details: "Stored challenge and received challenge do not match",
+	}
+	ErrOriginMismatch = &Error{
+		Type:    "origin_mismatch",
+		Details: "Stored origin and received origin do not match",
 	}
 	ErrParsingData = &Error{
 		Type:    "parse_error",
@@ -78,6 +84,12 @@ func (err *Error) Error() string {
 func (passedError *Error) WithDetails(details string) *Error {
 	err := *passedError
 	err.Details = details
+	return &err
+}
+
+func (passedError *Error) WithParent(details error) *Error {
+	err := *passedError
+	err.Parent = details.Error()
 	return &err
 }
 

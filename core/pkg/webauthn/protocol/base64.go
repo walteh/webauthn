@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"reflect"
+	"strings"
 )
 
 // URLEncodedBase64 represents a byte slice holding URL-encoded base64 data.
@@ -38,4 +39,11 @@ func (data URLEncodedBase64) MarshalJSON() ([]byte, error) {
 		return []byte("null"), nil
 	}
 	return []byte(`"` + base64.RawURLEncoding.EncodeToString(data) + `"`), nil
+}
+
+func ResolveToRawURLEncoding(str string) string {
+	str = strings.ReplaceAll(str, "+", "-")
+	str = strings.ReplaceAll(str, "/", "_")
+	str = strings.ReplaceAll(str, "=", "")
+	return str
 }

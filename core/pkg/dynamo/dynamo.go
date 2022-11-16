@@ -10,15 +10,31 @@ import (
 
 type Client struct {
 	*dynamodb.Client
-	TableName string
+	CeremonyTableName string
+	UserTableName     string
 	// contains filtered or unexported fields
 }
 
-func NewClient(config aws.Config, tableName string) *Client {
+func NewClient(config aws.Config, userTableName string, ceremonyTableName string) *Client {
 	return &Client{
-		Client:    dynamodb.NewFromConfig(config),
-		TableName: tableName,
+		Client:            dynamodb.NewFromConfig(config),
+		UserTableName:     userTableName,
+		CeremonyTableName: ceremonyTableName,
 	}
+}
+
+func (client *Client) MustUserTableName() *string {
+	if client.UserTableName == "" {
+		panic("user table name is empty")
+	}
+	return aws.String(client.UserTableName)
+}
+
+func (client *Client) MustCeremonyTableName() *string {
+	if client.CeremonyTableName == "" {
+		panic("ceremony table name is empty")
+	}
+	return aws.String(client.CeremonyTableName)
 }
 
 func IsConditionalCheckFailed(err error) bool {

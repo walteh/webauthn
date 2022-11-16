@@ -96,10 +96,12 @@ func (ccr *AuthenticatorAttestationResponse) Parse() (*ParsedAttestationResponse
 	// the attestation statement attStmt.
 	err = p.AttestationObject.AuthData.Unmarshal(p.AttestationObject.RawAuthData)
 	if err != nil {
+		log.Println("Error unmarshalling cbor auth data", err)
 		return nil, fmt.Errorf("error decoding auth data: %v", err)
 	}
 
 	if !p.AttestationObject.AuthData.Flags.HasAttestedCredentialData() {
+		log.Println("Authenticator data does not contain attested credential data")
 		return nil, ErrAttestationFormat.WithInfo("Attestation missing attested credential data flag")
 	}
 

@@ -71,7 +71,7 @@ services:
             - /var/task/handler
         environment:
             - DYNAMO_USER_TABLE_NAME=us-dev02-auth-users
-            - DYNAMO_CHALLENGE_TABLE_NAME=us-dev02-auth-challenges
+            - DYNAMO_CEREMONY_TABLE_NAME=us-dev02-auth-challenges
             - COGNITO_IDENTITY_POOL_ID=us-east-1:1f6e21fc-6d04-4663-9ed7-3a39db451e27
             - APPLE_PUBLICKEY_ENDPOINT=https://appleid.apple.com/auth/keys
             - APPLE_TOKEN_ENDPOINT=https://appleid.apple.com/auth/token
