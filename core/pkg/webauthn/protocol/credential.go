@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -56,21 +57,26 @@ type ParsedCredentialCreationData struct {
 }
 
 func ParseCredentialCreation(clientData, attestationObject, credentialId, credentialType string) (*ParsedCredentialCreationData, error) {
+	log.Println("Missing ID", credentialId, credentialType, clientData, attestationObject)
 
 	if credentialId == "" {
+		log.Println("Missing ID")
 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing ID")
 	}
 
-	testB64, err := base64.RawURLEncoding.DecodeString(credentialId)
+	testB64, err := base64.StdEncoding.DecodeString(credentialId)
 	if err != nil || !(len(testB64) > 0) {
+		log.Println("ID not base64.RawURLEncoded")
 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded")
 	}
 
 	if credentialType == "" {
+		log.Println("Missing type")
 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing type")
 	}
 
 	if credentialType != "public-key" {
+		log.Println("Type not public-key")
 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Type not public-key")
 	}
 
@@ -85,11 +91,18 @@ func ParseCredentialCreation(clientData, attestationObject, credentialId, creden
 	pcc.Raw.ID = credentialId
 	pcc.Raw.Type = credentialType
 	pcc.Raw.RawID = []byte(credentialId)
+
+	r, err := base64.StdEncoding.DecodeString(attestationObject)
+	if err != nil {
+		return nil, ErrBadRequest.WithDetails("Error decoding attestation object")
+	}
+
 	pcc.Raw.AttestationResponse.ClientDataJSON = []byte(clientData)
-	pcc.Raw.AttestationResponse.AttestationObject = []byte(attestationObject)
+	pcc.Raw.AttestationResponse.AttestationObject = r
 
 	parsedAttestationResponse, err := pcc.Raw.AttestationResponse.Parse()
 	if err != nil {
+		log.Println("Error parsing attestation response", err)
 		return nil, ErrParsingData.WithDetails("Error parsing attestation response")
 	}
 

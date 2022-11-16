@@ -46,48 +46,6 @@ func init() {
 	zerolog.TimeFieldFormat = time.StampMicro
 }
 
-func main() {
-
-	ctx := context.Background()
-
-	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		return
-	}
-
-	web, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "nugg.xyz",
-		RPID:          "nugg.xyz",
-		RPOrigin:      "https://nugg.xyz",
-		// AuthenticatorSelection: protocol.AuthenticatorSelection{
-		// 	AuthenticatorAttachment: protocol.AuthenticatorAttachment("apple"),
-		// 	UserVerification:        protocol.VerificationRequired,
-		// 	ResidentKey:             protocol.ResidentKeyRequirementRequired,
-		// 	RequireResidentKey:      protocol.ResidentKeyRequired(),
-		// },
-		AttestationPreference: protocol.PreferDirectAttestation,
-	})
-	if err != nil {
-		return
-	}
-
-	abc := &Handler{
-		Id:              ksuid.New().String(),
-		Ctx:             ctx,
-		Dynamo:          dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
-		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
-		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
-		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
-		SecretsManager:  secretsmanager.NewClient(ctx, cfg, env.SignInWithApplePrivateKeyName()),
-		Config:          cfg,
-		WebAuthn:        web,
-		Logger:          zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
-		counter:         0,
-	}
-
-	lambda.Start(abc.Invoke)
-}
-
 type Invocation struct {
 	zerolog.Logger
 	Start time.Time
@@ -134,6 +92,10 @@ func (h *Invocation) Success(code int, headers map[string]string, message string
 		message = "empty"
 	}
 
+	if code == 204 && headers["Content-Length"] == "" {
+		output.Headers["Content-Length"] = "0"
+	}
+
 	h.Logger.Info().
 		Int("status_code", code).
 		Str("body", output.Body).
@@ -145,7 +107,50 @@ func (h *Invocation) Success(code int, headers map[string]string, message string
 	return output, nil
 }
 
+func main() {
+
+	ctx := context.Background()
+
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return
+	}
+
+	web, err := webauthn.New(&webauthn.Config{
+		RPDisplayName:         "nugg.xyz",
+		RPID:                  "nugg.xyz",
+		RPOrigin:              "https://nugg.xyz",
+		AttestationPreference: protocol.PreferDirectAttestation,
+	})
+	if err != nil {
+		return
+	}
+
+	abc := &Handler{
+		Id:              ksuid.New().String(),
+		Ctx:             ctx,
+		Dynamo:          dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
+		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
+		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
+		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
+		SecretsManager:  secretsmanager.NewClient(ctx, cfg, env.SignInWithApplePrivateKeyName()),
+		Config:          cfg,
+		WebAuthn:        web,
+		Logger:          zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
+		counter:         0,
+	}
+
+	lambda.Start(abc.Invoke)
+}
+
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
+
+	out, err := json.Marshal(payload)
+	if err != nil {
+		return Output{}, err
+	}
+
+	h.Logger.Info().Msg(string(out))
 
 	inv := h.NewInvocation(h.Logger)
 

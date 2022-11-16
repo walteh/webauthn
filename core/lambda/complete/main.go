@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"nugg-auth/core/pkg/applepublickey"
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
@@ -58,7 +59,7 @@ func main() {
 	web, err := webauthn.New(&webauthn.Config{
 		RPDisplayName: "nugg.xyz",
 		RPID:          "nugg.xyz",
-		RPOrigin:      "https://auth.nugg.xyz",
+		RPOrigin:      "https://nugg.xyz",
 		// AuthenticatorSelection: protocol.AuthenticatorSelection{
 		// 	AuthenticatorAttachment: protocol.AuthenticatorAttachment("apple"),
 		// 	UserVerification:        protocol.VerificationRequired,
@@ -177,6 +178,10 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		}
 		return inv.Error(err, 500, "failed to load challenge")
 	}
+
+	log.Println("session", session)
+	log.Println("user", user)
+	log.Println("wanu", wanu)
 
 	// attestationReader := strings.NewReader(attestation)
 

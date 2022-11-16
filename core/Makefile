@@ -8,8 +8,13 @@ run:
 	docker compose build && docker compose up
 
 invoke:
-	curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"entity":"Nuggs","path":"","host":"127.0.0.1:8181","headers":["X-ECHO-BODY:PAYLOAD","X-ECHO-CODE:200"],"scheme":"http"}'
+	curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" --json  "`jq -c . < $(FILE)`"
 
 invoke2:
 	curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"entity":"0x82403EF00000000000017750C1107DB042C0011"}'
+
+
+
+invoke-register: # load json from fil
+	 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -H 'Content-Type: application/json' --json '{"entity":"0x82403EF00000000000017750C1107DB042C0011"}' --cli-binary-format raw-in-base64-out
 

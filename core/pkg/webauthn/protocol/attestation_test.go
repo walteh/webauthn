@@ -162,7 +162,7 @@ var testAttestationOptions = []string{
 
 var testAttestationResponses = []string{
 	// Self Attestation with EC256 - MacOS
-	`{ 
+	`{
 		"id": "AOx6vFGGITtlwjhqFFvAkJmBzSzfwE1dBa1fVR_Ltq5L35FJRNdgkXe84v3-0TEVNCSp",
 		"rawId": "AOx6vFGGITtlwjhqFFvAkJmBzSzfwE1dBa1fVR_Ltq5L35FJRNdgkXe84v3-0TEVNCSp",
 		"response": {
@@ -172,7 +172,7 @@ var testAttestationResponses = []string{
 		"type": "public-key"
 	}`,
 	// Direct Attestation with EC256 - Titan
-	`{ 
+	`{
 		"id": "FOxcmsqPLNCHtyILvbNkrtHMdKAeqSJXYZDbeFd0kc5Enm8Kl6a0Jp0szgLilDw1S4CjZhe9Z2611EUGbjyEmg",
 		"rawId": "FOxcmsqPLNCHtyILvbNkrtHMdKAeqSJXYZDbeFd0kc5Enm8Kl6a0Jp0szgLilDw1S4CjZhe9Z2611EUGbjyEmg",
 		"response": {

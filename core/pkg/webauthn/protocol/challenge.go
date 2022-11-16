@@ -8,7 +8,7 @@ import (
 )
 
 // ChallengeLength - Length of bytes to generate for a challenge
-const ChallengeLength = 64
+const ChallengeLength = 16
 
 // Challenge that should be signed and returned by the authenticator
 type Challenge URLEncodedBase64

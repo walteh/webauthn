@@ -1,5 +1,7 @@
 package protocol
 
+import "encoding/json"
+
 type Error struct {
 	// Short name for the type of error that has occurred
 	Type string `json:"type"`
@@ -69,7 +71,8 @@ var (
 )
 
 func (err *Error) Error() string {
-	return err.Details
+	str, _ := json.Marshal(err)
+	return string(str)
 }
 
 func (passedError *Error) WithDetails(details string) *Error {

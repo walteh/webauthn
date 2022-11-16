@@ -1,0 +1,54 @@
+{
+	"version": "2.0",
+	"routeKey": "POST /register",
+	"rawPath": "/default/register",
+	"rawQueryString": "",
+	"headers": {
+		"accept": "*/*",
+		"accept-encoding": "gzip, deflate, br",
+		"content-length": "88",
+		"content-type": "application/json",
+		"host": "us-dev02.api.nugg.xyz",
+		"postman-token": "a634f199-b9b5-410a-8d33-4905e4ac5b14",
+		"user-agent": "PostmanRuntime/7.29.2",
+		"x-amzn-trace-id": "Root=1-6374cca9-62677a6a5333cd937c066323",
+		"x-forwarded-for": "181.214.226.38",
+		"x-forwarded-port": "443",
+		"x-forwarded-proto": "https",
+		"x-nugg-webauthn-attestation": "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9/xGsTVktJ1c+FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFDrmO8Z+/LOTv/McpWQ4eggGKo4+pQECAyYgASFYIMA0pOSnX5qShEGchckkPtW62wZn0V1dFp/+AJbzlUJTIlggehOFmmCqRKkAs9TOP3AEKMG6S19fMqODYc6E2wLgoHA=",
+		"x-nugg-webauthn-clientdata": "{\"type\":\"webauthn.create\",\"challenge\":\"2VcRtNILBheDQ4nLkXATrA\",\"origin\":\"https://nugg.xyz\"}",
+		"x-nugg-webauthn-credential-id": "OuY7xn78s5O/8xylZDh6CAYqjj4="
+	},
+	"requestContext": {
+		"routeKey": "POST /register",
+		"accountId": "876249556319",
+		"stage": "default",
+		"requestId": "bsTqdju8oAMEbgQ=",
+		"apiId": "b44awo5qm7",
+		"domainName": "us-dev02.api.nugg.xyz",
+		"domainPrefix": "us-dev02",
+		"time": "16/Nov/2022:11:42:33 +0000",
+		"timeEpoch": 1668598953145,
+		"http": {
+			"method": "POST",
+			"path": "/default/register",
+			"protocol": "HTTP/1.1",
+			"sourceIp": "181.214.226.38",
+			"userAgent": "PostmanRuntime/7.29.2"
+		},
+		"authentication": {
+			"clientCert": {
+				"clientCertPem": "",
+				"issuerDN": "",
+				"serialNumber": "",
+				"subjectDN": "",
+				"validity": {
+					"notAfter": "",
+					"notBefore": ""
+				}
+			}
+		}
+	},
+	"body": "{\n    \"jsonrpc\": \"2.0\",\n    \"method\": \"eth_blockNumber\",\n    \"params\": [],\n    \"id\": 1\n}",
+	"isBase64Encoded": false
+}

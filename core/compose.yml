@@ -1,74 +1,82 @@
 version: "3.8"
 services:
-    appsync:
-        container_name: appsync-authorizer
+    # appsync:
+    #     container_name: appsync-authorizer
+    #     ports:
+    #         - "9000:8080"
+    #     platform: "linux/arm64"
+    #     build:
+    #         dockerfile: Dockerfile.lambda
+    #         args:
+    #             CMD: "lambda/appsync-authorizer/main.go"
+    #     volumes:
+    #         - ~/.aws-lambda-rie:/aws-lambda
+    #     entrypoint:
+    #         - /aws-lambda/aws-lambda-rie
+    #         - /var/task/handler
+    #     environment:
+    #         - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
+    #         - CHALLENGE_TABLE_NAME=unused
+    #         - APPLE_IDENTITY_POOL_ID=unused
+    # apigw:
+    #     container_name: apigw-authorizer
+    #     ports:
+    #         - "9001:8081"
+    #     platform: "linux/arm64"
+    #     build:
+    #         dockerfile: Dockerfile.lambda
+    #         args:
+    #             CMD: "lambda/apigw-authorizer/main.go"
+    #     volumes:
+    #         - ~/.aws-lambda-rie:/aws-lambda
+    #     entrypoint:
+    #         - /aws-lambda/aws-lambda-rie
+    #         - /var/task/handler
+    #     environment:
+    #         - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
+    #         - CHALLENGE_TABLE_NAME=unused
+    #         - APPLE_IDENTITY_POOL_ID=unused
+    # complete:
+    #     container_name: complete
+    #     ports:
+    #         - "9002:8082"
+    #     platform: "linux/arm64"
+    #     build:
+    #         dockerfile: Dockerfile.lambda
+    #         args:
+    #             CMD: "lambda/complete/main.go"
+    #     volumes:
+    #         - ~/.aws-lambda-rie:/aws-lambda
+    #     entrypoint:
+    #         - /aws-lambda/aws-lambda-rie
+    #         - /var/task/handler
+    #     environment:
+    #         - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
+    #         - CHALLENGE_TABLE_NAME=unused
+    #         - APPLE_IDENTITY_POOL_ID=unused
+    complete:
+        container_name: complete
         ports:
             - "9000:8080"
         platform: "linux/arm64"
         build:
             dockerfile: Dockerfile.lambda
             args:
-                CMD: "lambda/appsync-authorizer/main.go"
+                CMD: "lambda/complete/main.go"
         volumes:
             - ~/.aws-lambda-rie:/aws-lambda
+            - ${HOME}/.aws:/root/.aws:ro
         entrypoint:
             - /aws-lambda/aws-lambda-rie
             - /var/task/handler
         environment:
-            - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
-            - CHALLENGE_TABLE_NAME=unused
-            - APPLE_IDENTITY_POOL_ID=unused
-    apigw:
-        container_name: apigw-authorizer
-        ports:
-            - "9001:8081"
-        platform: "linux/arm64"
-        build:
-            dockerfile: Dockerfile.lambda
-            args:
-                CMD: "lambda/apigw-authorizer/main.go"
-        volumes:
-            - ~/.aws-lambda-rie:/aws-lambda
-        entrypoint:
-            - /aws-lambda/aws-lambda-rie
-            - /var/task/handler
-        environment:
-            - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
-            - CHALLENGE_TABLE_NAME=unused
-            - APPLE_IDENTITY_POOL_ID=unused
-    challenge:
-        container_name: challenge
-        ports:
-            - "9002:8082"
-        platform: "linux/arm64"
-        build:
-            dockerfile: Dockerfile.lambda
-            args:
-                CMD: "lambda/challenge/main.go"
-        volumes:
-            - ~/.aws-lambda-rie:/aws-lambda
-        entrypoint:
-            - /aws-lambda/aws-lambda-rie
-            - /var/task/handler
-        environment:
-            - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
-            - CHALLENGE_TABLE_NAME=unused
-            - APPLE_IDENTITY_POOL_ID=unused
-    register:
-        container_name: register
-        ports:
-            - "9003:8083"
-        platform: "linux/arm64"
-        build:
-            dockerfile: Dockerfile.lambda
-            args:
-                CMD: "lambda/register/main.go"
-        volumes:
-            - ~/.aws-lambda-rie:/aws-lambda
-        entrypoint:
-            - /aws-lambda/aws-lambda-rie
-            - /var/task/handler
-        environment:
-            - APPLE_JWT_PUBLIC_KEY_ENDPOINT=https://appleid.apple.com/auth/keys
-            - CHALLENGE_TABLE_NAME=unused
-            - APPLE_IDENTITY_POOL_ID=unused
+            - DYNAMO_USER_TABLE_NAME=us-dev02-auth-users
+            - DYNAMO_CHALLENGE_TABLE_NAME=us-dev02-auth-challenges
+            - COGNITO_IDENTITY_POOL_ID=us-east-1:1f6e21fc-6d04-4663-9ed7-3a39db451e27
+            - APPLE_PUBLICKEY_ENDPOINT=https://appleid.apple.com/auth/keys
+            - APPLE_TOKEN_ENDPOINT=https://appleid.apple.com/auth/token
+            - SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME=us-dev02-auth-apple-signinwithapple-privatekey20221110121747592500000001
+            - APPLE_TEAM_ID=4497QJSAD3
+            - SIGNIN_WITH_APPLE_PRIVATE_KEY_ID=7K626D4KLV
+            - APPLE_SERVICE_NAME=xyz.nugg.app
+            - AWS_REGION=us-east-1
