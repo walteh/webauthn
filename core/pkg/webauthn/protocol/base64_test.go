@@ -27,6 +27,13 @@ func TestBase64UnmarshalJSON(t *testing.T) {
 			},
 		},
 		{
+			encodedMessage: "\"" + base64.RawURLEncoding.EncodeToString([]byte("01GHYV55GGGP746DAGZJWS9WVY")) + "\"",
+			expectedTestData: testData{
+				StringData:  "test string",
+				EncodedData: URLEncodedBase64("01GHYV55GGGP746DAGZJWS9WVY"),
+			},
+		},
+		{
 			encodedMessage: "null",
 			expectedTestData: testData{
 				StringData:  "test string",

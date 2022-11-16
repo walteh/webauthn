@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/segmentio/ksuid"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -57,7 +58,7 @@ func main() {
 	web, err := webauthn.New(&webauthn.Config{
 		RPDisplayName: "nugg.xyz",
 		RPID:          "nugg.xyz",
-		RPOrigin:      "https://auth.nugg.xyz",
+		RPOrigin:      "https://nugg.xyz",
 		// AuthenticatorSelection: protocol.AuthenticatorSelection{
 		// 	AuthenticatorAttachment: protocol.AuthenticatorAttachment("apple"),
 		// 	UserVerification:        protocol.VerificationRequired,
@@ -71,7 +72,7 @@ func main() {
 	}
 
 	abc := &Handler{
-		Id:              safeid.Make().String(),
+		Id:              ksuid.New().String(),
 		Ctx:             ctx,
 		Dynamo:          dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),

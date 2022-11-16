@@ -1,7 +1,7 @@
 package dynamo
 
 import (
-	"nugg-auth/core/pkg/safeid"
+	"log"
 	"reflect"
 	"testing"
 )
@@ -15,17 +15,17 @@ func Test_clientDataToSafeID(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    safeid.SafeID
+		want    string
 		wantErr bool
 	}{
 		{
 			name: "A",
 			args: args{
-				clientData:            `{"challenge":"01GHYQFHNYP06KNCQ1NCJW2TVK","origin":"https://localhost:8080","type":"webauthn.create"}`,
+				clientData:            `{"challenge":"QVlSOWJxa29wSXJKVU9wVXRndzRDZw","origin":"https://localhost:8080","type":"webauthn.create"}`,
 				expectedChallengeType: "webauthn.create",
 				expectedOrigin:        "https://localhost:8080",
 			},
-			want:    safeid.MustParseStrict("01GHYQFHNYP06KNCQ1NCJW2TVK"),
+			want:    "QVlSOWJxa29wSXJKVU9wVXRndzRDZw",
 			wantErr: false,
 		},
 	}
@@ -36,9 +36,10 @@ func Test_clientDataToSafeID(t *testing.T) {
 				t.Errorf("clientDataToSafeID() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(*got, tt.want) {
-				t.Errorf("clientDataToSafeID() = %v, want %v", *got, tt.want)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("clientDataToSafeID() = %v, want %v", got, tt.want)
 			}
+			log.Println(got)
 		})
 	}
 }

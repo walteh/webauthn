@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"nugg-auth/core/pkg/cwebauthn"
-	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/webauthn/webauthn"
 
 	"time"
@@ -23,31 +22,31 @@ type Challenge struct {
 	UserData    []byte `dynamodbav:"user_data"`
 }
 
-func clientDataToSafeID(clientData string, expectedChallengeType string, expectedOrigin string) (*safeid.SafeID, error) {
+func clientDataToSafeID(clientData string, expectedChallengeType string, expectedOrigin string) (string, error) {
 	var cd ClientData
 	err := json.Unmarshal([]byte(clientData), &cd)
 	if err != nil {
 		log.Printf("failed to unmarshal client data, %v", err)
-		return nil, err
+		return "", err
 	}
 
 	if cd.Type != expectedChallengeType {
 		log.Printf("unexpected challenge type, %v", cd.Type)
-		return nil, ErrUnexpectedChallengeType
+		return "", ErrUnexpectedChallengeType
 	}
 
 	if cd.Origin != expectedOrigin {
 		log.Printf("unexpected origin, %v", cd.Origin)
-		return nil, ErrUnexpectedOrigin
+		return "", ErrUnexpectedOrigin
 	}
 
-	id, err := safeid.ParseStrict(cd.Challenge)
-	if err != nil {
-		log.Printf("failed to parse challenge, %v", err)
-		return nil, err
-	}
+	// id, err := safeid.ParseFromChallengeString(cd.Challenge)
+	// if err != nil {
+	// 	log.Printf("failed to parse challenge [%s], %v", cd.Challenge, err)
+	// 	return nil, err
+	// }
 
-	return &id, nil
+	return cd.Challenge, nil
 }
 
 // AddMovie adds a movie the DynamoDB table.
@@ -107,7 +106,7 @@ func (client *Client) LoadChallenge(ctx context.Context, clientData string, expe
 	input := &dynamodb.GetItemInput{
 		TableName: aws.String(client.TableName),
 		Key: map[string]types.AttributeValue{
-			"id": &types.AttributeValueMemberS{Value: key.String()},
+			"id": &types.AttributeValueMemberS{Value: key},
 		},
 	}
 

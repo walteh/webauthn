@@ -7,7 +7,6 @@ import (
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
-	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
 	"nugg-auth/core/pkg/webauthn/webauthn"
@@ -18,6 +17,7 @@ import (
 	"nugg-auth/core/pkg/webauthn/protocol"
 
 	"github.com/rs/zerolog"
+	"github.com/segmentio/ksuid"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -73,7 +73,7 @@ func main() {
 	}
 
 	abc := &Handler{
-		Id:              safeid.Make().String(),
+		Id:              ksuid.New().String(),
 		Ctx:             ctx,
 		DynamoUser:      dynamo.NewClient(cfg, env.DynamoUserTableName()),
 		DynamoChallenge: dynamo.NewClient(cfg, env.DynamoChallengeTableName()),
