@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
+	"strings"
 	"sync"
 )
 
@@ -31,4 +32,11 @@ func CreateChallenge() (Challenge, error) {
 
 func (c Challenge) String() string {
 	return base64.RawURLEncoding.EncodeToString(c)
+}
+
+func MockSetRander(str string) string {
+	rander = strings.NewReader(str)
+
+	return base64.RawStdEncoding.EncodeToString([]byte(str))
+
 }

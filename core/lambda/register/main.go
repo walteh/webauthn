@@ -2,15 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"nugg-auth/core/pkg/applepublickey"
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
-	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/secretsmanager"
 	"nugg-auth/core/pkg/signinwithapple"
-	"nugg-auth/core/pkg/user"
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"nugg-auth/core/pkg/webauthn/webauthn"
 
@@ -117,14 +114,13 @@ func main() {
 	}
 
 	web, err := webauthn.New(&webauthn.Config{
-		RPDisplayName:         "nugg.xyz",
-		RPID:                  "nugg.xyz",
-		RPOrigin:              "https://nugg.xyz",
-		AttestationPreference: protocol.PreferDirectAttestation,
-		AuthenticatorSelection: protocol.AuthenticatorSelection{
-			AuthenticatorAttachment: protocol.Platform,
-			UserVerification:        protocol.VerificationRequired,
-		}})
+		RPDisplayName: "nugg.xyz",
+		RPID:          "nugg.xyz",
+		RPOrigin:      "https://nugg.xyz",
+		// passkeys do not support attestation as they can move between devices
+		// https://developer.apple.com/forums/thread/713195
+		AttestationPreference: protocol.PreferNoAttestation,
+	})
 	if err != nil {
 		return
 	}
@@ -132,7 +128,7 @@ func main() {
 	abc := &Handler{
 		Id:              ksuid.New().String(),
 		Ctx:             ctx,
-		Dynamo:          dynamo.NewClient(cfg, env.DynamoUserTableName(), env.DynamoCeremonyTableName()),
+		Dynamo:          dynamo.NewClient(cfg, env.DynamoUserTableName(), env.DynamoCeremonyTableName(), ""),
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
@@ -148,91 +144,91 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
-	out, err := json.Marshal(payload)
-	if err != nil {
-		return Output{}, err
-	}
+	// out, err := json.Marshal(payload)
+	// if err != nil {
+	// 	return Output{}, err
+	// }
 
-	h.Logger.Info().Msg(string(out))
+	// h.Logger.Info().Msg(string(out))
 
 	inv := h.NewInvocation(h.Logger)
 
-	h1 := payload.Headers["x-nugg-signinwithapple-identity-token"]
-	registrationCode := payload.Headers["x-nugg-signinwithapple-registration-code"]
-	u1 := payload.Headers["x-nugg-signinwithapple-username"]
+	// h1 := payload.Headers["x-nugg-signinwithapple-identity-token"]
+	// registrationCode := payload.Headers["x-nugg-signinwithapple-registration-code"]
+	// u1 := payload.Headers["x-nugg-signinwithapple-username"]
 
-	if h1 == "" {
-		return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-identity-token")
-	}
+	// if h1 == "" {
+	// 	return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-identity-token")
+	// }
 
-	if registrationCode == "" {
-		return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-registration-code")
-	}
+	// if registrationCode == "" {
+	// 	return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-registration-code")
+	// }
 
-	if u1 == "" {
-		return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-username")
-	}
+	// if u1 == "" {
+	// 	return inv.Error(nil, 400, "Missing x-nugg-signinwithapple-username")
+	// }
 
-	publickey, err := h.ApplePublicKey.Refresh(ctx)
-	if err != nil {
-		return inv.Error(err, 502, "Failed to refresh public key")
-	}
+	// publickey, err := h.ApplePublicKey.Refresh(ctx)
+	// if err != nil {
+	// 	return inv.Error(err, 502, "Failed to refresh public key")
+	// }
 
-	tkn, err := publickey.ParseToken(h1)
-	if err != nil {
-		return inv.Error(err, 401, "Failed to parse token")
-	}
+	// tkn, err := publickey.ParseToken(h1)
+	// if err != nil {
+	// 	return inv.Error(err, 401, "Failed to parse token")
+	// }
 
-	if !tkn.Valid {
-		return inv.Error(err, 401, "Invalid token")
-	}
+	// if !tkn.Valid {
+	// 	return inv.Error(err, 401, "Invalid token")
+	// }
 
-	sub, err := tkn.GetUniqueID()
-	if err != nil {
-		return inv.Error(err, 400, "Failed to get sub")
-	}
+	// sub, err := tkn.GetUniqueID()
+	// if err != nil {
+	// 	return inv.Error(err, 400, "Failed to get sub")
+	// }
 
-	cognitoId, err := h.Cognito.GetIdentityId(h.Ctx, h1)
-	if err != nil {
-		return inv.Error(err, 502, "Failed to get identity id")
-	}
+	// cognitoId, err := h.Cognito.GetIdentityId(h.Ctx, h1)
+	// if err != nil {
+	// 	return inv.Error(err, 502, "Failed to get identity id")
+	// }
 
-	privateKey, err := h.SecretsManager.Refresh(ctx)
-	if err != nil {
-		return inv.Error(err, 502, "Failed to refresh private key")
-	}
+	// privateKey, err := h.SecretsManager.Refresh(ctx)
+	// if err != nil {
+	// 	return inv.Error(err, 502, "Failed to refresh private key")
+	// }
 
-	res, err := h.SignInWithApple.ValidateRegistrationCode(ctx, privateKey, registrationCode)
-	if err != nil {
-		if signinwithapple.IsInvalidGrant(err) {
-			return inv.Error(err, 401, "Apple rejected the registration code, likely because it is expired")
-		}
-		return inv.Error(err, 502, "Failed to validate registration code")
-	}
+	// res, err := h.SignInWithApple.ValidateRegistrationCode(ctx, privateKey, registrationCode)
+	// if err != nil {
+	// 	if signinwithapple.IsInvalidGrant(err) {
+	// 		return inv.Error(err, 401, "Apple rejected the registration code, likely because it is expired")
+	// 	}
+	// 	return inv.Error(err, 502, "Failed to validate registration code")
+	// }
 
-	abc := user.NewAppleUser(safeid.Make().String(), u1, sub, cognitoId, res)
+	// abc := user.NewAppleUser(safeid.Make().String(), u1, sub, cognitoId, res)
 
-	options, sessionData, err := h.WebAuthn.BeginRegistration(abc.CreateAppleWebAuthnUser())
-	if err != nil {
-		return inv.Error(err, 500, "failed to begin registration")
-	}
+	// options, sessionData, err := h.WebAuthn.BeginRegistration(abc.CreateAppleWebAuthnUser())
+	// if err != nil {
+	// 	return inv.Error(err, 500, "failed to begin registration")
+	// }
 
-	opts, err := json.Marshal(options)
-	if err != nil {
-		return inv.Error(err, 500, "Failed to marshal options")
-	}
+	// opts, err := json.Marshal(options)
+	// if err != nil {
+	// 	return inv.Error(err, 500, "Failed to marshal options")
+	// }
 
-	cer := dynamo.NewCeremony(sub, sessionData)
+	// cer := dynamo.NewCeremony(sub, sessionData)
 
-	err = h.Dynamo.SaveNewUser(h.Ctx, abc, cer)
-	if err != nil {
-		if dynamo.IsConditionalCheckFailed(err) {
-			return inv.Error(err, 409, "User already exists")
-		}
-		return inv.Error(err, 502, "Failed to generate user")
-	}
+	// err = h.Dynamo.SaveNewUser(h.Ctx, abc, cer)
+	// if err != nil {
+	// 	if dynamo.IsConditionalCheckFailed(err) {
+	// 		return inv.Error(err, 409, "User already exists")
+	// 	}
+	// 	return inv.Error(err, 502, "Failed to generate user")
+	// }
 
 	return inv.Success(200, map[string]string{
 		"Content-Type": "application/json",
-	}, string(opts))
+	}, string("opts"))
 }

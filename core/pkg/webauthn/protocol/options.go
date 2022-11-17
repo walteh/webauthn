@@ -15,9 +15,9 @@ type CredentialAssertion struct {
 // In order to create a Credential via create(), the caller specifies a few parameters in a CredentialCreationOptions object.
 // See §5.4. Options for Credential Creation https://www.w3.org/TR/webauthn/#dictionary-makecredentialoptions
 type PublicKeyCredentialCreationOptions struct {
-	Challenge              Challenge                `json:"challenge"`
-	RelyingParty           RelyingPartyEntity       `json:"rp"`
-	User                   UserEntity               `json:"user"`
+	Challenge    Challenge          `json:"challenge"`
+	RelyingParty RelyingPartyEntity `json:"rp"`
+	// User                   UserEntity               `json:"user"`
 	Parameters             []CredentialParameter    `json:"pubKeyCredParams,omitempty"`
 	AuthenticatorSelection AuthenticatorSelection   `json:"authenticatorSelection,omitempty"`
 	Timeout                int                      `json:"timeout,omitempty"`

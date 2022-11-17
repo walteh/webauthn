@@ -1,7 +1,6 @@
 package webauthn
 
 import (
-	"bytes"
 	"encoding/base64"
 	"net/http"
 
@@ -15,21 +14,23 @@ import (
 
 type RegistrationOption func(*protocol.PublicKeyCredentialCreationOptions)
 
+// func (webauthn WebAuthn)
+
 // Generate a new set of registration data to be sent to the client and authenticator.
-func (webauthn *WebAuthn) BeginRegistration(user User, opts ...RegistrationOption) (*protocol.CredentialCreation, *SessionData, error) {
+func (webauthn *WebAuthn) BeginRegistration(opts ...RegistrationOption) (*protocol.CredentialCreation, *SessionData, error) {
 	challenge, err := protocol.CreateChallenge()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	webAuthnUser := protocol.UserEntity{
-		ID:          user.WebAuthnID(),
-		DisplayName: user.WebAuthnDisplayName(),
-		CredentialEntity: protocol.CredentialEntity{
-			Name: user.WebAuthnName(),
-			Icon: user.WebAuthnIcon(),
-		},
-	}
+	// webAuthnUser := protocol.UserEntity{
+	// 	ID:          user.WebAuthnID(),
+	// 	DisplayName: user.WebAuthnDisplayName(),
+	// 	CredentialEntity: protocol.CredentialEntity{
+	// 		Name: user.WebAuthnName(),
+	// 		Icon: user.WebAuthnIcon(),
+	// 	},
+	// }
 
 	relyingParty := protocol.RelyingPartyEntity{
 		ID: webauthn.Config.RPID,
@@ -42,9 +43,9 @@ func (webauthn *WebAuthn) BeginRegistration(user User, opts ...RegistrationOptio
 	credentialParams := defaultRegistrationCredentialParameters()
 
 	creationOptions := protocol.PublicKeyCredentialCreationOptions{
-		Challenge:              challenge,
-		RelyingParty:           relyingParty,
-		User:                   webAuthnUser,
+		Challenge:    challenge,
+		RelyingParty: relyingParty,
+		// User:                   webAuthnUser,
 		Parameters:             credentialParams,
 		AuthenticatorSelection: webauthn.Config.AuthenticatorSelection,
 		Timeout:                webauthn.Config.Timeout,
@@ -58,7 +59,7 @@ func (webauthn *WebAuthn) BeginRegistration(user User, opts ...RegistrationOptio
 	response := protocol.CredentialCreation{Response: creationOptions}
 	newSessionData := SessionData{
 		Challenge:        base64.RawURLEncoding.EncodeToString(challenge),
-		UserID:           user.WebAuthnID(),
+		UserID:           []byte{69, 69, 69},
 		UserVerification: creationOptions.AuthenticatorSelection.UserVerification,
 	}
 
@@ -124,9 +125,10 @@ func (webauthn *WebAuthn) FinishRegistration(webauthnUserId string, session Sess
 
 // CreateCredential verifies a parsed response against the user's credentials and session data.
 func (webauthn *WebAuthn) CreateCredential(webauthnUserId string, session SessionData, parsedResponse *protocol.ParsedCredentialCreationData) (*Credential, error) {
-	if !bytes.Equal([]byte(webauthnUserId), session.UserID) {
-		return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session")
-	}
+	// TODO - do we really need this? the challenge already tells us if it's valid
+	// if !bytes.Equal([]byte(webauthnUserId), session.UserID) {
+	// 	return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session")
+	// }
 
 	shouldVerifyUser := session.UserVerification == protocol.VerificationRequired
 

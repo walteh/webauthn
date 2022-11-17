@@ -57,7 +57,6 @@ type ParsedCredentialCreationData struct {
 }
 
 func ParseCredentialCreation(clientData, attestationObject, credentialId, credentialType string) (*ParsedCredentialCreationData, error) {
-	log.Println("Missing ID", credentialId, credentialType, clientData, attestationObject)
 
 	if credentialId == "" {
 		log.Println("Missing ID")
@@ -96,10 +95,6 @@ func ParseCredentialCreation(clientData, attestationObject, credentialId, creden
 
 	r, err := base64.RawURLEncoding.DecodeString(a)
 
-	log.Println("attestationObject", attestationObject, r, err)
-	log.Println("a", a)
-	log.Println("r", r)
-	log.Println("clientData", clientData)
 	if err != nil {
 		log.Println("Error decoding attestation object", err)
 		return nil, ErrBadRequest.WithDetails("Error decoding attestation object").WithParent(err)

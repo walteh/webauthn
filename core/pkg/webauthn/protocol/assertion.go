@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
@@ -86,6 +87,81 @@ func ParseCredentialRequestResponseBody(body io.Reader) (*ParsedCredentialAssert
 	// Step 5. Let JSONtext be the result of running UTF-8 decode on the value of cData.
 	// We don't call it cData but this is Step 5 in the spec.
 	err = json.Unmarshal(car.AssertionResponse.ClientDataJSON, &par.Response.CollectedClientData)
+	if err != nil {
+		return nil, err
+	}
+
+	err = par.Response.AuthenticatorData.Unmarshal(car.AssertionResponse.AuthenticatorData)
+	if err != nil {
+		return nil, ErrParsingData.WithDetails("Error unmarshalling auth data")
+	}
+	return &par, nil
+}
+
+// Parse the credential request response into a format that is either required by the specification
+// or makes the assertion verification steps easier to complete. This takes an io.Reader that contains
+// the assertion response data in a raw, mostly base64 encoded format, and parses the data into
+// manageable structures
+func ParseCredentialRequest(credentialId, signature, clientData, userId, credentialType string) (*ParsedCredentialAssertionData, error) {
+	// err := json.NewDecoder(body).Decode(&car)
+	// if err != nil {
+	// 	return nil, ErrBadRequest.WithDetails("Parse error for Assertion")
+	// }
+
+	testB64, err := base64.RawURLEncoding.DecodeString(ResolveToRawURLEncoding(credentialId))
+	if err != nil || !(len(testB64) > 0) {
+		log.Println("ID not base64.RawURLEncoded")
+		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded").WithParent(err)
+	}
+
+	if signature == "" {
+		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with signature missing")
+
+	}
+
+	if clientData == "" {
+		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with clientData missing")
+	}
+
+	if userId == "" {
+		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with userId missing")
+	}
+
+	parsedSignature, err := base64.RawURLEncoding.DecodeString(ResolveToRawURLEncoding(signature))
+	if err != nil {
+		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with signature not base64url encoded")
+	}
+
+	parsedUserId, err := base64.RawURLEncoding.DecodeString(ResolveToRawURLEncoding(userId))
+	if err != nil {
+		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with signature not base64url encoded")
+	}
+
+	if credentialType != "public-key" {
+		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with bad type")
+	}
+
+	var car CredentialAssertionResponse
+
+	car.ID = credentialId
+	car.RawID = []byte(credentialId)
+	car.Type = credentialType
+	car.ClientExtensionResults = AuthenticationExtensionsClientOutputs{}
+	car.AssertionResponse = AuthenticatorAssertionResponse{}
+
+	// note: pretty sure this is unused
+	car.AssertionResponse.ClientDataJSON = URLEncodedBase64(base64.RawURLEncoding.EncodeToString([]byte(clientData)))
+
+	var par ParsedCredentialAssertionData
+	par.ID, par.RawID, par.Type, par.ClientExtensionResults = car.ID, car.RawID, car.Type, car.ClientExtensionResults
+	par.Raw = car
+
+	par.Response.Signature = parsedSignature
+	par.Response.UserHandle = parsedUserId
+
+	// Step 5. Let JSONtext be the result of running UTF-8 decode on the value of cData.
+	// We don't call it cData but this is Step 5 in the spec.
+	err = json.Unmarshal([]byte(clientData), &par.Response.CollectedClientData)
 	if err != nil {
 		return nil, err
 	}

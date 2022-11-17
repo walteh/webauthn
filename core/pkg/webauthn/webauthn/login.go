@@ -3,7 +3,6 @@ package webauthn
 import (
 	"bytes"
 	"encoding/base64"
-	"net/http"
 
 	"nugg-auth/core/pkg/webauthn/protocol"
 )
@@ -24,8 +23,7 @@ type DiscoverableUserHandler func(rawID, userHandle []byte) (user User, err erro
 // additional LoginOption parameters. This function also returns sessionData, that must be stored by the
 // RP in a secure manner and then provided to the FinishLogin function. This data helps us verify the
 // ownership of the credential being retreived.
-func (webauthn *WebAuthn) BeginLogin(user User, opts ...LoginOption) (*protocol.CredentialAssertion, *SessionData, error) {
-	credentials := user.WebAuthnCredentials()
+func (webauthn *WebAuthn) BeginLogin(userId string, credentials []Credential, opts ...LoginOption) (*protocol.CredentialAssertion, *SessionData, error) {
 
 	if len(credentials) == 0 { // If the user does not have any credentials, we cannot perform an assertion.
 		return nil, nil, protocol.ErrBadRequest.WithDetails("Found no credentials for user")
@@ -40,7 +38,7 @@ func (webauthn *WebAuthn) BeginLogin(user User, opts ...LoginOption) (*protocol.
 		allowedCredentials[i] = credentialDescriptor
 	}
 
-	return webauthn.beginLogin(user.WebAuthnID(), allowedCredentials, opts...)
+	return webauthn.beginLogin([]byte(userId), allowedCredentials, opts...)
 }
 
 // BeginDiscoverableLogin begins a client-side discoverable login, previously known as Resident Key logins.
@@ -101,51 +99,51 @@ func WithAssertionExtensions(extensions protocol.AuthenticationExtensions) Login
 	}
 }
 
-// Take the response from the client and validate it against the user credentials and stored session data
-func (webauthn *WebAuthn) FinishLogin(user User, session SessionData, response *http.Request) (*Credential, error) {
-	parsedResponse, err := protocol.ParseCredentialRequestResponse(response)
-	if err != nil {
-		return nil, err
-	}
+// // Take the response from the client and validate it against the user credentials and stored session data
+// func (webauthn *WebAuthn) FinishLogin(user User, session SessionData, response *http.Request) (*Credential, error) {
+// 	parsedResponse, err := protocol.ParseCredentialRequestResponse(response)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return webauthn.ValidateLogin(user, session, parsedResponse)
-}
+// 	return webauthn.ValidateLogin(user, session, parsedResponse)
+// }
 
 // ValidateLogin takes a parsed response and validates it against the user credentials and session data
-func (webauthn *WebAuthn) ValidateLogin(user User, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
-	if !bytes.Equal(user.WebAuthnID(), session.UserID) {
+func (webauthn *WebAuthn) ValidateLogin(userId string, creds []Credential, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
+	if !bytes.Equal([]byte(userId), session.UserID) {
 		return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session")
 	}
 
-	return webauthn.validateLogin(user, session, parsedResponse)
+	return webauthn.validateLogin([]byte(userId), creds, session, parsedResponse)
 }
 
-// ValidateDiscoverableLogin is an overloaded version of ValidateLogin that allows for discoverable credentials.
-func (webauthn *WebAuthn) ValidateDiscoverableLogin(handler DiscoverableUserHandler, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
-	if session.UserID != nil {
-		return nil, protocol.ErrBadRequest.WithDetails("Session was not initiated as a client-side discoverable login")
-	}
+// // ValidateDiscoverableLogin is an overloaded version of ValidateLogin that allows for discoverable credentials.
+// func (webauthn *WebAuthn) ValidateDiscoverableLogin(handler DiscoverableUserHandler, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
+// 	if session.UserID != nil {
+// 		return nil, protocol.ErrBadRequest.WithDetails("Session was not initiated as a client-side discoverable login")
+// 	}
 
-	if parsedResponse.Response.UserHandle == nil {
-		return nil, protocol.ErrBadRequest.WithDetails("Client-side Discoverable Assertion was attempted with a blank User Handle")
-	}
+// 	if parsedResponse.Response.UserHandle == nil {
+// 		return nil, protocol.ErrBadRequest.WithDetails("Client-side Discoverable Assertion was attempted with a blank User Handle")
+// 	}
 
-	user, err := handler(parsedResponse.RawID, parsedResponse.Response.UserHandle)
-	if err != nil {
-		return nil, protocol.ErrBadRequest.WithDetails("Failed to lookup Client-side Discoverable Credential")
-	}
+// 	user, err := handler(parsedResponse.RawID, parsedResponse.Response.UserHandle)
+// 	if err != nil {
+// 		return nil, protocol.ErrBadRequest.WithDetails("Failed to lookup Client-side Discoverable Credential")
+// 	}
 
-	return webauthn.validateLogin(user, session, parsedResponse)
-}
+// 	return webauthn.validateLogin(user, session, parsedResponse)
+// }
 
 // validateLogin takes a parsed response and validates it against the user credentials and session data
-func (webauthn *WebAuthn) validateLogin(user User, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
+func (webauthn *WebAuthn) validateLogin(userId []byte, creds []Credential, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
 	// Step 1. If the allowCredentials option was given when this authentication ceremony was initiated,
 	// verify that credential.id identifies one of the public key credentials that were listed in
 	// allowCredentials.
 
 	// NON-NORMATIVE Prior Step: Verify that the allowCredentials for the session are owned by the user provided
-	userCredentials := user.WebAuthnCredentials()
+	userCredentials := creds
 	var credentialFound bool
 	if len(session.AllowedCredentialIDs) > 0 {
 		var credentialsOwned bool
@@ -179,7 +177,7 @@ func (webauthn *WebAuthn) validateLogin(user User, session SessionData, parsedRe
 
 	userHandle := parsedResponse.Response.UserHandle
 	if len(userHandle) > 0 {
-		if !bytes.Equal(userHandle, user.WebAuthnID()) {
+		if !bytes.Equal(userHandle, userId) {
 			return nil, protocol.ErrBadRequest.WithDetails("userHandle and User ID do not match")
 		}
 	}

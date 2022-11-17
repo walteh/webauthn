@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"nugg-auth/core/pkg/applepublickey"
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
@@ -56,14 +55,12 @@ func main() {
 	}
 
 	web, err := webauthn.New(&webauthn.Config{
-		RPDisplayName:         "nugg.xyz",
-		RPID:                  "nugg.xyz",
-		RPOrigin:              "https://nugg.xyz",
-		AttestationPreference: protocol.PreferDirectAttestation,
-		AuthenticatorSelection: protocol.AuthenticatorSelection{
-			AuthenticatorAttachment: protocol.Platform,
-			UserVerification:        protocol.VerificationRequired,
-		},
+		RPDisplayName: "nugg.xyz",
+		RPID:          "nugg.xyz",
+		RPOrigin:      "https://nugg.xyz",
+		// passkeys do not support attestation as they can move between devices
+		// https://developer.apple.com/forums/thread/713195
+		AttestationPreference: protocol.PreferNoAttestation,
 	})
 
 	if err != nil {
@@ -73,7 +70,7 @@ func main() {
 	abc := &Handler{
 		Id:              ksuid.New().String(),
 		Ctx:             ctx,
-		Dynamo:          dynamo.NewClient(cfg, env.DynamoUserTableName(), env.DynamoCeremonyTableName()),
+		Dynamo:          dynamo.NewClient(cfg, env.DynamoUserTableName(), env.DynamoCeremonyTableName(), ""),
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
@@ -183,45 +180,45 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(nil, 400, "invalid format")
 	}
 
-	ceremony, err := h.Dynamo.LoadCeremony(ctx, parsedResponse.Response.CollectedClientData.Challenge)
-	if err != nil {
-		if err == dynamo.ErrNotFound {
-			return inv.Error(err, 404, "ceremony not found")
-		}
-		return inv.Error(err, 500, "failed to load ceremony")
-	}
+	// ceremony, err := h.Dynamo.LoadCeremony(ctx, parsedResponse.Response.CollectedClientData.Challenge)
+	// if err != nil {
+	// 	if err == dynamo.ErrNotFound {
+	// 		return inv.Error(err, 404, "ceremony not found")
+	// 	}
+	// 	return inv.Error(err, 500, "failed to load ceremony")
+	// }
 
-	credential, err := h.WebAuthn.CreateCredential(appleId, *ceremony.SessionData, parsedResponse)
-	if err != nil {
-		return inv.Error(err, 500, "failed to create credential")
-	}
+	// credential, err := h.WebAuthn.CreateCredential(appleId, *ceremony.SessionData, parsedResponse)
+	// if err != nil {
+	// 	return inv.Error(err, 500, "failed to create credential")
+	// }
 
-	user, err := h.Dynamo.LoadUser(ctx, ceremony.UserId)
-	if err != nil {
-		if err == dynamo.ErrNotFound {
-			return inv.Error(err, 404, "user not found")
-		}
-		return inv.Error(err, 500, "failed to load user")
-	}
+	// user, err := h.Dynamo.LoadUser(ctx, ceremony.UserId)
+	// if err != nil {
+	// 	if err == dynamo.ErrNotFound {
+	// 		return inv.Error(err, 404, "user not found")
+	// 	}
+	// 	return inv.Error(err, 500, "failed to load user")
+	// }
 
-	user.AppleAuthData.AddAppleWebAuthnCredentials(credential)
+	// user.AppleAuthData.AddAppleWebAuthnCredentials(credential)
 
-	options, sessionData, err := h.WebAuthn.BeginLogin(user.CreateAppleWebAuthnUser())
-	if err != nil {
-		return inv.Error(err, 500, "failed to begin login")
-	}
+	// options, sessionData, err := h.WebAuthn.BeginLogin(user.CreateAppleWebAuthnUser())
+	// if err != nil {
+	// 	return inv.Error(err, 500, "failed to begin login")
+	// }
 
-	opts, err := json.Marshal(options)
-	if err != nil {
-		return inv.Error(err, 500, "Failed to marshal options")
-	}
+	// opts, err := json.Marshal(options)
+	// if err != nil {
+	// 	return inv.Error(err, 500, "Failed to marshal options")
+	// }
 
-	cer := dynamo.NewCeremony(user.Id, sessionData)
+	// cer := dynamo.NewCeremony(user.Id, sessionData)
 
-	err = h.Dynamo.SaveFirstUserLogin(ctx, user, cer)
-	if err != nil {
-		return inv.Error(err, 500, "failed to save new user")
-	}
+	// err = h.Dynamo.SaveFirstUserLogin(ctx, user, cer)
+	// if err != nil {
+	// 	return inv.Error(err, 500, "failed to save new user")
+	// }
 
-	return inv.Success(200, map[string]string{"Content-Type": "application/json"}, string(opts))
+	return inv.Success(200, map[string]string{"Content-Type": "application/json"}, string(""))
 }
