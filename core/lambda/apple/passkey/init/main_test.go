@@ -56,9 +56,8 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 			want: Output{
 				StatusCode: 204,
 				Headers: map[string]string{
-					"Content-Length":            "0",
-					"x-nugg-challenge":          expected.CalculateDeterministicHash(1),
-					"x-nugg-credential-user-id": expected.CalculateDeterministicHash(2),
+					"Content-Length":  "0",
+					"x-nugg-response": successfulResponseBuilder(expected.CalculateDeterministicHash(1), expected.CalculateDeterministicHash(2)),
 				},
 			},
 			wantErr: false,

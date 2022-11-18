@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/webauthn/protocol"
@@ -154,7 +156,24 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	pp.Println(types.TransactWriteItem{Put: cer})
 
 	return inv.Success(204, map[string]string{
-		"x-nugg-challenge":          sessionData.Challenge.String(),
-		"x-nugg-credential-user-id": (sessionData.UserID.String()),
+		"x-nugg-response": successfulResponseBuilder(sessionData.Challenge, sessionData.UserID),
 	}, "")
+}
+
+func successfulResponseBuilder(challenge []byte, userId []byte) string {
+
+	abc := struct {
+		Challenge protocol.Challenge `json:"challenge"`
+		UserId    protocol.Challenge `json:"userId"`
+	}{
+		Challenge: challenge,
+		UserId:    userId,
+	}
+
+	r, err := json.Marshal(abc)
+	if err != nil {
+		panic(err)
+	}
+
+	return base64.StdEncoding.EncodeToString(r)
 }

@@ -3,7 +3,6 @@ package protocol
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/base64"
 	"io"
 	"log"
 	"testing"
@@ -21,13 +20,14 @@ func NewDeterministic(str string) io.Reader {
 	}
 }
 
-func (f *MockHashDeterministicReader) CalculateDeterministicHash(hashes int) string {
+func (f *MockHashDeterministicReader) CalculateDeterministicHash(hashes int) []byte {
 	rns := NewDeterministic(string(f.initial))
 	var dummy []byte
 	for i := 0; i < hashes; i++ {
 		rns.Read(dummy)
 	}
-	return base64.RawURLEncoding.EncodeToString(rns.(*MockHashDeterministicReader).last)
+
+	return rns.(*MockHashDeterministicReader).last
 }
 
 func (m *MockHashDeterministicReader) Read(p []byte) (n int, err error) {
