@@ -15,8 +15,10 @@ require (
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/uuid v1.3.0
+	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/zerolog v1.28.0
+	github.com/segmentio/ksuid v1.0.4
 	github.com/stretchr/testify v1.8.1
 	github.com/ugorji/go/codec v1.2.7
 	golang.org/x/crypto v0.2.0
@@ -37,12 +39,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/k0kubun/pp v3.0.1+incompatible // indirect
+	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/sys v0.2.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

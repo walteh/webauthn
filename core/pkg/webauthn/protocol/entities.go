@@ -35,7 +35,7 @@ type RelyingPartyEntity struct {
 // The PublicKeyCredentialUserEntity is used to supply additional
 // user account attributes when creating a new credential.
 type UserEntity struct {
-	CredentialEntity
+	// CredentialEntity
 	// A human-palatable name for the user account, intended only for display.
 	// For example, "Alex P. Müller" or "田中 倫". The Relying Party SHOULD let
 	// the user choose this, and SHOULD NOT restrict the choice more than necessary.

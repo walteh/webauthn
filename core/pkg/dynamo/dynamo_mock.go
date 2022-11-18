@@ -2,6 +2,7 @@ package dynamo
 
 import (
 	"context"
+	"encoding/base64"
 	"log"
 	"nugg-auth/core/pkg/webauthn/webauthn"
 	"os"
@@ -57,7 +58,7 @@ func (cli *MockClient) MockDeleteTable(t *testing.T, name string) {
 	}
 }
 
-func NewMockClient(t *testing.T) (*Client, func()) {
+func NewMockClient(t *testing.T) *Client {
 	os.Setenv("AWS_ACCESS_KEY_ID", "fake")
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "fake")
 	os.Setenv("AWS_REGION", "local")
@@ -75,31 +76,33 @@ func NewMockClient(t *testing.T) (*Client, func()) {
 		Client: &Client{Client: cli},
 	}
 
-	abc := func() {
+	t.Cleanup(func() {
 		log.Println("teardown")
 		mocked.MockDeleteTable(t, "credential-table")
 		mocked.MockDeleteTable(t, "user-table")
 		mocked.MockDeleteTable(t, "ceremony-table")
-	}
+	})
 
 	return &Client{
 		Client:              cli,
 		UserTableName:       mocked.MockCreateTable(t, "user-table", "user_id"),
 		CeremonyTableName:   mocked.MockCreateTable(t, "ceremony-table", "ceremony_id"),
 		CredentialTableName: mocked.MockCreateTable(t, "credential-table", "credential_id"),
-	}, abc
+	}
 }
 
-func MockSetCeremony(t *testing.T, dynamoClient *Client, wan *webauthn.WebAuthn, challenge string) {
+func (dynamoClient *Client) MockSetCeremony(t *testing.T, wan *webauthn.WebAuthn, challenge string) {
 	t.Helper()
 
-	_, cer, err := wan.BeginRegistration()
+	_, cer, err := wan.BeginRegistration("tester1")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cer.Challenge = challenge
-
+	cer.Challenge, err = base64.URLEncoding.DecodeString(challenge)
+	if err != nil {
+		t.Fatal(err)
+	}
 	put, err := dynamoClient.NewCeremonyPut(cer)
 	if err != nil {
 		t.Fatal(err)
@@ -112,3 +115,27 @@ func MockSetCeremony(t *testing.T, dynamoClient *Client, wan *webauthn.WebAuthn,
 		t.Fatal(err)
 	}
 }
+
+// func (dynamoClient *Client) MockPretendRegisterHappened(t *testing.T, wan *webauthn.WebAuthn, challenge string, attestation string) {
+// 	t.Helper()
+
+// 	_, cer, err := wan.BeginRegistration()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	cer.Challenge = challenge
+
+// 	ceremonyPut, err := dynamoClient.NewCeremonyPut(cer)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+
+// 	dynamoClient.TransactWrite(context.Background(),
+// 		types.TransactWriteItem{Put: userput},
+// 		types.TransactWriteItem{Put: credput},
+// 		types.TransactWriteItem{Put: ceremonyPut},
+// 	)
+
+// 	log.
+// }

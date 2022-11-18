@@ -80,9 +80,7 @@ func (c *Client) TransactGet(ctx context.Context, items ...types.TransactGetItem
 			Request: item,
 		}
 	}
-
 	return output, nil
-
 }
 
 func (client *Client) MustUserTableName() *string {
@@ -103,7 +101,7 @@ func (client *Client) MustCredentialTableName() *string {
 	if client.CeremonyTableName == "" {
 		panic("ceremony table name is empty")
 	}
-	return aws.String(client.CeremonyTableName)
+	return aws.String(client.CredentialTableName)
 }
 
 func IsConditionalCheckFailed(err error) bool {

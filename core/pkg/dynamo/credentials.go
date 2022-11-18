@@ -1,6 +1,7 @@
 package dynamo
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"nugg-auth/core/pkg/webauthn/protocol"
@@ -20,12 +21,13 @@ const (
 )
 
 type DynamoCredential struct {
-	Id        string `dynamodbav:"credential_id"       json:"credential_id"`
-	UserId    string `dynamodbav:"user_id"             json:"user_id"`
-	Type      string `dynamodbav:"type"                json:"type"`
-	CreatedAt int64  `dynamodbav:"created_at"          json:"created_at"`
-	UpdatedAt int64  `dynamodbav:"updated_at"          json:"updated_at"`
-	Data      []byte `dynamodbav:"data"                json:"data"`
+	Id               string `dynamodbav:"credential_id"       json:"credential_id"`
+	UserId           string `dynamodbav:"user_id"             json:"user_id"`
+	CredentialUserId []byte `dynamodbav:"credential_user_id"  json:"credential_user_id"`
+	Type             string `dynamodbav:"type"                json:"type"`
+	CreatedAt        int64  `dynamodbav:"created_at"          json:"created_at"`
+	UpdatedAt        int64  `dynamodbav:"updated_at"          json:"updated_at"`
+	Data             []byte `dynamodbav:"data"                json:"data"`
 }
 
 func (client *Client) decodeCredentialFromDynamo(data map[string]types.AttributeValue) (*DynamoCredential, error) {
@@ -48,6 +50,7 @@ func (client *Client) decodeApplePassKey(data *DynamoCredential) (userId string,
 	if err != nil {
 		return "", nil, err
 	}
+
 	return data.UserId, credential, nil
 }
 
@@ -74,7 +77,7 @@ func (c *Client) makeDynamoCredentialUpdate(d *DynamoCredential) *types.Update {
 	}
 }
 
-func (client *Client) newCredentialFromApplePassKeyData(userId string, credential *webauthn.Credential) (*DynamoCredential, error) {
+func (client *Client) newCredentialFromApplePassKeyData(userId string, credentialUserId []byte, credential *webauthn.Credential) (*DynamoCredential, error) {
 	now := time.Now()
 
 	raw, err := json.Marshal(credential)
@@ -83,26 +86,26 @@ func (client *Client) newCredentialFromApplePassKeyData(userId string, credentia
 	}
 
 	return &DynamoCredential{
-		Id:        string(credential.ID),
-		UserId:    userId,
-		Type:      string(ApplePassKeyCredentialType),
-		CreatedAt: now.Unix(),
-		UpdatedAt: now.Unix(),
-		Data:      raw,
+		Id:               base64.RawURLEncoding.EncodeToString(credential.ID),
+		UserId:           userId,
+		CredentialUserId: credentialUserId,
+		Type:             string(ApplePassKeyCredentialType),
+		CreatedAt:        now.Unix(),
+		UpdatedAt:        now.Unix(),
+		Data:             raw,
 	}, nil
-
 }
 
-func (client *Client) NewApplePassKeyCredentialUpdate(userId string, credential *webauthn.Credential) (*types.Update, error) {
-	d, err := client.newCredentialFromApplePassKeyData(userId, credential)
+func (client *Client) NewApplePassKeyCredentialUpdate(userId string, credentialUserId []byte, credential *webauthn.Credential) (*types.Update, error) {
+	d, err := client.newCredentialFromApplePassKeyData(userId, credentialUserId, credential)
 	if err != nil {
 		return nil, err
 	}
 	return client.makeDynamoCredentialUpdate(d), nil
 }
 
-func (client *Client) NewApplePassKeyCredentialPut(userId string, credential *webauthn.Credential) (*types.Put, error) {
-	d, err := client.newCredentialFromApplePassKeyData(userId, credential)
+func (client *Client) NewApplePassKeyCredentialPut(userId string, credentialUserId []byte, credential *webauthn.Credential) (*types.Put, error) {
+	d, err := client.newCredentialFromApplePassKeyData(userId, credentialUserId, credential)
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +130,9 @@ func (client *Client) ParseApplePassKeyCredential(data map[string]types.Attribut
 }
 
 func (client *Client) FindApplePassKeyInGetResult(result []*GetOutput) (userId string, credential *webauthn.Credential, err error) {
-
 	cred, err := FindInOnePerTableGetResult[DynamoCredential](result, client.MustCredentialTableName())
 	if err != nil {
 		return "", nil, err
 	}
-
 	return client.decodeApplePassKey(cred)
 }

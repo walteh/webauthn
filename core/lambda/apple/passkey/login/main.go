@@ -135,16 +135,20 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	signature := payload.Headers["x-nugg-webauthn-signature"]
-	clientdata := payload.Headers["x-nugg-webauthn-clientdata"]
-	credentialId := payload.Headers["x-nugg-webauthn-credential-id"]
-	userId := payload.Headers["x-nugg-webauthn-user-id"]
+	signature := payload.Headers["x-nugg-webauthn-assertion"]
 
-	if signature == "" || clientdata == "" || credentialId == "" {
+	if signature == "" {
 		return inv.Error(nil, 400, "missing headers")
 	}
 
-	parsedResponse, err := protocol.ParseCredentialRequest(credentialId, signature, clientdata, userId, "public-key")
+	args, err := protocol.DecodeCredentialAssertionJSON(signature)
+	if err != nil {
+		return inv.Error(err, 400, "invalid assertion")
+	}
+
+	r1 := protocol.DecodeCredentialAssertionResponse(args)
+
+	parsedResponse, err := protocol.ParseCredentialAssertionResponse(*r1)
 	if err != nil {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
@@ -154,7 +158,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		types.TransactGetItem{Get: h.Dynamo.NewCredentialGet(parsedResponse.ParsedCredential.ID)},
 	)
 	if err != nil {
-		return inv.Error(err, 500, "failed to get ceremony")
+		return inv.Error(err, 500, "failed to send transact get")
 	}
 
 	cer, err := h.Dynamo.FindCeremonyInGetResult(res)
@@ -162,17 +166,17 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to find ceremony")
 	}
 
-	userid, creds, err := h.Dynamo.FindApplePassKeyInGetResult(res)
+	nuggid, creds, err := h.Dynamo.FindApplePassKeyInGetResult(res)
 	if err != nil {
-		return inv.Error(err, 500, "failed to find ceremony")
+		return inv.Error(err, 500, "failed to find credential")
 	}
 
-	dacred, err := h.WebAuthn.ValidateLogin(userid, []webauthn.Credential{*creds}, *cer.SessionData, parsedResponse)
+	dacred, err := h.WebAuthn.ValidateLogin(string(args.UserID), []webauthn.Credential{*creds}, *cer.SessionData, parsedResponse)
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin registration")
 	}
 
-	apl, err := h.Dynamo.NewApplePassKeyCredentialUpdate(userid, dacred)
+	apl, err := h.Dynamo.NewApplePassKeyCredentialUpdate(nuggid, args.UserID, dacred)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create apple pass key")
 	}

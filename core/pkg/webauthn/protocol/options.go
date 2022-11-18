@@ -15,9 +15,9 @@ type CredentialAssertion struct {
 // In order to create a Credential via create(), the caller specifies a few parameters in a CredentialCreationOptions object.
 // See §5.4. Options for Credential Creation https://www.w3.org/TR/webauthn/#dictionary-makecredentialoptions
 type PublicKeyCredentialCreationOptions struct {
-	Challenge    Challenge          `json:"challenge"`
-	RelyingParty RelyingPartyEntity `json:"rp"`
-	// User                   UserEntity               `json:"user"`
+	Challenge              Challenge                `json:"challenge"`
+	RelyingParty           RelyingPartyEntity       `json:"rp"`
+	User                   UserEntity               `json:"user"`
 	Parameters             []CredentialParameter    `json:"pubKeyCredParams,omitempty"`
 	AuthenticatorSelection AuthenticatorSelection   `json:"authenticatorSelection,omitempty"`
 	Timeout                int                      `json:"timeout,omitempty"`
@@ -46,7 +46,7 @@ type CredentialDescriptor struct {
 	// The valid credential types.
 	Type CredentialType `json:"type"`
 	// CredentialID The ID of a credential to allow/disallow
-	CredentialID []byte `json:"id"`
+	CredentialID URLEncodedBase64 `json:"id"`
 	// The authenticator transports that can be used
 	Transport []AuthenticatorTransport `json:"transports,omitempty"`
 }
@@ -116,8 +116,8 @@ const (
 	PreferDirectAttestation ConveyancePreference = "direct"
 )
 
-func (a *PublicKeyCredentialRequestOptions) GetAllowedCredentialIDs() [][]byte {
-	var allowedCredentialIDs = make([][]byte, len(a.AllowedCredentials))
+func (a *PublicKeyCredentialRequestOptions) GetAllowedCredentialIDs() []URLEncodedBase64 {
+	var allowedCredentialIDs = make([]URLEncodedBase64, len(a.AllowedCredentials))
 	for i, credential := range a.AllowedCredentials {
 		allowedCredentialIDs[i] = credential.CredentialID
 	}

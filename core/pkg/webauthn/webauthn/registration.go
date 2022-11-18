@@ -1,7 +1,6 @@
 package webauthn
 
 import (
-	"encoding/base64"
 	"net/http"
 
 	"nugg-auth/core/pkg/webauthn/protocol"
@@ -17,8 +16,13 @@ type RegistrationOption func(*protocol.PublicKeyCredentialCreationOptions)
 // func (webauthn WebAuthn)
 
 // Generate a new set of registration data to be sent to the client and authenticator.
-func (webauthn *WebAuthn) BeginRegistration(opts ...RegistrationOption) (*protocol.CredentialCreation, *SessionData, error) {
+func (webauthn *WebAuthn) BeginRegistration(displayName string, opts ...RegistrationOption) (*protocol.CredentialCreation, *SessionData, error) {
 	challenge, err := protocol.CreateChallenge()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	credentialUserId, err := protocol.CreateChallenge()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -43,9 +47,9 @@ func (webauthn *WebAuthn) BeginRegistration(opts ...RegistrationOption) (*protoc
 	credentialParams := defaultRegistrationCredentialParameters()
 
 	creationOptions := protocol.PublicKeyCredentialCreationOptions{
-		Challenge:    challenge,
-		RelyingParty: relyingParty,
-		// User:                   webAuthnUser,
+		Challenge:              challenge,
+		RelyingParty:           relyingParty,
+		User:                   protocol.UserEntity{ID: credentialUserId, DisplayName: displayName},
 		Parameters:             credentialParams,
 		AuthenticatorSelection: webauthn.Config.AuthenticatorSelection,
 		Timeout:                webauthn.Config.Timeout,
@@ -58,8 +62,8 @@ func (webauthn *WebAuthn) BeginRegistration(opts ...RegistrationOption) (*protoc
 
 	response := protocol.CredentialCreation{Response: creationOptions}
 	newSessionData := SessionData{
-		Challenge:        base64.RawURLEncoding.EncodeToString(challenge),
-		UserID:           []byte{69, 69, 69},
+		Challenge:        challenge,
+		UserID:           credentialUserId,
 		UserVerification: creationOptions.AuthenticatorSelection.UserVerification,
 	}
 

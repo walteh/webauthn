@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -135,7 +136,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	options, sessionData, err := h.WebAuthn.BeginRegistration()
+	_, sessionData, err := h.WebAuthn.BeginRegistration("tester1")
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin registration")
 	}
@@ -150,5 +151,10 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}
 
-	return inv.Success(204, map[string]string{"x-nugg-challenge": string(options.Response.Challenge)}, "")
+	pp.Println(types.TransactWriteItem{Put: cer})
+
+	return inv.Success(204, map[string]string{
+		"x-nugg-challenge":          sessionData.Challenge.String(),
+		"x-nugg-credential-user-id": (sessionData.UserID.String()),
+	}, "")
 }

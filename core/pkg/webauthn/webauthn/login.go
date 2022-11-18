@@ -2,7 +2,6 @@ package webauthn
 
 import (
 	"bytes"
-	"encoding/base64"
 
 	"nugg-auth/core/pkg/webauthn/protocol"
 )
@@ -65,7 +64,7 @@ func (webauthn *WebAuthn) beginLogin(userID []byte, allowedCredentials []protoco
 	}
 
 	newSessionData := SessionData{
-		Challenge:            base64.RawURLEncoding.EncodeToString(challenge),
+		Challenge:            challenge,
 		UserID:               userID,
 		AllowedCredentialIDs: requestOptions.GetAllowedCredentialIDs(),
 		UserVerification:     requestOptions.UserVerification,
@@ -112,7 +111,7 @@ func WithAssertionExtensions(extensions protocol.AuthenticationExtensions) Login
 // ValidateLogin takes a parsed response and validates it against the user credentials and session data
 func (webauthn *WebAuthn) ValidateLogin(userId string, creds []Credential, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
 	if !bytes.Equal([]byte(userId), session.UserID) {
-		return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session")
+		return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session").WithKV("user_id", userId).WithKV("session_user_id", session.UserID)
 	}
 
 	return webauthn.validateLogin([]byte(userId), creds, session, parsedResponse)
@@ -157,7 +156,11 @@ func (webauthn *WebAuthn) validateLogin(userId []byte, creds []Credential, sessi
 			}
 		}
 		if !credentialsOwned {
-			return nil, protocol.ErrBadRequest.WithDetails("User does not own all credentials from the allowedCredentialList")
+			return nil, protocol.ErrBadRequest.
+				WithDetails("User does not own all credentials from the allowedCredentialList").
+				WithKV("user_id", userId).
+				WithKV("allowed_credential_ids", session.AllowedCredentialIDs).
+				WithKV("user_credentials", userCredentials)
 		}
 		for _, allowedCredentialID := range session.AllowedCredentialIDs {
 			if bytes.Equal(parsedResponse.RawID, allowedCredentialID) {
@@ -166,7 +169,9 @@ func (webauthn *WebAuthn) validateLogin(userId []byte, creds []Credential, sessi
 			}
 		}
 		if !credentialFound {
-			return nil, protocol.ErrBadRequest.WithDetails("User does not own the credential returned")
+			return nil, protocol.ErrBadRequest.WithDetails("User does not own the credential returned").
+				WithKV("credential_id", parsedResponse.RawID).
+				WithKV("allowed_credential_ids", session.AllowedCredentialIDs)
 		}
 	}
 
@@ -178,7 +183,7 @@ func (webauthn *WebAuthn) validateLogin(userId []byte, creds []Credential, sessi
 	userHandle := parsedResponse.Response.UserHandle
 	if len(userHandle) > 0 {
 		if !bytes.Equal(userHandle, userId) {
-			return nil, protocol.ErrBadRequest.WithDetails("userHandle and User ID do not match")
+			return nil, protocol.ErrBadRequest.WithDetails("userHandle and User ID do not match").WithKV("user_id", userId).WithKV("user_handle", userHandle)
 		}
 	}
 

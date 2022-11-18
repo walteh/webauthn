@@ -1,16 +1,17 @@
 package main
 
 import (
-	"context"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"nugg-auth/core/pkg/webauthn/webauthn"
 
+	"context"
 	"os"
 	"time"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -177,19 +178,19 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to create credential")
 	}
 
-	userID := safeid.Make()
+	nuggid := safeid.Make()
 
-	_, sessionData, err := h.WebAuthn.BeginLogin(userID.String(), []webauthn.Credential{*credential})
+	_, sessionData, err := h.WebAuthn.BeginLogin(nuggid.String(), []webauthn.Credential{*credential})
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin login")
 	}
 
-	userput, err := h.Dynamo.NewUserPut(userID.String())
+	userput, err := h.Dynamo.NewUserPut(nuggid.String())
 	if err != nil {
 		return inv.Error(err, 500, "failed to create user put")
 	}
 
-	credput, err := h.Dynamo.NewApplePassKeyCredentialPut(userID.String(), credential)
+	credput, err := h.Dynamo.NewApplePassKeyCredentialPut(nuggid.String(), sessionData.UserID, credential)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create credential put")
 	}
@@ -205,5 +206,9 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		types.TransactWriteItem{Put: cerput},
 	)
 
-	return inv.Success(204, map[string]string{"x-nugg-challenge": string(sessionData.Challenge)}, "")
+	pp.Println(types.TransactWriteItem{Put: userput},
+		types.TransactWriteItem{Put: credput},
+		types.TransactWriteItem{Put: cerput})
+
+	return inv.Success(204, map[string]string{"x-nugg-challenge": sessionData.Challenge.String()}, "")
 }

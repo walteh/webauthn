@@ -255,7 +255,9 @@ func (a *AuthenticatorData) Verify(rpIdHash, appIDHash []byte, userVerificationR
 	// Verify that the RP ID hash in authData is indeed the SHA-256
 	// hash of the RP ID expected by the RP.
 	if !bytes.Equal(a.RPIDHash[:], rpIdHash) && !bytes.Equal(a.RPIDHash[:], appIDHash) {
-		return ErrVerification.WithInfo(fmt.Sprintf("RP Hash mismatch. Expected %x and Received %x\n", a.RPIDHash, rpIdHash))
+		return ErrVerification.
+			WithInfo(fmt.Sprintf("RP Hash mismatch. Expected %x and Received %x\n", a.RPIDHash, rpIdHash)).
+			WithKV("AuthenticatorData", a)
 	}
 
 	// Registration Step 10 & Assertion Step 12

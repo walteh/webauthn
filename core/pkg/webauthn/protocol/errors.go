@@ -1,6 +1,10 @@
 package protocol
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/k0kubun/pp"
+)
 
 type Error struct {
 	// Short name for the type of error that has occurred
@@ -11,6 +15,8 @@ type Error struct {
 	DevInfo string `json:"debug"`
 
 	Parent string `json:"parent"`
+
+	KV map[string]interface{} `json:"data"`
 }
 
 var (
@@ -77,6 +83,7 @@ var (
 )
 
 func (err *Error) Error() string {
+	pp.Println(err)
 	str, _ := json.Marshal(err)
 	return string(str)
 }
@@ -96,5 +103,14 @@ func (passedError *Error) WithParent(details error) *Error {
 func (passedError *Error) WithInfo(info string) *Error {
 	err := *passedError
 	err.DevInfo = info
+	return &err
+}
+
+func (passedError *Error) WithKV(str string, inter interface{}) *Error {
+	err := *passedError
+	if err.KV == nil {
+		err.KV = make(map[string]interface{})
+	}
+	err.KV[str] = inter
 	return &err
 }

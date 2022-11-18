@@ -15,7 +15,6 @@ import (
 
 	"nugg-auth/core/pkg/webauthn/protocol"
 
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -173,8 +172,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	if err != nil {
 		return inv.Error(err, 500, "failed to parse attestation")
 	}
-
-	pp.Println(parsedResponse)
 
 	if parsedResponse.Response.AttestationObject.Format != "apple" {
 		return inv.Error(nil, 400, "invalid format")

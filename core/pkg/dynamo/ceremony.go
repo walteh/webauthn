@@ -18,7 +18,7 @@ type Ceremony struct {
 
 func newCeremony(session *webauthn.SessionData) *Ceremony {
 	return &Ceremony{
-		Id:          session.Challenge,
+		Id:          session.Challenge.String(),
 		SessionData: session,
 		Ttl:         (time.Now().Unix()) + 300000,
 	}

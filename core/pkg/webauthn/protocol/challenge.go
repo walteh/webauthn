@@ -4,15 +4,18 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
-	"strings"
 	"sync"
+
+	"github.com/k0kubun/pp"
 )
 
 // ChallengeLength - Length of bytes to generate for a challenge
 const ChallengeLength = 16
+const CredentialUserIDLength = 16
 
 // Challenge that should be signed and returned by the authenticator
 type Challenge URLEncodedBase64
+type CredentialUserID URLEncodedBase64
 
 var rander = rand.Reader
 
@@ -27,16 +30,12 @@ func CreateChallenge() (Challenge, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	pp.Println(challenge)
+
 	return challenge, nil
 }
 
 func (c Challenge) String() string {
 	return base64.RawURLEncoding.EncodeToString(c)
-}
-
-func MockSetRander(str string) string {
-	rander = strings.NewReader(str)
-
-	return base64.RawStdEncoding.EncodeToString([]byte(str))
-
 }
