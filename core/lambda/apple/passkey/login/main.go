@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -135,15 +136,28 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	signature := payload.Headers["x-nugg-webauthn-assertion"]
+	assertion := payload.Headers["x-nugg-webauthn-assertion"]
+	// clientdata := payload.Headers["x-nugg-webauthn-clientdata"]
+	// credentialId := payload.Headers["x-nugg-webauthn-credential-id"]
+	// userId := payload.Headers["x-nugg-webauthn-user-id"]
+	// authenticatorData := payload.Headers["x-nugg-webauthn-authenticator-data"]
 
-	if signature == "" {
-		return inv.Error(nil, 400, "missing headers")
-	}
+	// if signature == "" || clientdata == "" || credentialId == "" || userId == "" || authenticatorData == "" {
+	// 	return inv.Error(nil, 400, "missing required headers")
+	// }
 
-	args, err := protocol.DecodeCredentialAssertionJSON(signature)
+	// args := protocol.DecodeCredentialAssertionJSON(&protocol.BetterCredentialAssertionResponseString{
+	// 	Signature:            signature,
+	// 	RawClientDataJSON:    clientdata,
+	// 	CredentialID:         credentialId,
+	// 	UserID:               userId,
+	// 	RawAuthenticatorData: authenticatorData,
+	// 	Type:                 "public-key",
+	// })
+
+	args, err := protocol.ParseCredentialAssertionResponsePayload(assertion)
 	if err != nil {
-		return inv.Error(err, 400, "invalid assertion")
+		return inv.Error(nil, 400, "unable to decode headers")
 	}
 
 	r1 := protocol.DecodeCredentialAssertionResponse(args)
@@ -153,8 +167,10 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
 
+	pp.Println(parsedResponse)
+
 	res, err := h.Dynamo.TransactGet(ctx,
-		types.TransactGetItem{Get: h.Dynamo.NewCeremonyGet(parsedResponse.Response.CollectedClientData.Challenge)},
+		types.TransactGetItem{Get: h.Dynamo.NewCeremonyGet(string(parsedResponse.Response.CollectedClientData.Challenge))},
 		types.TransactGetItem{Get: h.Dynamo.NewCredentialGet(parsedResponse.ParsedCredential.ID)},
 	)
 	if err != nil {
@@ -171,7 +187,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to find credential")
 	}
 
-	dacred, err := h.WebAuthn.ValidateLogin(string(args.UserID), []webauthn.Credential{*creds}, *cer.SessionData, parsedResponse)
+	dacred, err := h.WebAuthn.ValidateLogin(protocol.Challenge(args.UserID), []webauthn.Credential{*creds}, *cer.SessionData, parsedResponse)
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin registration")
 	}

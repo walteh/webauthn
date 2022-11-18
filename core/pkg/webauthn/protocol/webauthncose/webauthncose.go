@@ -88,7 +88,6 @@ func (k *EC2PublicKeyData) Verify(data []byte, sig []byte) (bool, error) {
 	type ECDSASignature struct {
 		R, S *big.Int
 	}
-
 	e := &ECDSASignature{}
 	f := HasherFromCOSEAlg(COSEAlgorithmIdentifier(k.PublicKeyData.Algorithm))
 	h := f()

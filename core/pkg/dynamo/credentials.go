@@ -1,7 +1,6 @@
 package dynamo
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"nugg-auth/core/pkg/webauthn/protocol"
@@ -22,12 +21,12 @@ const (
 
 type DynamoCredential struct {
 	Id               string `dynamodbav:"credential_id"       json:"credential_id"`
-	UserId           string `dynamodbav:"user_id"             json:"user_id"`
+	NuggId           string `dynamodbav:"nugg_id"             json:"nugg_id"`
 	CredentialUserId []byte `dynamodbav:"credential_user_id"  json:"credential_user_id"`
-	Type             string `dynamodbav:"type"                json:"type"`
+	Type             string `dynamodbav:"type"     json:"type"`
 	CreatedAt        int64  `dynamodbav:"created_at"          json:"created_at"`
 	UpdatedAt        int64  `dynamodbav:"updated_at"          json:"updated_at"`
-	Data             []byte `dynamodbav:"data"                json:"data"`
+	Data             []byte `dynamodbav:"dat"     json:"dat"`
 }
 
 func (client *Client) decodeCredentialFromDynamo(data map[string]types.AttributeValue) (*DynamoCredential, error) {
@@ -51,7 +50,7 @@ func (client *Client) decodeApplePassKey(data *DynamoCredential) (userId string,
 		return "", nil, err
 	}
 
-	return data.UserId, credential, nil
+	return data.NuggId, credential, nil
 }
 
 func (c *Client) makeDynamoCredentialPut(d *DynamoCredential) (*types.Put, error) {
@@ -70,10 +69,11 @@ func (c *Client) makeDynamoCredentialUpdate(d *DynamoCredential) *types.Update {
 		},
 		TableName: c.MustCredentialTableName(),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":data":       &types.AttributeValueMemberB{Value: d.Data},
+			":dat":        &types.AttributeValueMemberB{Value: d.Data},
 			":updated_at": &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", d.UpdatedAt)},
 		},
-		UpdateExpression: aws.String("SET data = :data, updated_at = :updated_at"),
+		UpdateExpression: aws.String("SET dat = :dat, updated_at = :updated_at"),
+		// UpdateExpression: aws.String("SET data = :dat, updated_at = :updated_at"),
 	}
 }
 
@@ -85,9 +85,14 @@ func (client *Client) newCredentialFromApplePassKeyData(userId string, credentia
 		return nil, err
 	}
 
+	// bdc, err := base64.RawStdEncoding.DecodeString(string(credential.ID))
+	// if err != nil {
+	// 	return nil, err
+	// }
+
 	return &DynamoCredential{
-		Id:               base64.RawURLEncoding.EncodeToString(credential.ID),
-		UserId:           userId,
+		Id:               string(credential.ID),
+		NuggId:           userId,
 		CredentialUserId: credentialUserId,
 		Type:             string(ApplePassKeyCredentialType),
 		CreatedAt:        now.Unix(),
@@ -134,5 +139,9 @@ func (client *Client) FindApplePassKeyInGetResult(result []*GetOutput) (userId s
 	if err != nil {
 		return "", nil, err
 	}
+	if cred == nil {
+		return "", nil, ErrNotFound
+	}
+
 	return client.decodeApplePassKey(cred)
 }

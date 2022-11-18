@@ -11,11 +11,9 @@ import (
 
 // ChallengeLength - Length of bytes to generate for a challenge
 const ChallengeLength = 16
-const CredentialUserIDLength = 16
 
 // Challenge that should be signed and returned by the authenticator
 type Challenge URLEncodedBase64
-type CredentialUserID URLEncodedBase64
 
 var rander = rand.Reader
 
@@ -38,4 +36,16 @@ func CreateChallenge() (Challenge, error) {
 
 func (c Challenge) String() string {
 	return base64.RawURLEncoding.EncodeToString(c)
+}
+
+// UnmarshalJSON base64 decodes a URL-encoded value, storing the result in the
+// provided byte slice.
+func (dest *Challenge) UnmarshalJSON(data []byte) error {
+	return (*URLEncodedBase64)(dest).UnmarshalJSON(data)
+}
+
+// MarshalJSON base64 encodes a non URL-encoded value, storing the result in the
+// provided byte slice.
+func (data Challenge) MarshalJSON() ([]byte, error) {
+	return URLEncodedBase64(data).MarshalJSON()
 }

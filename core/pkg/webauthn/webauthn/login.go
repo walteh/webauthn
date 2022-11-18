@@ -22,7 +22,7 @@ type DiscoverableUserHandler func(rawID, userHandle []byte) (user User, err erro
 // additional LoginOption parameters. This function also returns sessionData, that must be stored by the
 // RP in a secure manner and then provided to the FinishLogin function. This data helps us verify the
 // ownership of the credential being retreived.
-func (webauthn *WebAuthn) BeginLogin(userId string, credentials []Credential, opts ...LoginOption) (*protocol.CredentialAssertion, *SessionData, error) {
+func (webauthn *WebAuthn) BeginLogin(userId protocol.Challenge, credentials []Credential, opts ...LoginOption) (*protocol.CredentialAssertion, *SessionData, error) {
 
 	if len(credentials) == 0 { // If the user does not have any credentials, we cannot perform an assertion.
 		return nil, nil, protocol.ErrBadRequest.WithDetails("Found no credentials for user")
@@ -109,12 +109,12 @@ func WithAssertionExtensions(extensions protocol.AuthenticationExtensions) Login
 // }
 
 // ValidateLogin takes a parsed response and validates it against the user credentials and session data
-func (webauthn *WebAuthn) ValidateLogin(userId string, creds []Credential, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
-	if !bytes.Equal([]byte(userId), session.UserID) {
+func (webauthn *WebAuthn) ValidateLogin(userId protocol.Challenge, creds []Credential, session SessionData, parsedResponse *protocol.ParsedCredentialAssertionData) (*Credential, error) {
+	if !bytes.Equal(userId, []byte(session.UserID)) {
 		return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session").WithKV("user_id", userId).WithKV("session_user_id", session.UserID)
 	}
 
-	return webauthn.validateLogin([]byte(userId), creds, session, parsedResponse)
+	return webauthn.validateLogin(userId, creds, session, parsedResponse)
 }
 
 // // ValidateDiscoverableLogin is an overloaded version of ValidateLogin that allows for discoverable credentials.

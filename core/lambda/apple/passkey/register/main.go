@@ -137,9 +137,9 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	attestation := payload.Headers["x-nugg-webauthn-attestation"]
-	clientdata := payload.Headers["x-nugg-webauthn-clientdata"]
-	credentialId := payload.Headers["x-nugg-webauthn-credential-id"]
+	attestation := payload.Headers["x-nugg-apple-passkey-attestation"]
+	clientdata := payload.Headers["x-nugg-apple-passkey-clientdata"]
+	credentialId := payload.Headers["x-nugg-apple-passkey-credentialid"]
 
 	if attestation == "" {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-attestation")
@@ -158,7 +158,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
 
-	getter := h.Dynamo.NewCeremonyGet(parsedResponse.Response.CollectedClientData.Challenge)
+	getter := h.Dynamo.NewCeremonyGet(string(parsedResponse.Response.CollectedClientData.Challenge))
 
 	res, err := h.Dynamo.TransactGet(ctx, types.TransactGetItem{Get: getter})
 	if err != nil {
@@ -180,7 +180,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	nuggid := safeid.Make()
 
-	_, sessionData, err := h.WebAuthn.BeginLogin(nuggid.String(), []webauthn.Credential{*credential})
+	_, sessionData, err := h.WebAuthn.BeginLogin(ceremony.SessionData.UserID, []webauthn.Credential{*credential})
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin login")
 	}

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/base64"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"nugg-auth/core/pkg/webauthn/webauthn"
@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func DummyHandler(t *testing.T, chal string) *Handler {
+func DummyHandler(t *testing.T, chal string, userid string) *Handler {
 	dynamoClient := dynamo.NewMockClient(t)
 
 	wan, err := webauthn.New(&webauthn.Config{
@@ -34,10 +34,8 @@ func DummyHandler(t *testing.T, chal string) *Handler {
 				"ceremony_id": &types.AttributeValueMemberS{Value: chal},
 				"session_data": &types.AttributeValueMemberM{
 					Value: map[string]types.AttributeValue{
-						"challenge": &types.AttributeValueMemberS{Value: chal},
-						"user_id": &types.AttributeValueMemberB{
-							Value: []uint8{
-								0x45, 0x45, 0x45}},
+						"challenge":         &types.AttributeValueMemberB{Value: []byte(chal)},
+						"user_id":           &types.AttributeValueMemberB{Value: []byte(userid)},
 						"user_verification": &types.AttributeValueMemberS{Value: ""}}},
 				"ttl": &types.AttributeValueMemberN{Value: "1669028360"},
 			},
@@ -50,7 +48,7 @@ func DummyHandler(t *testing.T, chal string) *Handler {
 		Ctx:      context.Background(),
 		Dynamo:   dynamoClient,
 		Config:   nil,
-		Logger:   zerolog.New(zerolog.NewTestWriter(t)).With().Caller().Timestamp().Logger(),
+		Logger:   zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 		WebAuthn: wan,
 		counter:  0,
 	}
@@ -58,9 +56,9 @@ func DummyHandler(t *testing.T, chal string) *Handler {
 
 func TestHandler_Invoke(t *testing.T) {
 
-	chal := "xsTWpSak5HWm"
+	chal := "pVr2PUG_le6lde9wxeImHA"
 
-	Handler := DummyHandler(t, chal)
+	Handler := DummyHandler(t, chal, "hOCe588daJZuGA6PeJTczQ")
 
 	rander := protocol.MockSetRander(t, "ABCD")
 
@@ -74,18 +72,19 @@ func TestHandler_Invoke(t *testing.T) {
 			name: "test",
 			args: Input{
 				Headers: map[string]string{
-					"Content-Type":                  "application/json",
-					"x-nugg-webauthn-attestation":   "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9/xGsTVktJ1c+FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFDl1hTTYx9TPs0uNL9LRyHZ72fDjpQECAyYgASFYIOvGCF1LRLSbI+58Wx7AQIGH2MKBPJvrA5lTDG/yqKbEIlggrrAu3x94Y7zBa8DJjwXIIUZ1/0bDWqpGh7BkF1ZrACU=",
-					"x-nugg-webauthn-clientdata":    fmt.Sprintf("{\"type\":\"webauthn.create\",\"challenge\":\"%s\",\"origin\":\"https://nugg.xyz\"}", chal),
-					"x-nugg-webauthn-credential-id": "OXWFNNjH1M+zS40v0tHIdnvZ8OM=",
+					"Content-Type":                      "application/json",
+					"x-nugg-apple-passkey-clientdata":   "{\"type\":\"webauthn.create\",\"challenge\":\"pVr2PUG_le6lde9wxeImHA\",\"origin\":\"https://nugg.xyz\"}",
+					"x-nugg-apple-passkey-attestation":  "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9_xGsTVktJ1c-FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFHBT7QkADPr91uHZjZKXlvnAfEZrpQECAyYgASFYIDDfuDHrs4K8vUWsbLF0UiK32BrY1EqzPiDSvaYytWkqIlgg9kltA9NXcX12aaevSQyHBv7wUsCBmgK9ykuSvUJFmgA",
+					"x-nugg-apple-passkey-credentialid": "cFPtCQAM-v3W4dmNkpeW-cB8Rms",
+					// {"rawClientDataJSON":"eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoicFZyMlBVR19sZTZsZGU5d3hlSW1IQSIsIm9yaWdpbiI6Imh0dHBzOi8vbnVnZy54eXoifQ","rawAttestationObject":"o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9_xGsTVktJ1c-FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFHBT7QkADPr91uHZjZKXlvnAfEZrpQECAyYgASFYIDDfuDHrs4K8vUWsbLF0UiK32BrY1EqzPiDSvaYytWkqIlgg9kltA9NXcX12aaevSQyHBv7wUsCBmgK9ykuSvUJFmgA","credentialID":"cFPtCQAM-v3W4dmNkpeW-cB8Rms"
+					// "x-nugg-payload": "eyJyYXdDbGllbnREYXRhSlNPTiI6ImV5SjBlWEJsSWpvaWQyVmlZWFYwYUc0dVkzSmxZWFJsSWl3aVkyaGhiR3hsYm1kbElqb2ljRlp5TWxCVlIxOXNaVFpzWkdVNWQzaGxTVzFJUVNJc0ltOXlhV2RwYmlJNkltaDBkSEJ6T2k4dmJuVm5aeTU0ZVhvaWZRIiwicmF3QXR0ZXN0YXRpb25PYmplY3QiOiJvMk5tYlhSa2JtOXVaV2RoZEhSVGRHMTBvR2hoZFhSb1JHRjBZVmlZcWJtcjlfeEdzVFZrdEoxYy1Gdkw4M0g1eTJNT0RXczFTOFlMVWVCbDJraGRBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBRkhCVDdRa0FEUHI5MXVIWmpaS1hsdm5BZkVacnBRRUNBeVlnQVNGWUlERGZ1REhyczRLOHZVV3NiTEYwVWlLMzJCclkxRXF6UGlEU3ZhWXl0V2txSWxnZzlrbHRBOU5YY1gxMmFhZXZTUXlIQnY3d1VzQ0JtZ0s5eWt1U3ZVSkZtZ0EiLCJjcmVkZW50aWFsSUQiOiJjRlB0Q1FBTS12M1c0ZG1Oa3BlVy1jQjhSbXMifQ==",
 				},
 			},
 			want: Output{
 				StatusCode: 204,
 				Headers: map[string]string{
 					"Content-Length":   "0",
-					"x-nugg-challenge": rander.CalculateDeterministicHash(1),
-					"x-nugg-user-id":   rander.CalculateDeterministicHash(2),
+					"x-nugg-challenge": base64.RawURLEncoding.EncodeToString(rander.CalculateDeterministicHash(1)),
 				},
 			},
 			wantErr: false,

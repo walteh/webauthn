@@ -163,8 +163,8 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 func successfulResponseBuilder(challenge []byte, userId []byte) string {
 
 	abc := struct {
-		Challenge protocol.Challenge `json:"challenge"`
-		UserId    protocol.Challenge `json:"userId"`
+		Challenge protocol.URLEncodedBase64 `json:"challenge"`
+		UserId    protocol.URLEncodedBase64 `json:"userid"`
 	}{
 		Challenge: challenge,
 		UserId:    userId,

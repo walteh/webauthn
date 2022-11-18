@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"crypto/subtle"
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"strings"
@@ -78,9 +79,15 @@ func (c *CollectedClientData) Verify(storedChallenge Challenge, ceremony Ceremon
 	// passed to the get() call.
 
 	challenge := c.Challenge
-	if subtle.ConstantTimeCompare([]byte(storedChallenge), []byte(challenge)) != 1 {
+
+	rdata, err := base64.RawURLEncoding.DecodeString(challenge)
+	if err != nil {
+		return err
+	}
+
+	if subtle.ConstantTimeCompare(storedChallenge, []byte(rdata)) != 1 {
 		err := ErrVerification.WithDetails("Error validating challenge")
-		return err.WithInfo(fmt.Sprintf("Expected b Value: %#v\nReceived b: %#v\n", storedChallenge, challenge))
+		return err.WithInfo(fmt.Sprintf("Expected b Value: %#v\nReceived b: %#v\n", storedChallenge, []byte(rdata)))
 	}
 
 	// Registration Step 5 & Assertion Step 9. Verify that the value of C.origin matches

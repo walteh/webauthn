@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
+
+	"github.com/k0kubun/pp"
 )
 
 // The raw response returned to us from an authenticator when we request a
@@ -43,6 +46,24 @@ type ParsedAssertionResponse struct {
 	UserHandle          []byte
 }
 
+type BetterCredentialAssertionResponseString struct {
+	UserID               string `json:"userID"`
+	CredentialID         string `json:"credentialID"`
+	RawClientDataJSON    string `json:"rawClientDataJSON"`
+	RawAuthenticatorData string `json:"rawAuthenticatorData"`
+	Signature            string `json:"signature"`
+	Type                 string `json:"credentialType"`
+}
+
+type BetterCredentialAssertionResponse struct {
+	UserID               []byte `json:"userID"`
+	CredentialID         []byte `json:"credentialID"`
+	RawClientDataJSON    []byte `json:"rawClientDataJSON"`
+	RawAuthenticatorData []byte `json:"rawAuthenticatorData"`
+	Signature            []byte `json:"signature"`
+	Type                 string `json:"credentialType"`
+}
+
 // Parse the credential request response into a format that is either required by the specification
 // or makes the assertion verification steps easier to complete. This takes an http.Request that contains
 // the assertion response data in a raw, mostly base64 encoded format, and parses the data into
@@ -68,24 +89,18 @@ func ParseCredentialRequestResponseBody(body io.Reader) (*ParsedCredentialAssert
 	return ParseCredentialAssertionResponse(car)
 }
 
-type BetterCredentialAssertionResponse struct {
-	UserID               []byte `json:"userID"`
-	CredentialID         []byte `json:"credentialID"`
-	RawClientDataJSON    []byte `json:"rawClientDataJSON"`
-	RawAuthenticatorData []byte `json:"rawAuthenticatorData"`
-	Signature            []byte `json:"signature"`
-	Type                 string `json:"credentialType"`
-}
+// Parse the credential request response into a format that is either required by the specification
+// or makes the assertion verification steps easier to complete. This takes an CredentialAssertionResponse that contains
+// the assertion response data in a raw, mostly base64 encoded format, and parses the data into
+func ParseCredentialAssertionResponsePayload(body string) (*BetterCredentialAssertionResponse, error) {
 
-func DecodeCredentialAssertionJSON(body string) (*BetterCredentialAssertionResponse, error) {
-
-	bdy, err := base64.RawURLEncoding.DecodeString(ResolveToRawURLEncoding(body))
+	dec, err := base64.StdEncoding.DecodeString(body)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with ID not base64url encoded")
+		return nil, ErrBadRequest.WithDetails("Parse error for Assertion")
 	}
 
 	var car BetterCredentialAssertionResponse
-	err = json.Unmarshal(bdy, &car)
+	err = json.Unmarshal(dec, &car)
 	if err != nil {
 		return nil, ErrBadRequest.WithDetails("Parse error for Assertion")
 	}
@@ -93,19 +108,45 @@ func DecodeCredentialAssertionJSON(body string) (*BetterCredentialAssertionRespo
 	return &car, nil
 }
 
+// func DecodeCredentialAssertionJSON(body *BetterCredentialAssertionResponseString) *BetterCredentialAssertionResponse {
+
+// 	return &BetterCredentialAssertionResponse{
+// 		UserID:               URLEncodedBase64(ResolveToRawURLEncoding(body.UserID)),
+// 		CredentialID:         URLEncodedBase64(ResolveToRawURLEncoding(body.CredentialID)),
+// 		Signature:            URLEncodedBase64(ResolveToBase64(body.Signature)),
+// 		Type:                 body.Type,
+// 		RawClientDataJSON:    []byte(body.RawClientDataJSON),
+// 		RawAuthenticatorData: URLEncodedBase64(ResolveToRawURLEncoding(body.RawAuthenticatorData)),
+// 	}
+// }
+
 // Parse the credential request response into a format that is either required by the specification
 // or makes the assertion verification steps easier to complete. This takes an io.Reader that contains
 // the assertion response data in a raw, mostly base64 encoded format, and parses the data into
 // manageable structures
 func DecodeCredentialAssertionResponse(car *BetterCredentialAssertionResponse) *CredentialAssertionResponse {
 
-	base64Id := base64.RawURLEncoding.EncodeToString(car.CredentialID)
+	// decs, err :=
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	// str := string(car.Signature)
+
+	// sig, err := base64.StdEncoding.DecodeString(str)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	// pp.Println(sig)
+
+	pp.Println(car)
 
 	return &CredentialAssertionResponse{
 		PublicKeyCredential: PublicKeyCredential{
 			Credential: Credential{
 				Type: car.Type,
-				ID:   base64Id,
+				ID:   base64.RawURLEncoding.EncodeToString(car.CredentialID),
 			},
 			RawID: car.CredentialID,
 			ClientExtensionResults: map[string]interface{}{
@@ -124,20 +165,6 @@ func DecodeCredentialAssertionResponse(car *BetterCredentialAssertionResponse) *
 
 }
 
-// func ParseAssertionInput(body string) (*ParsedCredentialAssertionData, error) {
-// 	r1, err := DecodeCredentialAssertionResponse(body)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	r2, err := ParseCredentialAssertionResponse(*r1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return r2, nil
-// }
-
 // Parse the credential request response into a format that is either required by the specification
 // or makes the assertion verification steps easier to complete. This takes an io.Reader that contains
 // the assertion response data in a raw, mostly base64 encoded format, and parses the data into
@@ -150,7 +177,7 @@ func ParseCredentialAssertionResponse(car CredentialAssertionResponse) (*ParsedC
 
 	_, err := base64.RawURLEncoding.DecodeString(car.ID)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with ID not base64url encoded")
+		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with ID not base64url encoded").WithParent(err)
 	}
 	if car.Type != "public-key" {
 		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with bad type")
@@ -169,9 +196,17 @@ func ParseCredentialAssertionResponse(car CredentialAssertionResponse) (*ParsedC
 		return nil, err
 	}
 
+	// par.Response.CollectedClientData.Challenge = string(rdata)
+
+	// authData, err := base64.RawURLEncoding.DecodeString(string(car.AssertionResponse.AuthenticatorData))
+	// if err != nil {
+	// 	return nil, ErrBadRequest.WithDetails("AuthenticatorData not base64url encoded")
+	// }
+
 	err = par.Response.AuthenticatorData.Unmarshal(car.AssertionResponse.AuthenticatorData)
 	if err != nil {
-		return nil, ErrParsingData.WithDetails("Error unmarshalling auth data")
+		pp.Println(string(ResolveToBase64Bytes(car.AssertionResponse.AuthenticatorData)), par.Response.AuthenticatorData)
+		return nil, ErrParsingData.WithDetails("Error unmarshalling auth data").WithParent(err)
 	}
 	return &par, nil
 }
@@ -232,6 +267,7 @@ func (p *ParsedCredentialAssertionData) Verify(storedChallenge Challenge, relyin
 
 	valid, err := webauthncose.VerifySignature(key, sigData, p.Response.Signature)
 	if !valid || err != nil {
+		log.Println("valid", valid, "err", err)
 		return ErrAssertionSignature.WithDetails(fmt.Sprintf("Error validating the assertion signature: %+v\n", err))
 	}
 

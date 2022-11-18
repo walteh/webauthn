@@ -47,3 +47,15 @@ func ResolveToRawURLEncoding(str string) string {
 	str = strings.ReplaceAll(str, "=", "")
 	return str
 }
+
+func ResolveToBase64(str string) string {
+	str = strings.ReplaceAll(str, "-", "+")
+	str = strings.ReplaceAll(str, "_", "/")
+	// add the padding
+	str = str + strings.Repeat("=", 4-len(str)%4)
+	return str
+}
+
+func ResolveToBase64Bytes(str []byte) []byte {
+	return []byte(ResolveToBase64(string(str)))
+}

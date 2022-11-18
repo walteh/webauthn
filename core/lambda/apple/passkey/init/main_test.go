@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"log"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"nugg-auth/core/pkg/webauthn/webauthn"
@@ -39,6 +41,8 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 	Handler := DummyHandler(t)
 
 	expected := protocol.MockSetRander(t, "xsTWpSak5HWm")
+
+	log.Println(base64.RawURLEncoding.EncodeToString(expected.CalculateDeterministicHash(2)))
 
 	tests := []struct {
 		name    string
