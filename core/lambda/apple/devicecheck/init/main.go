@@ -69,6 +69,10 @@ func (h *Invocation) Success(code int, headers map[string]string, message string
 		Headers:    headers,
 	}
 
+	if code == 204 && headers["Content-Length"] == "" {
+		output.Headers["Content-Length"] = "0"
+	}
+
 	if message != "" && code != 204 {
 		output.Body = message
 	}
@@ -80,10 +84,6 @@ func (h *Invocation) Success(code int, headers map[string]string, message string
 
 	if message == "" {
 		message = "empty"
-	}
-
-	if code == 204 && headers["Content-Length"] == "" {
-		output.Headers["Content-Length"] = "0"
 	}
 
 	h.Logger.Info().

@@ -142,7 +142,7 @@ func verifyAppleAppattestKeyFormat(att AttestationObject, clientDataHash []byte)
 	asn1.Unmarshal(credCertId, &unMarshalledCredCertOctet)
 	asn1.Unmarshal(unMarshalledCredCertOctet[0].Bytes, &unMarshalledCredCert)
 	if !bytes.Equal(nonce[:], unMarshalledCredCert.Bytes) {
-		// return "", nil, ErrInvalidAttestation.WithDetails("Certificate CredCert extension does not match nonce.").WithKV("nonce", nonce[:]).WithKV("credCert", unMarshalledCredCert.Bytes)
+		return "", nil, ErrInvalidAttestation.WithDetails("Certificate CredCert extension does not match nonce.").WithKV("nonce", nonce[:]).WithKV("credCert", unMarshalledCredCert.Bytes)
 	}
 
 	// 5. Create the SHA256 hash of the public key in credCert, and verify that it matches the key identifier from your app.
