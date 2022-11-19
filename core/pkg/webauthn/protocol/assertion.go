@@ -200,7 +200,7 @@ func (p *ParsedCredentialAssertionData) Verify(storedChallenge Challenge, relyin
 	}
 
 	// Handle steps 11 through 14, verifying the authenticator data.
-	validError = p.Response.AuthenticatorData.Verify(rpIDHash[:], appIDHash[:], verifyUser)
+	validError = p.Response.AuthenticatorData.Verify(rpIDHash[:], appIDHash[:], verifyUser, true)
 	if validError != nil {
 		return validError
 	}

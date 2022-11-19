@@ -24,7 +24,7 @@ func newCeremony(session *webauthn.SessionData) *Ceremony {
 	}
 }
 
-func (client *Client) makeCeremonyPut(c *Ceremony) (*types.Put, error) {
+func (client *Client) makeCeremonyPut(c interface{}) (*types.Put, error) {
 	av, err := attributevalue.MarshalMap(c)
 	if err != nil {
 		return nil, err

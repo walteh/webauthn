@@ -33,6 +33,21 @@ func init() {
 //	  }
 func verifyAppleKeyFormat(att AttestationObject, clientDataHash []byte) (string, []interface{}, error) {
 
+	// VerifyAttestation verifies the attestation signature on the authenticator data
+
+	// 7. Verify that the authenticator data’s counter field equals 0.
+	if att.AuthData.Counter != 0 {
+		return "", nil, ErrVerification.WithDetails(fmt.Sprintf("Counter was not 0, but %d\n", att.AuthData.Counter))
+	}
+
+	// 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the development environment,
+	// or appattest followed by seven 0x00 bytes if operating in the production environment.
+	aaguid := make([]byte, 16)
+	copy(aaguid, []byte("appattestdevelop"))
+	if !bytes.Equal(att.AuthData.AttData.AAGUID, aaguid) {
+		return "", nil, ErrVerification.WithDetails("AAGUID was not appattestdevelop\n")
+	}
+
 	// Step 1. Verify that attStmt is valid CBOR conforming to the syntax defined
 	// above and perform CBOR decoding on it to extract the contained fields.
 

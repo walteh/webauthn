@@ -241,7 +241,7 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, verif
 
 	// We do the above step while parsing and decoding the CredentialCreationResponse
 	// Handle steps 9 through 14 - This verifies the attestaion object and
-	verifyError = pcc.Response.AttestationObject.Verify(relyingPartyID, clientDataHash[:], verifyUser)
+	verifyError = pcc.Response.AttestationObject.Verify(relyingPartyID, clientDataHash[:], verifyUser, true)
 	if verifyError != nil {
 		return verifyError
 	}

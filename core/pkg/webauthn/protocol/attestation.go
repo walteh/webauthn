@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -63,6 +64,26 @@ type AttestationObject struct {
 	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
 }
 
+func FormatAttestationInput(clientData, attestation string) (*AuthenticatorAttestationResponse, error) {
+
+	dec, err := base64.RawStdEncoding.DecodeString(attestation)
+	if err != nil {
+		log.Println("Error decoding attestation", err)
+		return nil, ErrParsingData.WithInfo(err.Error())
+	}
+	return &AuthenticatorAttestationResponse{
+		AuthenticatorResponse: AuthenticatorResponse{
+			ClientDataJSON: URLEncodedBase64(clientData),
+		},
+		AttestationObject: URLEncodedBase64(dec),
+	}, nil
+	// a.AuthenticatorResponse.ClientDataJSON = URLEncodedBase64(clientData)
+	// a.AttestationObject = URLEncodedBase64(attestation)
+	// a.Challenge = URLEncodedBase64(challenge)
+	// a.KeyID = keyId
+	// return &a
+}
+
 type attestationFormatValidationHandler func(AttestationObject, []byte) (string, []interface{}, error)
 
 var attestationRegistry = make(map[string]attestationFormatValidationHandler)
@@ -109,7 +130,7 @@ func (ccr *AuthenticatorAttestationResponse) Parse() (*ParsedAttestationResponse
 }
 
 // Verify - Perform Steps 9 through 14 of registration verification, delegating Steps
-func (attestationObject *AttestationObject) Verify(relyingPartyID string, clientDataHash []byte, verificationRequired bool) error {
+func (attestationObject *AttestationObject) Verify(relyingPartyID string, clientDataHash []byte, verificationRequired bool, requireUserPresence bool) error {
 	// Steps 9 through 12 are verified against the auth data.
 	// These steps are identical to 11 through 14 for assertion
 	// so we handle them with AuthData
@@ -118,7 +139,7 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 	// the SHA-256 hash of the RP ID expected by the RP.
 	rpIDHash := sha256.Sum256([]byte(relyingPartyID))
 	// Handle Steps 9 through 12
-	authDataVerificationError := attestationObject.AuthData.Verify(rpIDHash[:], nil, verificationRequired)
+	authDataVerificationError := attestationObject.AuthData.Verify(rpIDHash[:], nil, verificationRequired, requireUserPresence)
 	if authDataVerificationError != nil {
 		return authDataVerificationError
 	}

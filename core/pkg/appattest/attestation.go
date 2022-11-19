@@ -34,6 +34,7 @@ type AuthenticatorAttestationResponse struct {
 	ClientData        URLEncodedBase64 `json:"clientData"`
 	KeyID             string           `json:"keyID"`
 	AttestationObject URLEncodedBase64 `json:"attestationObject"`
+	Challenge         URLEncodedBase64 `json:"challenge"`
 }
 
 type AttestationObject struct {
@@ -43,14 +44,27 @@ type AttestationObject struct {
 	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
 }
 
+func FormatAttestationInput(keyId, challenge, clientData, attestation string) *AuthenticatorAttestationResponse {
+	var a AuthenticatorAttestationResponse
+	a.ClientData = URLEncodedBase64(clientData)
+	a.AttestationObject = URLEncodedBase64(attestation)
+	a.Challenge = URLEncodedBase64(challenge)
+	a.KeyID = keyId
+	return &a
+}
+
 func (aar *AuthenticatorAttestationResponse) Verify(appID string, production bool) ([]byte, []byte, error) {
 	a, err := aar.parse()
 	if err != nil {
 		return nil, nil, err
 	}
 
+	r := aar.ClientData
+
+	r = append(r, aar.Challenge...)
+
 	// Compute clientDataHash as the SHA256 hash of clientData.
-	clientDataHash := sha256.Sum256(aar.ClientData)
+	clientDataHash := sha256.Sum256(r)
 
 	// Check if we have the right format.
 	if a.Format != attestationKey {

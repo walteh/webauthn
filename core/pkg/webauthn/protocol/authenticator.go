@@ -249,7 +249,7 @@ func ResidentKeyUnrequired() *bool {
 
 // Verify on AuthenticatorData handles Steps 9 through 12 for Registration
 // and Steps 11 through 14 for Assertion.
-func (a *AuthenticatorData) Verify(rpIdHash, appIDHash []byte, userVerificationRequired bool) error {
+func (a *AuthenticatorData) Verify(rpIdHash, appIDHash []byte, userVerificationRequired bool, requireUserPresence bool) error {
 
 	// Registration Step 9 & Assertion Step 11
 	// Verify that the RP ID hash in authData is indeed the SHA-256
@@ -262,7 +262,7 @@ func (a *AuthenticatorData) Verify(rpIdHash, appIDHash []byte, userVerificationR
 
 	// Registration Step 10 & Assertion Step 12
 	// Verify that the User Present bit of the flags in authData is set.
-	if !a.Flags.UserPresent() {
+	if requireUserPresence && !a.Flags.UserPresent() {
 		return ErrVerification.WithInfo(fmt.Sprintln("User presence flag not set by authenticator"))
 	}
 
