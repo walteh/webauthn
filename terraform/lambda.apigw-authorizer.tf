@@ -37,7 +37,9 @@ resource "aws_lambda_function" "apigw_authorizer" {
 
   environment {
     variables = {
-      DYNAMO_CHALLENGE_TABLE_NAME        = aws_dynamodb_table.challenge.name
+      DYNAMO_CEREMONIES_TABLE_NAME       = aws_dynamodb_table.ceremonies.name
+      DYNAMO_USERS_TABLE_NAME            = aws_dynamodb_table.users.name
+      DYNAMO_CREDENTIALS_TABLE_NAME      = aws_dynamodb_table.credentials.name
       COGNITO_IDENTITY_POOL_ID           = aws_cognito_identity_pool.main.id
       APPLE_PUBLICKEY_ENDPOINT           = "https://appleid.apple.com/auth/keys"
       APPLE_TOKEN_ENDPOINT               = "https://appleid.apple.com/auth/token"
@@ -66,7 +68,7 @@ data "aws_iam_policy_document" "apple_inline" {
   statement {
     effect    = "Allow"
     actions   = ["dynamodb:GetItem"]
-    resources = [aws_dynamodb_table.challenge.arn]
+    resources = [aws_dynamodb_table.credentials.arn]
   }
 
   statement {

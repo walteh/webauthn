@@ -122,7 +122,7 @@ func main() {
 	abc := &Handler{
 		Id:       ksuid.New().String(),
 		Ctx:      ctx,
-		Dynamo:   dynamo.NewClient(cfg, "", env.DynamoCeremonyTableName(), env.DynamoCeremonyTableName()),
+		Dynamo:   dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
 		Config:   cfg,
 		WebAuthn: web,
 		Logger:   zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),

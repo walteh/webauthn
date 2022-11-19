@@ -26,12 +26,12 @@ type Output = events.APIGatewayV2HTTPResponse
 
 type Handler struct {
 	Id       string
-	Ctx      context.Context
 	Dynamo   *dynamo.Client
 	Config   config.Config
 	Logger   zerolog.Logger
 	WebAuthn *webauthn.WebAuthn
 	Cognito  cognito.Client
+	Ctx      context.Context
 	counter  int
 }
 
@@ -41,12 +41,18 @@ func init() {
 
 type Invocation struct {
 	zerolog.Logger
-	Start time.Time
+	Start  time.Time
+	Ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func (h *Handler) NewInvocation(logger zerolog.Logger) *Invocation {
+func (h *Handler) NewInvocation(ctx context.Context, logger zerolog.Logger) *Invocation {
+	ctx, cnl := context.WithCancel(ctx)
+
 	h.counter++
 	return &Invocation{
+		cancel: cnl,
+		Ctx:    ctx,
 		Logger: h.Logger.With().Int("counter", h.counter).Str("handler", h.Id).Logger(),
 		Start:  time.Now(),
 	}
@@ -59,6 +65,8 @@ func (h *Invocation) Error(err error, code int, message string) (Output, error) 
 		CallerSkipFrame(1).
 		TimeDiff("duration", time.Now(), h.Start).
 		Msg(message)
+
+	h.cancel()
 
 	return Output{
 		StatusCode: code,
@@ -97,13 +105,14 @@ func (h *Invocation) Success(code int, headers map[string]string, message string
 		TimeDiff("duration", time.Now(), h.Start).
 		Msg(message)
 
+	h.cancel()
+
 	return output, nil
 }
 
 func main() {
 
 	ctx := context.Background()
-
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return
@@ -123,8 +132,7 @@ func main() {
 
 	abc := &Handler{
 		Id:       ksuid.New().String(),
-		Ctx:      ctx,
-		Dynamo:   dynamo.NewClient(cfg, "", env.DynamoCeremonyTableName(), ""),
+		Dynamo:   dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
 		Config:   cfg,
 		WebAuthn: web,
 		Cognito:  cognito.NewClient(cfg, env.AppleIdentityPoolId()),
@@ -137,7 +145,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
-	inv := h.NewInvocation(h.Logger)
+	inv := h.NewInvocation(ctx, h.Logger)
 
 	assertion := payload.Headers["x-nugg-webauthn-assertion"]
 
@@ -153,7 +161,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
 
-	res, err := h.Dynamo.TransactGet(ctx,
+	res, err := h.Dynamo.TransactGet(inv.Ctx,
 		types.TransactGetItem{Get: h.Dynamo.NewCeremonyGet(string(parsedResponse.Response.CollectedClientData.Challenge))},
 		types.TransactGetItem{Get: h.Dynamo.NewCredentialGet(parsedResponse.ParsedCredential.ID)},
 	)
@@ -172,13 +180,26 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	}
 
 	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
+	defer close(chaner)
+	stale := false
 
 	go func() {
+		go func() {
+			<-inv.Ctx.Done()
+			if !stale {
+				chaner <- nil
+			}
+			stale = true
+		}()
+
 		z, err := h.Cognito.GetDevCreds(ctx, nuggid)
-		if err != nil {
-			return
+		if !stale {
+			if err != nil {
+				chaner <- nil
+			} else {
+				chaner <- z
+			}
 		}
-		chaner <- z
 	}()
 
 	dacred, err := h.WebAuthn.ValidateLogin(protocol.Challenge(args.UserID), []webauthn.Credential{*creds}, *cer.SessionData, parsedResponse)
@@ -197,6 +218,11 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	}
 
 	result := <-chaner
+	stale = true
+
+	if result == nil {
+		return inv.Error(err, 500, "failed to get dev creds")
+	}
 
 	return inv.Success(204, map[string]string{
 		"x-nugg-access-token": *result.Token,

@@ -59,11 +59,11 @@ func AppleTokenEndpoint() *url.URL { return osMustGetUrl("APPLE_TOKEN_ENDPOINT")
 
 func AppleIdentityPoolId() string { return osMustGet("COGNITO_IDENTITY_POOL_ID") }
 
-func DynamoChallengeTableName() string { return osMustGet("DYNAMO_CHALLENGE_TABLE_NAME") }
+func DynamoUsersTableName() string { return osMustGet("DYNAMO_USERS_TABLE_NAME") }
 
-func DynamoUserTableName() string { return osMustGet("DYNAMO_USER_TABLE_NAME") }
+func DynamoCeremoniesTableName() string { return osMustGet("DYNAMO_CEREMONIES_TABLE_NAME") }
 
-func DynamoCeremonyTableName() string { return osMustGet("DYNAMO_CEREMONY_TABLE_NAME") }
+func DynamoCredentialsTableName() string { return osMustGet("DYNAMO_CREDENTIALS_TABLE_NAME") }
 
 func SignInWithApplePrivateKeyName() string { return osMustGet("SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME") }
 

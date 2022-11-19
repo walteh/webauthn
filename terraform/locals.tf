@@ -24,15 +24,19 @@ locals {
 locals {
   latest = "latest"
 
-  appsync_dir  = "lambda/appsync-authorizer"
-  apigw_dir    = "lambda/apigw-authorizer"
-  complete_dir = "lambda/complete"
-  register_dir = "lambda/register"
+  appsync_dir                = "lambda/appsync-authorizer"
+  apigw_dir                  = "lambda/apigw-authorizer"
+  complete_dir               = "lambda/complete"
+  apple_passkey_register_dir = "lambda/apple/passkey/register"
+  apple_passkey_init_dir     = "lambda/apple/passkey/init"
+  apple_passkey_login_dir    = "lambda/apple/passkey/login"
 
-  complete_tag = replace("${local.complete_dir}/${local.latest}", "/", "_")
-  apigw_tag    = replace("${local.apigw_dir}/${local.latest}", "/", "_")
-  appsync_tag  = replace("${local.appsync_dir}/${local.latest}", "/", "_")
-  register_tag = replace("${local.register_dir}/${local.latest}", "/", "_")
+  complete_tag               = replace("${local.complete_dir}/${local.latest}", "/", "_")
+  apigw_tag                  = replace("${local.apigw_dir}/${local.latest}", "/", "_")
+  appsync_tag                = replace("${local.appsync_dir}/${local.latest}", "/", "_")
+  apple_passkey_register_tag = replace("${local.apple_passkey_register_dir}/${local.latest}", "/", "_")
+  apple_passkey_init_tag     = replace("${local.apple_passkey_init_dir}/${local.latest}", "/", "_")
+  apple_passkey_login_tag    = replace("${local.apple_passkey_login_dir}/${local.latest}", "/", "_")
 
   primary = "primary"
 
@@ -45,3 +49,13 @@ locals {
 		EOF
 }
 
+data "aws_iam_policy_document" "lambda_assume" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
