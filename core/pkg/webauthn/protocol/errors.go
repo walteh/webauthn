@@ -2,8 +2,6 @@ package protocol
 
 import (
 	"encoding/json"
-
-	"github.com/k0kubun/pp"
 )
 
 type Error struct {
@@ -83,7 +81,6 @@ var (
 )
 
 func (err *Error) Error() string {
-	pp.Println(err)
 	str, _ := json.Marshal(err)
 	return string(str)
 }

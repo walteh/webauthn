@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -166,8 +165,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	if err != nil {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
-
-	pp.Println(parsedResponse)
 
 	res, err := h.Dynamo.TransactGet(ctx,
 		types.TransactGetItem{Get: h.Dynamo.NewCeremonyGet(string(parsedResponse.Response.CollectedClientData.Challenge))},

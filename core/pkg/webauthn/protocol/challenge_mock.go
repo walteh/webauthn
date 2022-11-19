@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"io"
-	"log"
 	"testing"
 )
 
@@ -34,7 +33,6 @@ func (m *MockHashDeterministicReader) Read(p []byte) (n int, err error) {
 
 	hash := sha256.Sum256(m.last)
 	m.last = hash[:][:ChallengeLength]
-	log.Println(string(m.last))
 	copy(p, m.last)
 
 	return len(m.last), nil

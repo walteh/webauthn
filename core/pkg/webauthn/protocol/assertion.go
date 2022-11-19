@@ -10,8 +10,6 @@ import (
 	"net/http"
 
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
-
-	"github.com/k0kubun/pp"
 )
 
 // The raw response returned to us from an authenticator when we request a
@@ -126,22 +124,6 @@ func ParseCredentialAssertionResponsePayload(body string) (*BetterCredentialAsse
 // manageable structures
 func DecodeCredentialAssertionResponse(car *BetterCredentialAssertionResponse) *CredentialAssertionResponse {
 
-	// decs, err :=
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// str := string(car.Signature)
-
-	// sig, err := base64.StdEncoding.DecodeString(str)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-
-	// pp.Println(sig)
-
-	pp.Println(car)
-
 	return &CredentialAssertionResponse{
 		PublicKeyCredential: PublicKeyCredential{
 			Credential: Credential{
@@ -196,16 +178,8 @@ func ParseCredentialAssertionResponse(car CredentialAssertionResponse) (*ParsedC
 		return nil, err
 	}
 
-	// par.Response.CollectedClientData.Challenge = string(rdata)
-
-	// authData, err := base64.RawURLEncoding.DecodeString(string(car.AssertionResponse.AuthenticatorData))
-	// if err != nil {
-	// 	return nil, ErrBadRequest.WithDetails("AuthenticatorData not base64url encoded")
-	// }
-
 	err = par.Response.AuthenticatorData.Unmarshal(car.AssertionResponse.AuthenticatorData)
 	if err != nil {
-		pp.Println(string(ResolveToBase64Bytes(car.AssertionResponse.AuthenticatorData)), par.Response.AuthenticatorData)
 		return nil, ErrParsingData.WithDetails("Error unmarshalling auth data").WithParent(err)
 	}
 	return &par, nil

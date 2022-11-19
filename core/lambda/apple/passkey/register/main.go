@@ -11,7 +11,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -205,10 +204,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		types.TransactWriteItem{Put: credput},
 		types.TransactWriteItem{Put: cerput},
 	)
-
-	pp.Println(types.TransactWriteItem{Put: userput},
-		types.TransactWriteItem{Put: credput},
-		types.TransactWriteItem{Put: cerput})
 
 	return inv.Success(204, map[string]string{"x-nugg-challenge": sessionData.Challenge.String()}, "")
 }

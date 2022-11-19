@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
-	"log"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/webauthn/webauthn"
 
@@ -152,17 +150,6 @@ func TestHandler_Invoke(t *testing.T) {
 
 	Handler := DummyHandler(t)
 
-	val := []byte{
-		0x4d, 0x44, 0x41, 0x78, 0x4e, 0x44, 0x4d, 0x33, 0x4c, 0x6d, 0x52, 0x6c, 0x5a, 0x6a, 0x55, 0x7a,
-		0x4e, 0x57, 0x52, 0x6b, 0x5a, 0x44, 0x6c, 0x6c, 0x4d, 0x6a, 0x52, 0x6a, 0x4e, 0x47, 0x5a, 0x68,
-		0x4e, 0x44, 0x4d, 0x32, 0x4e, 0x32, 0x52, 0x6a, 0x59, 0x54, 0x55, 0x77, 0x5a, 0x6d, 0x52, 0x6d,
-		0x5a, 0x57, 0x52, 0x69, 0x4c, 0x6a, 0x45, 0x35, 0x4e, 0x54, 0x45, 0x3d,
-	}
-
-	res, _ := base64.StdEncoding.DecodeString(string(val))
-
-	log.Println("val", string(res))
-
 	tests := []struct {
 		name    string
 		args    Input
@@ -173,13 +160,7 @@ func TestHandler_Invoke(t *testing.T) {
 			name: "A",
 			args: Input{
 				Headers: map[string]string{
-					// "x-nugg-webauthn-assertion": "eyJyYXdBdXRoZW50aWNhdG9yRGF0YSI6InFibXI5XC94R3NUVmt0SjFjK0Z2TDgzSDV5Mk1PRFdzMVM4WUxVZUJsMmtnZEFBQUFBQT09Iiwic2lnbmF0dXJlIjoiTUVZQ0lRRG1oUTRnMjRPb3pEV0Y4UlZZNEplZHBvVHlUT1JhbnpjRkIxWnc1S2lvOGdJaEFMUjJZUjRnTHI0ZGZ5ajJWQlhxeTc5SzJCT2xDOWY4dWYzeDcyQldmb3AzIiwidXNlcklEIjoiTURVd1FVUXdRVUV0UWpneU9TMDBRVUl6TFVGR1F6UXROVE0wTURBNVJqWkdOalkwIiwicmF3Q2xpZW50RGF0YUpTT04iOiJleUowZVhCbElqb2lkMlZpWVhWMGFHNHVaMlYwSWl3aVkyaGhiR3hsYm1kbElqb2lVVlZLUkZKQklpd2liM0pwWjJsdUlqb2lhSFIwY0hNNkx5OXVkV2RuTG5oNWVpSjkiLCJjcmVkZW50aWFsSUQiOiJPWFdGTk5qSDFNK3pTNDB2MHRISWRudlo4T009IiwiY3JlZGVudGlhbFR5cGUiOiJwdWJsaWMta2V5In0=",
 					"x-nugg-webauthn-assertion": "eyJyYXdBdXRoZW50aWNhdG9yRGF0YSI6InFibXI5XC94R3NUVmt0SjFjK0Z2TDgzSDV5Mk1PRFdzMVM4WUxVZUJsMmtnZEFBQUFBQT09Iiwic2lnbmF0dXJlIjoiTUVVQ0lBOERoRHNkRjhYY3dENlQ5WDBSMUM2OG9lRncrZ05neTFsSE1ZR3hpXC9XSEFpRUE2K0pYcGJMZFkzOWQ2Zks5b0RSRHBMdERBdjdEcGxTbDdwK05tXC9OaUZKYz0iLCJ1c2VySUQiOiJoT0NlNTg4ZGFKWnVHQTZQZUpUY3pRPT0iLCJyYXdDbGllbnREYXRhSlNPTiI6ImV5SjBlWEJsSWpvaWQyVmlZWFYwYUc0dVoyVjBJaXdpWTJoaGJHeGxibWRsSWpvaU5GTTBVbGR6T1VaVmNrcFhhVEZZY0ZCTU1EVlBVU0lzSW05eWFXZHBiaUk2SW1oMGRIQnpPaTh2Ym5Wblp5NTRlWG9pZlE9PSIsImNyZWRlbnRpYWxJRCI6ImNGUHRDUUFNK3YzVzRkbU5rcGVXK2NCOFJtcz0iLCJjcmVkZW50aWFsVHlwZSI6InB1YmxpYy1rZXkifQ==",
-					// "x-nugg-webauthn-signature":          "MEUCIQDjOjqf0rsEHbD1tTBS7dak7cDGXTcpQT0URWwDEWckfQIgSX9x74X6Bx4cL7Du6qUZ+pcUD74pPUnjLvq9/HlQoMQ=",
-					// "x-nugg-webauthn-clientdata":         "{\"type\":\"webauthn.get\",\"challenge\":\"4S4RWs9FUrJWi1XpPL05OQ\",\"origin\":\"https://nugg.xyz\"}",
-					// "x-nugg-webauthn-credential-id":      "cFPtCQAM-v3W4dmNkpeW-cB8Rms",
-					// "x-nugg-webauthn-user-id":            "hOCe588daJZuGA6PeJTczQ",
-					// "x-nugg-webauthn-authenticator-data": "qbmr9_xGsTVktJ1c-FvL83H5y2MODWs1S8YLUeBl2kgdAAAAAA",
 				},
 			},
 			want: Output{

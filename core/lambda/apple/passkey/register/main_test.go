@@ -31,11 +31,19 @@ func DummyHandler(t *testing.T, chal string, userid string) *Handler {
 		Delete:         (*types.Delete)(nil),
 		Put: &types.Put{
 			Item: map[string]types.AttributeValue{
-				"ceremony_id": &types.AttributeValueMemberS{Value: chal},
+				"ceremony_id": &types.AttributeValueMemberS{Value: "pVr2PUG_le6lde9wxeImHA"},
 				"session_data": &types.AttributeValueMemberM{
 					Value: map[string]types.AttributeValue{
-						"challenge":         &types.AttributeValueMemberB{Value: []byte(chal)},
-						"user_id":           &types.AttributeValueMemberB{Value: []byte(userid)},
+						"challenge": &types.AttributeValueMemberB{
+							Value: []uint8{
+								0xa5, 0x5a, 0xf6, 0x3d, 0x41, 0xbf, 0x95, 0xee, 0xa5, 0x75, 0xef, 0x70, 0xc5, 0xe2, 0x26, 0x1c,
+							},
+						},
+						"user_id": &types.AttributeValueMemberB{
+							Value: []uint8{
+								0x84, 0xe0, 0x9e, 0xe7, 0xcf, 0x1d, 0x68, 0x96, 0x6e, 0x18, 0x0e, 0x8f, 0x78, 0x94, 0xdc, 0xcd,
+							},
+						},
 						"user_verification": &types.AttributeValueMemberS{Value: ""}}},
 				"ttl": &types.AttributeValueMemberN{Value: "1669028360"},
 			},

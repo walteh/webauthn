@@ -2,7 +2,6 @@ package webauthncbor
 
 import (
 	"encoding/base64"
-	"log"
 	"testing"
 )
 
@@ -65,7 +64,6 @@ func TestUnmarshal(t *testing.T) {
 			if err := Unmarshal(tt.args.data, tt.args.v); (err != nil) != tt.wantErr {
 				t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			log.Println(tt.args.v)
 		})
 	}
 }

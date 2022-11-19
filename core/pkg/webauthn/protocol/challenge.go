@@ -5,8 +5,6 @@ import (
 	"encoding/base64"
 	"io"
 	"sync"
-
-	"github.com/k0kubun/pp"
 )
 
 // ChallengeLength - Length of bytes to generate for a challenge
@@ -28,8 +26,6 @@ func CreateChallenge() (Challenge, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	pp.Println(challenge)
 
 	return challenge, nil
 }

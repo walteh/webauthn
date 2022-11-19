@@ -3,7 +3,6 @@ package protocol
 import (
 	"encoding/base64"
 	"encoding/binary"
-	"log"
 	"reflect"
 	"testing"
 )
@@ -195,7 +194,6 @@ func TestAuthenticatorData_Unmarshal(t *testing.T) {
 			if err := a.Unmarshal(tt.args.rawAuthData); (err != nil) != tt.wantErr {
 				t.Errorf("AuthenticatorData.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			log.Println(a)
 		})
 	}
 }

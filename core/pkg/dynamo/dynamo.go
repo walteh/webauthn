@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/k0kubun/pp"
 )
 
 type Client struct {
@@ -38,7 +37,6 @@ func FindInOnePerTableGetResult[I interface{}](result []*GetOutput, tableName *s
 			continue
 		}
 		err := attributevalue.UnmarshalMap(item.Item, &ceremony)
-		pp.Println("AHHHHHHHHHHHHH", item, ceremony)
 
 		if err != nil {
 			return nil, err
