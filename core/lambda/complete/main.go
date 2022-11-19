@@ -168,14 +168,14 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-apple-id")
 	}
 
-	parsedResponse, err := protocol.ParseCredentialCreation(clientdata, attestation, credentialId, "public-key")
-	if err != nil {
-		return inv.Error(err, 500, "failed to parse attestation")
-	}
+	// parsedResponse, err := protocol.ParseCredentialCreation(clientdata, attestation, credentialId, "public-key")
+	// if err != nil {
+	// 	return inv.Error(err, 500, "failed to parse attestation")
+	// }
 
-	if parsedResponse.Response.AttestationObject.Format != "apple" {
-		return inv.Error(nil, 400, "invalid format")
-	}
+	// if parsedResponse.Response.AttestationObject.Format != "apple" {
+	// 	return inv.Error(nil, 400, "invalid format")
+	// }
 
 	// ceremony, err := h.Dynamo.LoadCeremony(ctx, parsedResponse.Response.CollectedClientData.Challenge)
 	// if err != nil {

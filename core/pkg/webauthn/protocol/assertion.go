@@ -44,15 +44,6 @@ type ParsedAssertionResponse struct {
 	UserHandle          []byte
 }
 
-type BetterCredentialAssertionResponseString struct {
-	UserID               string `json:"userID"`
-	CredentialID         string `json:"credentialID"`
-	RawClientDataJSON    string `json:"rawClientDataJSON"`
-	RawAuthenticatorData string `json:"rawAuthenticatorData"`
-	Signature            string `json:"signature"`
-	Type                 string `json:"credentialType"`
-}
-
 type BetterCredentialAssertionResponse struct {
 	UserID               []byte `json:"userID"`
 	CredentialID         []byte `json:"credentialID"`

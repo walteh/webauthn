@@ -56,64 +56,86 @@ type ParsedCredentialCreationData struct {
 	Raw      CredentialCreationResponse
 }
 
-func ParseCredentialCreation(clientData, attestationObject, credentialId, credentialType string) (*ParsedCredentialCreationData, error) {
-
-	if credentialId == "" {
-		log.Println("Missing ID")
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing ID")
-	}
-
-	testB64, err := base64.RawURLEncoding.DecodeString(ResolveToRawURLEncoding(credentialId))
-	if err != nil || !(len(testB64) > 0) {
-		log.Println("ID not base64.RawURLEncoded")
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded").WithParent(err)
-	}
-
-	if credentialType == "" {
-		log.Println("Missing type")
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing type")
-	}
-
-	if credentialType != "public-key" {
-		log.Println("Type not public-key")
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Type not public-key")
-	}
-
-	var pcc ParsedCredentialCreationData
-
-	pcc.ID = credentialId
-	pcc.RawID = []byte(credentialId)
-	pcc.Type = credentialType
-	pcc.ClientExtensionResults = AuthenticationExtensionsClientOutputs{}
-	pcc.Raw = CredentialCreationResponse{}
-
-	pcc.Raw.ID = credentialId
-	pcc.Raw.Type = credentialType
-	pcc.Raw.RawID = []byte(credentialId)
-
-	a := ResolveToRawURLEncoding(attestationObject)
-
-	r, err := base64.RawURLEncoding.DecodeString(a)
-
-	if err != nil {
-		log.Println("Error decoding attestation object", err)
-		return nil, ErrBadRequest.WithDetails("Error decoding attestation object").WithParent(err)
-	}
-
-	pcc.Raw.AttestationResponse.ClientDataJSON = []byte(clientData)
-	pcc.Raw.AttestationResponse.AttestationObject = r
-
-	parsedAttestationResponse, err := pcc.Raw.AttestationResponse.Parse()
-	if err != nil {
-		log.Println("Error parsing attestation response", err)
-		return nil, ErrParsingData.WithDetails("Error parsing attestation response").WithParent(err)
-	}
-
-	pcc.Response = *parsedAttestationResponse
-
-	return &pcc, nil
-
+type XNuggWebauthnCreation struct {
+	RawAttestationObject []byte `json:"rawAttestationObject"`
+	RawClientData        []byte `json:"rawClientDataJSON"`
+	CredentialID         []byte `json:"credentialId"`
 }
+
+func ParseWebauthnCreation(str string) (*XNuggWebauthnCreation, error) {
+	dec, err := base64.StdEncoding.DecodeString(str)
+	if err != nil {
+		return nil, err
+	}
+
+	var x XNuggWebauthnCreation
+	err = json.Unmarshal(dec, &x)
+	if err != nil {
+		return nil, err
+	}
+	return &x, nil
+}
+
+// func ParseCredentialCreation(data *XNuggWebauthnCreation, credentialType string) (*ParsedCredentialCreationData, error) {
+
+// 	credentialId := base64.RawURLEncoding.EncodeToString(data.CredentialID)
+
+// 	if credentialId == "" {
+// 		log.Println("Missing ID")
+// 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing ID")
+// 	}
+
+// 	testB64, err := base64.RawURLEncoding.DecodeString(ResolveToRawURLEncoding(credentialId))
+// 	if err != nil || !(len(testB64) > 0) {
+// 		log.Println("ID not base64.RawURLEncoded")
+// 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded").WithParent(err)
+// 	}
+
+// 	if credentialType == "" {
+// 		log.Println("Missing type")
+// 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing type")
+// 	}
+
+// 	if credentialType != "public-key" {
+// 		log.Println("Type not public-key")
+// 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Type not public-key")
+// 	}
+
+// 	var pcc ParsedCredentialCreationData
+
+// 	pcc.ID = credentialId
+// 	pcc.RawID = []byte(credentialId)
+// 	pcc.Type = credentialType
+// 	pcc.ClientExtensionResults = AuthenticationExtensionsClientOutputs{}
+// 	pcc.Raw = CredentialCreationResponse{}
+
+// 	pcc.Raw.ID = credentialId
+// 	pcc.Raw.Type = credentialType
+// 	pcc.Raw.RawID = []byte(credentialId)
+
+// 	// a := ResolveToRawURLEncoding(string(data.RawAttestationObject))
+
+// 	// r, err := base64.RawURLEncoding.DecodeString(a)
+
+// 	// if err != nil {
+// 	// 	log.Println("Error decoding attestation object", err)
+// 	// 	return nil, ErrBadRequest.WithDetails("Error decoding attestation object").WithParent(err)
+// 	// }
+
+// 	pcc.Raw.AttestationResponse.ClientDataJSON = data.RawClientData
+// 	pcc.Raw.AttestationResponse.AttestationObject = data.RawAttestationObject
+
+// 	parsedAttestationResponse, err := pcc.Raw.AttestationResponse.Parse()
+// 	if err != nil {
+// 		log.Println("Error parsing attestation response", err)
+// 		return nil, ErrParsingData.WithDetails("Error parsing attestation response").WithParent(err)
+// 	}
+
+// 	pcc.Response = *parsedAttestationResponse
+
+// 	return &pcc, nil
+
+// }
 
 func ParseCredentialCreationResponse(response *http.Request) (*ParsedCredentialCreationData, error) {
 	if response == nil || response.Body == nil {
@@ -128,6 +150,46 @@ func ParseCredentialCreationResponseBody(body io.Reader) (*ParsedCredentialCreat
 	if err != nil {
 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo(err.Error())
 	}
+
+	return ParseCredentialCreationResponseObject(&ccr)
+}
+
+func ParseCredentialCreationResponseHeader(data *XNuggWebauthnCreation, credentialType string) (*ParsedCredentialCreationData, error) {
+
+	credentialId := base64.RawURLEncoding.EncodeToString(data.CredentialID)
+
+	// attest := base64.RawURLEncoding.EncodeToString(data.RawAttestationObject)
+
+	// client := base64.RawURLEncoding.EncodeToString(data.RawClientData)
+
+	log.Println("client", string(data.RawClientData))
+
+	ccr := CredentialCreationResponse{
+		PublicKeyCredential: PublicKeyCredential{
+			Credential: Credential{
+				ID:   credentialId,
+				Type: credentialType,
+			},
+			RawID:                  URLEncodedBase64(credentialId),
+			ClientExtensionResults: AuthenticationExtensionsClientOutputs{},
+		},
+		AttestationResponse: AuthenticatorAttestationResponse{
+			AttestationObject: URLEncodedBase64(data.RawAttestationObject),
+			AuthenticatorResponse: AuthenticatorResponse{
+				ClientDataJSON: data.RawClientData,
+			},
+		},
+	}
+
+	return ParseCredentialCreationResponseObject(&ccr)
+}
+
+func ParseCredentialCreationResponseObject(ccr *CredentialCreationResponse) (*ParsedCredentialCreationData, error) {
+
+	// err := json.NewDecoder(body).Decode(&ccr)
+	// if err != nil {
+	// 	return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo(err.Error())
+	// }
 
 	if ccr.ID == "" {
 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing ID")
@@ -148,7 +210,7 @@ func ParseCredentialCreationResponseBody(body io.Reader) (*ParsedCredentialCreat
 
 	var pcc ParsedCredentialCreationData
 	pcc.ID, pcc.RawID, pcc.Type, pcc.ClientExtensionResults = ccr.ID, ccr.RawID, ccr.Type, ccr.ClientExtensionResults
-	pcc.Raw = ccr
+	pcc.Raw = *ccr
 
 	parsedAttestationResponse, err := ccr.AttestationResponse.Parse()
 	if err != nil {

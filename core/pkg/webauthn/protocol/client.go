@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 )
@@ -84,6 +85,10 @@ func (c *CollectedClientData) Verify(storedChallenge Challenge, ceremony Ceremon
 	if err != nil {
 		return err
 	}
+
+	abc := base64.RawURLEncoding.EncodeToString(storedChallenge)
+
+	log.Println(abc)
 
 	if subtle.ConstantTimeCompare(storedChallenge, []byte(rdata)) != 1 {
 		err := ErrVerification.WithDetails("Error validating challenge")

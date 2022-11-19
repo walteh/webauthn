@@ -5,6 +5,8 @@ import (
 
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
+
+	"github.com/k0kubun/pp"
 )
 
 // BEGIN REGISTRATION
@@ -135,6 +137,8 @@ func (webauthn *WebAuthn) CreateCredential(webauthnUserId string, session Sessio
 	// }
 
 	shouldVerifyUser := session.UserVerification == protocol.VerificationRequired
+
+	pp.Println("parsedResponse", parsedResponse)
 
 	invalidErr := parsedResponse.Verify(session.Challenge, shouldVerifyUser, webauthn.Config.RPID, webauthn.Config.RPOrigin)
 	if invalidErr != nil {

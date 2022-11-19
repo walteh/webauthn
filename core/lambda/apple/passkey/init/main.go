@@ -12,7 +12,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -152,8 +151,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	if err != nil {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}
-
-	pp.Println(types.TransactWriteItem{Put: cer})
 
 	return inv.Success(204, map[string]string{
 		"x-nugg-response": successfulResponseBuilder(sessionData.Challenge, sessionData.UserID),

@@ -78,12 +78,8 @@ func TestHandler_Invoke(t *testing.T) {
 			name: "test",
 			args: Input{
 				Headers: map[string]string{
-					"Content-Type":                      "application/json",
-					"x-nugg-apple-passkey-clientdata":   "{\"type\":\"webauthn.create\",\"challenge\":\"pVr2PUG_le6lde9wxeImHA\",\"origin\":\"https://nugg.xyz\"}",
-					"x-nugg-apple-passkey-attestation":  "o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9_xGsTVktJ1c-FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFHBT7QkADPr91uHZjZKXlvnAfEZrpQECAyYgASFYIDDfuDHrs4K8vUWsbLF0UiK32BrY1EqzPiDSvaYytWkqIlgg9kltA9NXcX12aaevSQyHBv7wUsCBmgK9ykuSvUJFmgA",
-					"x-nugg-apple-passkey-credentialid": "cFPtCQAM-v3W4dmNkpeW-cB8Rms",
-					// {"rawClientDataJSON":"eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoicFZyMlBVR19sZTZsZGU5d3hlSW1IQSIsIm9yaWdpbiI6Imh0dHBzOi8vbnVnZy54eXoifQ","rawAttestationObject":"o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9_xGsTVktJ1c-FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFHBT7QkADPr91uHZjZKXlvnAfEZrpQECAyYgASFYIDDfuDHrs4K8vUWsbLF0UiK32BrY1EqzPiDSvaYytWkqIlgg9kltA9NXcX12aaevSQyHBv7wUsCBmgK9ykuSvUJFmgA","credentialID":"cFPtCQAM-v3W4dmNkpeW-cB8Rms"
-					// "x-nugg-payload": "eyJyYXdDbGllbnREYXRhSlNPTiI6ImV5SjBlWEJsSWpvaWQyVmlZWFYwYUc0dVkzSmxZWFJsSWl3aVkyaGhiR3hsYm1kbElqb2ljRlp5TWxCVlIxOXNaVFpzWkdVNWQzaGxTVzFJUVNJc0ltOXlhV2RwYmlJNkltaDBkSEJ6T2k4dmJuVm5aeTU0ZVhvaWZRIiwicmF3QXR0ZXN0YXRpb25PYmplY3QiOiJvMk5tYlhSa2JtOXVaV2RoZEhSVGRHMTBvR2hoZFhSb1JHRjBZVmlZcWJtcjlfeEdzVFZrdEoxYy1Gdkw4M0g1eTJNT0RXczFTOFlMVWVCbDJraGRBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBRkhCVDdRa0FEUHI5MXVIWmpaS1hsdm5BZkVacnBRRUNBeVlnQVNGWUlERGZ1REhyczRLOHZVV3NiTEYwVWlLMzJCclkxRXF6UGlEU3ZhWXl0V2txSWxnZzlrbHRBOU5YY1gxMmFhZXZTUXlIQnY3d1VzQ0JtZ0s5eWt1U3ZVSkZtZ0EiLCJjcmVkZW50aWFsSUQiOiJjRlB0Q1FBTS12M1c0ZG1Oa3BlVy1jQjhSbXMifQ==",
+					"Content-Type":             "application/json",
+					"x-nugg-webauthn-creation": "eyJyYXdDbGllbnREYXRhSlNPTiI6ImV5SmphR0ZzYkdWdVoyVWlPaUp3Vm5JeVVGVkhYMnhsTm14a1pUbDNlR1ZKYlVoQklpd2liM0pwWjJsdUlqb2lhSFIwY0hNNkx5OXVkV2RuTG5oNWVpSXNJblI1Y0dVaU9pSjNaV0poZFhSb2JpNWpjbVZoZEdVaWZRPT0iLCJyYXdBdHRlc3RhdGlvbk9iamVjdCI6Im8yTm1iWFJrYm05dVpXZGhkSFJUZEcxMG9HaGhkWFJvUkdGMFlWaVlxYm1yOS94R3NUVmt0SjFjK0Z2TDgzSDV5Mk1PRFdzMVM4WUxVZUJsMmtoZEFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFGSEJUN1FrQURQcjkxdUhaalpLWGx2bkFmRVpycFFFQ0F5WWdBU0ZZSUREZnVESHJzNEs4dlVXc2JMRjBVaUszMkJyWTFFcXpQaURTdmFZeXRXa3FJbGdnOWtsdEE5TlhjWDEyYWFldlNReUhCdjd3VXNDQm1nSzl5a3VTdlVKRm1nQT0iLCJjcmVkZW50aWFsSWQiOiJjRlB0Q1FBTSt2M1c0ZG1Oa3BlVytjQjhSbXM9In0=",
 				},
 			},
 			want: Output{

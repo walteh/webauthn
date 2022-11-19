@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -136,23 +137,18 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	attestation := payload.Headers["x-nugg-apple-passkey-attestation"]
-	clientdata := payload.Headers["x-nugg-apple-passkey-clientdata"]
-	credentialId := payload.Headers["x-nugg-apple-passkey-credentialid"]
+	attestation := payload.Headers["x-nugg-webauthn-creation"]
 
 	if attestation == "" {
-		return inv.Error(nil, 400, "missing header x-nugg-webauthn-attestation")
+		return inv.Error(nil, 400, "missing header x-nugg-webauthn-creation")
 	}
 
-	if clientdata == "" {
-		return inv.Error(nil, 400, "missing header x-nugg-webauthn-clientdata")
+	creation, err := protocol.ParseWebauthnCreation(attestation)
+	if err != nil {
+		return inv.Error(err, 400, "failed to parse webauthn creation")
 	}
 
-	if credentialId == "" {
-		return inv.Error(nil, 400, "missing header x-nugg-webauthn-credential-id")
-	}
-
-	parsedResponse, err := protocol.ParseCredentialCreation(clientdata, attestation, credentialId, "public-key")
+	parsedResponse, err := protocol.ParseCredentialCreationResponseHeader(creation, "public-key")
 	if err != nil {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
@@ -165,12 +161,14 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	}
 
 	ceremony, err := h.Dynamo.FindCeremonyInGetResult(res)
-	if err != nil {
-		if err == dynamo.ErrNotFound {
+	if err != nil || ceremony == nil {
+		if err == dynamo.ErrNotFound || ceremony == nil {
 			return inv.Error(err, 404, "ceremony not found")
 		}
 		return inv.Error(err, 500, "failed to load ceremony")
 	}
+
+	pp.Println(ceremony.SessionData)
 
 	credential, err := h.WebAuthn.CreateCredential("", *ceremony.SessionData, parsedResponse)
 	if err != nil {
