@@ -17,13 +17,15 @@ type Client interface {
 type DefaultClient struct {
 	*cognitoidentity.Client
 
-	PoolName string
+	PoolName     string
+	ProviderName string
 }
 
-func NewClient(config aws.Config, poolName string) Client {
+func NewClient(config aws.Config, poolName string, providerName string) Client {
 	return &DefaultClient{
-		Client:   cognitoidentity.NewFromConfig(config),
-		PoolName: poolName,
+		Client:       cognitoidentity.NewFromConfig(config),
+		PoolName:     poolName,
+		ProviderName: providerName,
 	}
 }
 
@@ -32,7 +34,7 @@ func (c *DefaultClient) GetIdentityId(ctx context.Context, token string) (string
 	resp, err := c.GetId(ctx, &cognitoidentity.GetIdInput{
 		IdentityPoolId: aws.String(c.PoolName),
 		Logins: map[string]string{
-			"nuggid.nugg.xyz": token,
+			c.ProviderName: token,
 		},
 	})
 
@@ -48,7 +50,7 @@ func (c *DefaultClient) GetCredentials(ctx context.Context, identityId string, t
 	resp, err := c.GetCredentialsForIdentity(ctx, &cognitoidentity.GetCredentialsForIdentityInput{
 		IdentityId: aws.String(identityId),
 		Logins: map[string]string{
-			"nuggid.nugg.xyz": token,
+			c.ProviderName: token,
 		},
 	})
 
@@ -69,7 +71,7 @@ func (c *DefaultClient) GetDevCreds(ctx context.Context, nuggId string) (*cognit
 
 	resp, err := c.GetOpenIdTokenForDeveloperIdentity(ctx, &cognitoidentity.GetOpenIdTokenForDeveloperIdentityInput{
 		Logins: map[string]string{
-			"nuggid.nugg.xyz": nuggId,
+			c.ProviderName: nuggId,
 		},
 		IdentityPoolId: aws.String(c.PoolName),
 	})

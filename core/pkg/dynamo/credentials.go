@@ -1,6 +1,7 @@
 package dynamo
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"nugg-auth/core/pkg/webauthn/protocol"
@@ -85,13 +86,8 @@ func (client *Client) newCredentialFromApplePassKeyData(userId string, credentia
 		return nil, err
 	}
 
-	// bdc, err := base64.RawStdEncoding.DecodeString(string(credential.ID))
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	return &DynamoCredential{
-		Id:               string(credential.ID),
+		Id:               base64.RawURLEncoding.EncodeToString(credential.ID),
 		NuggId:           userId,
 		CredentialUserId: credentialUserId,
 		Type:             string(ApplePassKeyCredentialType),

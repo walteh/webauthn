@@ -46,6 +46,10 @@ output "apple_identity_pool_id" {
   value = aws_cognito_identity_pool.main.id
 }
 
+output "apple_identity_pool_arn" {
+  value = aws_cognito_identity_pool.main.arn
+}
+
 output "apigw_host" {
   value = local.rs_mesh_apigw_host
 }

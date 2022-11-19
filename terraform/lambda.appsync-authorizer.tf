@@ -33,6 +33,7 @@ resource "aws_lambda_function" "appsync_authorizer" {
 
   environment {
     variables = {
+      COGNITO_DEVELOPER_PROVIDER_NAME    = aws_cognito_identity_pool.main.developer_provider_name
       DYNAMO_CEREMONIES_TABLE_NAME       = aws_dynamodb_table.ceremonies.name
       DYNAMO_USERS_TABLE_NAME            = aws_dynamodb_table.users.name
       DYNAMO_CREDENTIALS_TABLE_NAME      = aws_dynamodb_table.credentials.name

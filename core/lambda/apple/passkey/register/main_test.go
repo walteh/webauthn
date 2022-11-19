@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
 )
@@ -102,6 +103,35 @@ func TestHandler_Invoke(t *testing.T) {
 
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Handler.Invoke() = %v, want %v", got, tt.want)
+			}
+
+			r, err := Handler.Dynamo.GetItem(Handler.Ctx, &dynamodb.GetItemInput{
+				TableName: &Handler.Dynamo.CeremonyTableName,
+				Key: map[string]types.AttributeValue{
+					"ceremony_id": &types.AttributeValueMemberS{Value: "pVr2PUG_le6lde9wxeImHA"},
+				},
+			})
+			if err != nil {
+				t.Error(err)
+			}
+
+			if r.Item == nil {
+				t.Error("item is nil")
+			}
+
+			c, err := Handler.Dynamo.GetItem(Handler.Ctx, &dynamodb.GetItemInput{
+				TableName: &Handler.Dynamo.CredentialTableName,
+				Key: map[string]types.AttributeValue{
+					"credential_id": &types.AttributeValueMemberS{Value: "cFPtCQAM-v3W4dmNkpeW-cB8Rms"},
+				},
+			})
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			if c.Item == nil {
+				t.Error("item is nil")
 			}
 
 		})

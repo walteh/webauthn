@@ -46,7 +46,7 @@ func main() {
 	abc := &Handler{
 		Ctx:             ctx,
 		Dynamo:          dynamo.NewClient(cfg, "", env.DynamoCeremoniesTableName(), ""),
-		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId()),
+		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
 		SecretsManager:  secretsmanager.NewClient(ctx, cfg, env.SignInWithApplePrivateKeyName()),

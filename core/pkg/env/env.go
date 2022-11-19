@@ -67,6 +67,8 @@ func DynamoCredentialsTableName() string { return osMustGet("DYNAMO_CREDENTIALS_
 
 func SignInWithApplePrivateKeyName() string { return osMustGet("SM_SIGNINWITHAPPLE_PRIVATEKEY_NAME") }
 
+func CognitoDeveloperProviderName() string { return osMustGet("COGNITO_DEVELOPER_PROVIDER_NAME") }
+
 func (e Environment) GetAwsConfig() aws.Config { return e.AwsConfig }
 
 func NewEnv(ctx context.Context) (env Environment, err error) {

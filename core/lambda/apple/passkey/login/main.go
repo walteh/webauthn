@@ -135,7 +135,7 @@ func main() {
 		Dynamo:   dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
 		Config:   cfg,
 		WebAuthn: web,
-		Cognito:  cognito.NewClient(cfg, env.AppleIdentityPoolId()),
+		Cognito:  cognito.NewClient(cfg, env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
 		Logger:   zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
 		counter:  0,
 	}
@@ -182,6 +182,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
 	defer close(chaner)
 	stale := false
+	var chanerr error
 
 	go func() {
 		go func() {
@@ -190,11 +191,13 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 				chaner <- nil
 			}
 			stale = true
+
 		}()
 
 		z, err := h.Cognito.GetDevCreds(ctx, nuggid)
 		if !stale {
 			if err != nil {
+				chanerr = err
 				chaner <- nil
 			} else {
 				chaner <- z
@@ -221,7 +224,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	stale = true
 
 	if result == nil {
-		return inv.Error(err, 500, "failed to get dev creds")
+		return inv.Error(chanerr, 500, "failed to get dev creds")
 	}
 
 	return inv.Success(204, map[string]string{

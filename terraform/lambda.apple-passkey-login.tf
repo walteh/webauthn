@@ -34,6 +34,7 @@ resource "aws_lambda_function" "apple_passkey_login" {
 
   environment {
     variables = {
+      COGNITO_DEVELOPER_PROVIDER_NAME    = aws_cognito_identity_pool.main.developer_provider_name
       DYNAMO_CEREMONIES_TABLE_NAME       = aws_dynamodb_table.ceremonies.name
       DYNAMO_USERS_TABLE_NAME            = aws_dynamodb_table.users.name
       DYNAMO_CREDENTIALS_TABLE_NAME      = aws_dynamodb_table.credentials.name
@@ -74,7 +75,13 @@ data "aws_iam_policy_document" "apple_passkey_login_lambda_inline" {
 
   statement {
     effect    = "Allow"
-    actions   = ["dynamodb:TransactWriteItems", "dynamodb:TransactGetItems"]
+    actions   = ["cognito-identity:GetOpenIdTokenForDeveloperIdentity"]
+    resources = [aws_cognito_identity_pool.main.arn]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["dynamodb:TransactWriteItems", "dynamodb:TransactGetItems", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"]
     resources = [aws_dynamodb_table.credentials.arn, aws_dynamodb_table.users.arn, aws_dynamodb_table.ceremonies.arn]
   }
 }

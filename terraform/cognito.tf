@@ -3,7 +3,5 @@ resource "aws_cognito_identity_pool" "main" {
   allow_unauthenticated_identities = false
   allow_classic_flow               = false
 
-  supported_login_providers = {
-    "appleid.apple.com" = "xyz.nugg.app"
-  }
+  developer_provider_name = "nuggid.nugg.xyz"
 }
