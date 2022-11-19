@@ -23,7 +23,7 @@ type Output = events.AppSyncLambdaAuthorizerResponse
 type Handler struct {
 	Ctx             context.Context
 	Dynamo          *dynamo.Client
-	Cognito         *cognito.Client
+	Cognito         cognito.Client
 	SignInWithApple *signinwithapple.Client
 	ApplePublicKey  *applepublickey.Client
 	SecretsManager  *secretsmanager.Client

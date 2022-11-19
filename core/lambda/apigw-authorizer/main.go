@@ -22,7 +22,7 @@ type Output = events.APIGatewayV2CustomAuthorizerSimpleResponse
 type Handler struct {
 	Ctx             context.Context
 	Dynamo          *dynamo.Client
-	Cognito         *cognito.Client
+	Cognito         cognito.Client
 	SignInWithApple *signinwithapple.Client
 	ApplePublicKey  *applepublickey.Client
 	SecretsManager  *secretsmanager.Client

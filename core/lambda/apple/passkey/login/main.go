@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/webauthn/protocol"
@@ -16,6 +17,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
@@ -29,6 +31,7 @@ type Handler struct {
 	Config   config.Config
 	Logger   zerolog.Logger
 	WebAuthn *webauthn.WebAuthn
+	Cognito  cognito.Client
 	counter  int
 }
 
@@ -124,6 +127,7 @@ func main() {
 		Dynamo:   dynamo.NewClient(cfg, "", env.DynamoCeremonyTableName(), ""),
 		Config:   cfg,
 		WebAuthn: web,
+		Cognito:  cognito.NewClient(cfg, env.AppleIdentityPoolId()),
 		Logger:   zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
 		counter:  0,
 	}
@@ -136,23 +140,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	inv := h.NewInvocation(h.Logger)
 
 	assertion := payload.Headers["x-nugg-webauthn-assertion"]
-	// clientdata := payload.Headers["x-nugg-webauthn-clientdata"]
-	// credentialId := payload.Headers["x-nugg-webauthn-credential-id"]
-	// userId := payload.Headers["x-nugg-webauthn-user-id"]
-	// authenticatorData := payload.Headers["x-nugg-webauthn-authenticator-data"]
-
-	// if signature == "" || clientdata == "" || credentialId == "" || userId == "" || authenticatorData == "" {
-	// 	return inv.Error(nil, 400, "missing required headers")
-	// }
-
-	// args := protocol.DecodeCredentialAssertionJSON(&protocol.BetterCredentialAssertionResponseString{
-	// 	Signature:            signature,
-	// 	RawClientDataJSON:    clientdata,
-	// 	CredentialID:         credentialId,
-	// 	UserID:               userId,
-	// 	RawAuthenticatorData: authenticatorData,
-	// 	Type:                 "public-key",
-	// })
 
 	args, err := protocol.ParseCredentialAssertionResponsePayload(assertion)
 	if err != nil {
@@ -184,6 +171,16 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to find credential")
 	}
 
+	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
+
+	go func() {
+		z, err := h.Cognito.GetDevCreds(ctx, nuggid)
+		if err != nil {
+			return
+		}
+		chaner <- z
+	}()
+
 	dacred, err := h.WebAuthn.ValidateLogin(protocol.Challenge(args.UserID), []webauthn.Credential{*creds}, *cer.SessionData, parsedResponse)
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin registration")
@@ -199,5 +196,9 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to update apple pass key")
 	}
 
-	return inv.Success(204, map[string]string{}, "")
+	result := <-chaner
+
+	return inv.Success(204, map[string]string{
+		"x-nugg-access-token": *result.Token,
+	}, "")
 }

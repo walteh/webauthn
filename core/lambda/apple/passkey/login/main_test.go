@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/webauthn/webauthn"
 
@@ -141,6 +142,7 @@ func DummyHandler(t *testing.T) *Handler {
 		Ctx:      context.Background(),
 		Dynamo:   dynamoClient,
 		Config:   nil,
+		Cognito:  cognito.NewMockClient(),
 		Logger:   zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 		WebAuthn: wan,
 		counter:  0,
@@ -166,7 +168,8 @@ func TestHandler_Invoke(t *testing.T) {
 			want: Output{
 				StatusCode: 204,
 				Headers: map[string]string{
-					"Content-Length": "0",
+					"Content-Length":      "0",
+					"x-nugg-access-token": "OpenIdToken",
 				},
 			},
 			wantErr: false,

@@ -8,20 +8,26 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 )
 
-type Client struct {
+type Client interface {
+	GetDevCreds(ctx context.Context, nuggId string) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error)
+	GetIdentityId(ctx context.Context, token string) (string, error)
+	GetCredentials(ctx context.Context, identityId string, token string) (aws.Credentials, error)
+}
+
+type DefaultClient struct {
 	*cognitoidentity.Client
 
 	PoolName string
 }
 
-func NewClient(config aws.Config, poolName string) *Client {
-	return &Client{
+func NewClient(config aws.Config, poolName string) Client {
+	return &DefaultClient{
 		Client:   cognitoidentity.NewFromConfig(config),
 		PoolName: poolName,
 	}
 }
 
-func (c *Client) GetIdentityId(ctx context.Context, token string) (string, error) {
+func (c *DefaultClient) GetIdentityId(ctx context.Context, token string) (string, error) {
 
 	resp, err := c.GetId(ctx, &cognitoidentity.GetIdInput{
 		IdentityPoolId: aws.String(c.PoolName),
@@ -37,7 +43,7 @@ func (c *Client) GetIdentityId(ctx context.Context, token string) (string, error
 	return *resp.IdentityId, nil
 }
 
-func (c *Client) GetCredentials(ctx context.Context, identityId string, token string) (aws.Credentials, error) {
+func (c *DefaultClient) GetCredentials(ctx context.Context, identityId string, token string) (aws.Credentials, error) {
 
 	resp, err := c.GetCredentialsForIdentity(ctx, &cognitoidentity.GetCredentialsForIdentityInput{
 		IdentityId: aws.String(identityId),
@@ -59,7 +65,7 @@ func (c *Client) GetCredentials(ctx context.Context, identityId string, token st
 	return res, nil
 }
 
-func (c *Client) GetDevCreds(ctx context.Context, nuggId string) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error) {
+func (c *DefaultClient) GetDevCreds(ctx context.Context, nuggId string) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error) {
 
 	resp, err := c.GetOpenIdTokenForDeveloperIdentity(ctx, &cognitoidentity.GetOpenIdTokenForDeveloperIdentityInput{
 		Logins: map[string]string{
