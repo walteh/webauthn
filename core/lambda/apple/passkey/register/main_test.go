@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func DummyHandler(t *testing.T, chal string, userid string) *Handler {
+func DummyHandler(t *testing.T) *Handler {
 	dynamoClient := dynamo.NewMockClient(t)
 
 	wan, err := webauthn.New(&webauthn.Config{
@@ -64,9 +64,7 @@ func DummyHandler(t *testing.T, chal string, userid string) *Handler {
 
 func TestHandler_Invoke(t *testing.T) {
 
-	chal := "pVr2PUG_le6lde9wxeImHA"
-
-	Handler := DummyHandler(t, chal, "hOCe588daJZuGA6PeJTczQ")
+	Handler := DummyHandler(t)
 
 	rander := protocol.MockSetRander(t, "ABCD")
 
