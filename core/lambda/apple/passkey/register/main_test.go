@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/webauthn/protocol"
-	"nugg-auth/core/pkg/webauthn/webauthn"
 
 	"reflect"
 	"testing"
@@ -17,15 +17,6 @@ import (
 
 func DummyHandler(t *testing.T) *Handler {
 	dynamoClient := dynamo.NewMockClient(t)
-
-	wan, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "nugg.xyz",
-		RPID:          "nugg.xyz",
-		RPOrigin:      "https://nugg.xyz",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	dynamoClient.TransactWrite(context.TODO(), types.TransactWriteItem{
 		ConditionCheck: (*types.ConditionCheck)(nil),
@@ -53,13 +44,13 @@ func DummyHandler(t *testing.T) *Handler {
 	})
 
 	return &Handler{
-		Id:       "test",
-		Ctx:      context.Background(),
-		Dynamo:   dynamoClient,
-		Config:   nil,
-		Logger:   zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
-		WebAuthn: wan,
-		counter:  0,
+		Id:      "test",
+		Ctx:     context.Background(),
+		Dynamo:  dynamoClient,
+		Config:  nil,
+		Cognito: cognito.NewMockClient(),
+		Logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
+		counter: 0,
 	}
 }
 

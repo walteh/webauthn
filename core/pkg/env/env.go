@@ -69,6 +69,10 @@ func SignInWithApplePrivateKeyName() string { return osMustGet("SM_SIGNINWITHAPP
 
 func CognitoDeveloperProviderName() string { return osMustGet("COGNITO_DEVELOPER_PROVIDER_NAME") }
 
+func RPDisplayName() string { return "nugg.xyz" }
+func RPID() string          { return "nugg.xyz" }
+func RPOrigin() string      { return "https://nugg.xyz" }
+
 func (e Environment) GetAwsConfig() aws.Config { return e.AwsConfig }
 
 func NewEnv(ctx context.Context) (env Environment, err error) {

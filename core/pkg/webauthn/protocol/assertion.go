@@ -179,10 +179,23 @@ func ParseCredentialAssertionResponse(car CredentialAssertionResponse) (*ParsedC
 // Follow the remaining steps outlined in §7.2 Verifying an authentication assertion
 // (https://www.w3.org/TR/webauthn/#verifying-assertion) and return an error if there
 // is a failure during each step.
-func (p *ParsedCredentialAssertionData) Verify(storedChallenge Challenge, relyingPartyID, relyingPartyOrigin, appID string, verifyUser bool, credentialBytes []byte) error {
+func (p *ParsedCredentialAssertionData) Verify(storedChallenge Challenge, relyingPartyID, relyingPartyOrigin, attestationType string, verifyUser bool, credentialBytes []byte, extensions AuthenticationExtensions) error {
 	// Steps 4 through 6 in verifying the assertion data (https://www.w3.org/TR/webauthn/#verifying-assertion) are
 	// "assertive" steps, i.e "Let JSONtext be the result of running UTF-8 decode on the value of cData."
 	// We handle these steps in part as we verify but also beforehand
+	var (
+		key interface{}
+		err error
+	)
+
+	if extensions == nil {
+		extensions = AuthenticationExtensions{}
+	}
+
+	appID, err := p.GetAppID(extensions, attestationType)
+	if err != nil {
+		return err
+	}
 
 	// Handle steps 7 through 10 of assertion by verifying stored data against the Collected Client Data
 	// returned by the authenticator
@@ -214,11 +227,6 @@ func (p *ParsedCredentialAssertionData) Verify(storedChallenge Challenge, relyin
 	// a valid signature over the binary concatenation of authData and hash.
 
 	sigData := append(p.Raw.AssertionResponse.AuthenticatorData, clientDataHash[:]...)
-
-	var (
-		key interface{}
-		err error
-	)
 
 	if appID == "" {
 		key, err = webauthncose.ParsePublicKey(credentialBytes)

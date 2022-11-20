@@ -2,12 +2,9 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/webauthn/protocol"
-	"nugg-auth/core/pkg/webauthn/webauthn"
 
 	"os"
 	"time"
@@ -25,13 +22,12 @@ type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
 type Handler struct {
-	Id       string
-	Ctx      context.Context
-	Dynamo   *dynamo.Client
-	Config   config.Config
-	Logger   zerolog.Logger
-	WebAuthn *webauthn.WebAuthn
-	counter  int
+	Id      string
+	Ctx     context.Context
+	Dynamo  *dynamo.Client
+	Config  config.Config
+	Logger  zerolog.Logger
+	counter int
 }
 
 func init() {
@@ -108,26 +104,25 @@ func main() {
 		return
 	}
 
-	web, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "nugg.xyz",
-		RPID:          "nugg.xyz",
-		RPOrigin:      "https://nugg.xyz",
-		// passkeys do not support attestation as they can move between devices
-		// https://developer.apple.com/forums/thread/713195
-		AttestationPreference: protocol.PreferNoAttestation,
-	})
+	// web, err := webauthn.New(&webauthn.Config{
+	// 	RPDisplayName: "nugg.xyz",
+	// 	RPID:          "nugg.xyz",
+	// 	RPOrigin:      "https://nugg.xyz",
+	// 	// passkeys do not support attestation as they can move between devices
+	// 	// https://developer.apple.com/forums/thread/713195
+	// 	AttestationPreference: protocol.PreferNoAttestation,
+	// })
 	if err != nil {
 		return
 	}
 
 	abc := &Handler{
-		Id:       ksuid.New().String(),
-		Ctx:      ctx,
-		Dynamo:   dynamo.NewClient(cfg, "", env.DynamoCeremoniesTableName(), ""),
-		Config:   cfg,
-		WebAuthn: web,
-		Logger:   zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
-		counter:  0,
+		Id:      ksuid.New().String(),
+		Ctx:     ctx,
+		Dynamo:  dynamo.NewClient(cfg, "", env.DynamoCeremoniesTableName(), ""),
+		Config:  cfg,
+		Logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
+		counter: 0,
 	}
 
 	lambda.Start(abc.Invoke)
@@ -139,12 +134,9 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	sessionId := payload.Headers["x-nugg-webauthn-sessionId"]
 
-	cha, err := protocol.CreateChallenge()
-	if err != nil {
-		return inv.Error(err, 500, "failed to begin registration")
-	}
+	cha := protocol.NewCeremony("*", sessionId, protocol.CreateCeremony)
 
-	cer, err := h.Dynamo.NewCeremonyPut(sessionData)
+	cer, err := dynamo.MakePut(h.Dynamo.MustCeremonyTableName(), cha)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create ceremony")
 	}
@@ -154,25 +146,5 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}
 
-	return inv.Success(204, map[string]string{
-		"x-nugg-response": successfulResponseBuilder(sessionData.Challenge, sessionData.UserID),
-	}, "")
-}
-
-func successfulResponseBuilder(challenge []byte, userId []byte) string {
-
-	abc := struct {
-		Challenge protocol.URLEncodedBase64 `json:"challenge"`
-		UserId    protocol.URLEncodedBase64 `json:"userid"`
-	}{
-		Challenge: challenge,
-		UserId:    userId,
-	}
-
-	r, err := json.Marshal(abc)
-	if err != nil {
-		panic(err)
-	}
-
-	return base64.StdEncoding.EncodeToString(r)
+	return inv.Success(204, map[string]string{"x-nugg-webauthn-challenge": cha.ChallengeID}, "")
 }

@@ -3,6 +3,8 @@ package dynamo
 import (
 	"context"
 	"errors"
+	"fmt"
+	"nugg-auth/core/pkg/webauthn/protocol"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -24,6 +26,20 @@ func NewClient(config aws.Config, userTableName string, ceremonyTableName string
 		CeremonyTableName:   ceremonyTableName,
 		CredentialTableName: credentialTableName,
 	}
+}
+
+type Puttable interface {
+	attributevalue.Marshaler
+	Put() (*types.Put, error)
+}
+
+func MakePut(table *string, d Puttable) (*types.Put, error) {
+	put, err := d.Put()
+	if err != nil {
+		return nil, err
+	}
+	put.TableName = table
+	return put, nil
 }
 
 func FindInOnePerTableGetResult[I interface{}](result []*GetOutput, tableName *string) (*I, error) {
@@ -60,27 +76,68 @@ type GetOutput struct {
 	Request types.TransactGetItem
 }
 
-func (c *Client) TransactGet(ctx context.Context, items ...types.TransactGetItem) ([]*GetOutput, error) {
+type Gettable interface {
+	attributevalue.Unmarshaler
+	Get() *types.Get
+}
+
+func (c *Client) BuildPut(d Puttable) (*types.Put, error) {
+	switch d.(type) {
+	case protocol.SavedCeremony:
+		return MakePut(c.MustCeremonyTableName(), d)
+	// case protocol.SavedUser:
+	// 	return MakePut(c.MustUserTableName(), d)
+	case protocol.SavedCredential:
+		return MakePut(c.MustCredentialTableName(), d)
+	default:
+		return nil, fmt.Errorf("unknown type %T", d)
+	}
+}
+
+func (c *Client) TransactGet(ctx context.Context, items ...Gettable) error {
+
+	var itms []types.TransactGetItem
+	for _, item := range items {
+		var tbl *string
+		switch item.(type) {
+		case protocol.SavedCeremony:
+			tbl = c.MustCeremonyTableName()
+		// case protocol.UserEntity:
+		// 	tbl = c.MustUserTableName()
+		case protocol.SavedCredential:
+			tbl = c.MustCredentialTableName()
+		default:
+			return errors.New("unknown table type")
+		}
+
+		this := item.Get()
+		this.TableName = tbl
+
+		itms = append(itms, types.TransactGetItem{
+			Get: this,
+		})
+	}
+
 	res, err := c.TransactGetItems(ctx, &dynamodb.TransactGetItemsInput{
-		TransactItems: items,
+		TransactItems: itms,
 	})
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(res.Responses) != len(items) {
-		return nil, errors.New("unexpected number of responses")
+		return errors.New("unexpected number of responses")
 	}
 
-	output := make([]*GetOutput, len(res.Responses))
-	for i, item := range items {
-		output[i] = &GetOutput{
-			Item:    res.Responses[i].Item,
-			Request: item,
+	for i := range items {
+		err = items[i].UnmarshalDynamoDBAttributeValue(&types.AttributeValueMemberM{Value: res.Responses[i].Item})
+		if err != nil {
+			return err
 		}
 	}
-	return output, nil
+
+	return nil
 }
 
 func (client *Client) MustUserTableName() *string {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/webauthn/protocol"
-	"nugg-auth/core/pkg/webauthn/webauthn"
 	"reflect"
 	"testing"
 
@@ -14,23 +13,13 @@ import (
 func DummyHandler(t *testing.T) *Handler {
 	dynamoClient := dynamo.NewMockClient(t)
 
-	wan, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "nugg.xyz",
-		RPID:          "nugg.xyz",
-		RPOrigin:      "https://nugg.xyz",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	return &Handler{
-		Id:       "test",
-		Ctx:      context.Background(),
-		Dynamo:   dynamoClient,
-		Config:   nil,
-		Logger:   zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
-		WebAuthn: wan,
-		counter:  0,
+		Id:      "test",
+		Ctx:     context.Background(),
+		Dynamo:  dynamoClient,
+		Config:  nil,
+		Logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
+		counter: 0,
 	}
 }
 
@@ -56,8 +45,8 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 			want: Output{
 				StatusCode: 204,
 				Headers: map[string]string{
-					"Content-Length":  "0",
-					"x-nugg-response": successfulResponseBuilder(expected.CalculateDeterministicHash(1), expected.CalculateDeterministicHash(2)),
+					"Content-Length":   "0",
+					"x-nugg-challenge": string(expected.CalculateDeterministicHash(1)),
 				},
 			},
 			wantErr: false,

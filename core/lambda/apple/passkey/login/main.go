@@ -6,7 +6,6 @@ import (
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/webauthn/protocol"
-	"nugg-auth/core/pkg/webauthn/webauthn"
 
 	"os"
 	"time"
@@ -18,21 +17,19 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
 type Handler struct {
-	Id       string
-	Dynamo   *dynamo.Client
-	Config   config.Config
-	Logger   zerolog.Logger
-	WebAuthn *webauthn.WebAuthn
-	Cognito  cognito.Client
-	Ctx      context.Context
-	counter  int
+	Id      string
+	Dynamo  *dynamo.Client
+	Config  config.Config
+	Logger  zerolog.Logger
+	Cognito cognito.Client
+	Ctx     context.Context
+	counter int
 }
 
 func init() {
@@ -118,26 +115,17 @@ func main() {
 		return
 	}
 
-	web, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "nugg.xyz",
-		RPID:          "nugg.xyz",
-		RPOrigin:      "https://nugg.xyz",
-		// passkeys do not support attestation as they can move between devices
-		// https://developer.apple.com/forums/thread/713195
-		AttestationPreference: protocol.PreferNoAttestation,
-	})
 	if err != nil {
 		return
 	}
 
 	abc := &Handler{
-		Id:       ksuid.New().String(),
-		Dynamo:   dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
-		Config:   cfg,
-		WebAuthn: web,
-		Cognito:  cognito.NewClient(cfg, env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
-		Logger:   zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
-		counter:  0,
+		Id:      ksuid.New().String(),
+		Dynamo:  dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
+		Config:  cfg,
+		Cognito: cognito.NewClient(cfg, env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
+		Logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
+		counter: 0,
 	}
 
 	lambda.Start(abc.Invoke)
@@ -161,22 +149,13 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
 
-	res, err := h.Dynamo.TransactGet(inv.Ctx,
-		types.TransactGetItem{Get: h.Dynamo.NewCeremonyGet(string(parsedResponse.Response.CollectedClientData.Challenge))},
-		types.TransactGetItem{Get: h.Dynamo.NewCredentialGet(parsedResponse.ParsedCredential.ID)},
-	)
+	cred := protocol.NewUnsafeGettableCredential(parsedResponse.RawID)
+
+	cerem := protocol.NewUnsafeGettableCeremony(parsedResponse.Response.CollectedClientData.Challenge)
+
+	err = h.Dynamo.TransactGet(inv.Ctx, cred, cerem)
 	if err != nil {
 		return inv.Error(err, 500, "failed to send transact get")
-	}
-
-	cer, err := h.Dynamo.FindCeremonyInGetResult(res)
-	if err != nil {
-		return inv.Error(err, 500, "failed to find ceremony")
-	}
-
-	nuggid, creds, err := h.Dynamo.FindApplePassKeyInGetResult(res)
-	if err != nil {
-		return inv.Error(err, 500, "failed to find credential")
 	}
 
 	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
@@ -194,7 +173,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 		}()
 
-		z, err := h.Cognito.GetDevCreds(ctx, nuggid)
+		z, err := h.Cognito.GetDevCreds(ctx, cerem.CredentialID)
 		if !stale {
 			if err != nil {
 				chanerr = err
@@ -205,17 +184,18 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		}
 	}()
 
-	dacred, err := h.WebAuthn.ValidateLogin(protocol.Challenge(args.UserID), []webauthn.Credential{*creds}, *cer.SessionData, parsedResponse)
-	if err != nil {
-		return inv.Error(err, 500, "failed to begin registration")
+	// Handle steps 4 through 16
+	validError := parsedResponse.Verify(protocol.Challenge(cerem.ChallengeID), env.RPID(), env.RPOrigin(), cerem.CredentialID, false, cred.PublicKey, nil)
+	if validError != nil {
+		return inv.Error(validError, 400, "failed to verify assertion")
 	}
 
-	apl, err := h.Dynamo.NewApplePassKeyCredentialUpdate(nuggid, args.UserID, dacred)
+	credentialUpdate, err := cred.Update(h.Dynamo.MustCredentialTableName(), parsedResponse.Response.AuthenticatorData.Counter)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create apple pass key")
 	}
 
-	err = h.Dynamo.TransactWrite(ctx, types.TransactWriteItem{Update: apl})
+	err = h.Dynamo.TransactWrite(ctx, *credentialUpdate)
 	if err != nil {
 		return inv.Error(err, 500, "failed to update apple pass key")
 	}

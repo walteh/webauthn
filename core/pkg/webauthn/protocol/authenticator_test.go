@@ -123,7 +123,7 @@ func TestAuthenticatorData_Unmarshal(t *testing.T) {
 	type fields struct {
 		RPIDHash []byte
 		Flags    AuthenticatorFlags
-		Counter  uint32
+		Counter  uint64
 		AttData  AttestedCredentialData
 		ExtData  []byte
 	}
@@ -202,7 +202,7 @@ func TestAuthenticatorData_unmarshalAttestedData(t *testing.T) {
 	type fields struct {
 		RPIDHash []byte
 		Flags    AuthenticatorFlags
-		Counter  uint32
+		Counter  uint64
 		AttData  AttestedCredentialData
 		ExtData  []byte
 	}
@@ -257,7 +257,7 @@ func TestAuthenticatorData_Verify(t *testing.T) {
 	type fields struct {
 		RPIDHash []byte
 		Flags    AuthenticatorFlags
-		Counter  uint32
+		Counter  uint64
 		AttData  AttestedCredentialData
 		ExtData  []byte
 	}

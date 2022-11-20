@@ -7,7 +7,6 @@ import (
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/webauthn/protocol"
-	"nugg-auth/core/pkg/webauthn/webauthn"
 	"os"
 	"time"
 
@@ -22,13 +21,12 @@ type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
 type Handler struct {
-	Id       string
-	Ctx      context.Context
-	Dynamo   *dynamo.Client
-	Config   config.Config
-	Logger   zerolog.Logger
-	WebAuthn *webauthn.WebAuthn
-	counter  int
+	Id      string
+	Ctx     context.Context
+	Dynamo  *dynamo.Client
+	Config  config.Config
+	Logger  zerolog.Logger
+	counter int
 }
 
 func init() {

@@ -41,7 +41,7 @@ type AuthenticatorResponse struct {
 type AuthenticatorData struct {
 	RPIDHash []byte                 `json:"rpid"`
 	Flags    AuthenticatorFlags     `json:"flags"`
-	Counter  uint32                 `json:"sign_count"`
+	Counter  uint64                 `json:"sign_count"`
 	AttData  AttestedCredentialData `json:"att_data"`
 	ExtData  []byte                 `json:"ext_data"`
 }
@@ -175,7 +175,7 @@ func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) error {
 
 	a.RPIDHash = rawAuthData[:32]
 	a.Flags = AuthenticatorFlags(rawAuthData[32])
-	a.Counter = binary.BigEndian.Uint32(rawAuthData[33:37])
+	a.Counter = binary.BigEndian.Uint64(rawAuthData[33:37])
 
 	remaining := len(rawAuthData) - minAuthDataLength
 

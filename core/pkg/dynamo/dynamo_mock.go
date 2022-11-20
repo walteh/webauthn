@@ -2,9 +2,8 @@ package dynamo
 
 import (
 	"context"
-	"encoding/base64"
 	"log"
-	"nugg-auth/core/pkg/webauthn/webauthn"
+	"nugg-auth/core/pkg/webauthn/protocol"
 	"os"
 	"testing"
 
@@ -86,30 +85,25 @@ func NewMockClient(t *testing.T) *Client {
 	return &Client{
 		Client:              cli,
 		UserTableName:       mocked.MockCreateTable(t, "user-table", "user_id"),
-		CeremonyTableName:   mocked.MockCreateTable(t, "ceremony-table", "ceremony_id"),
+		CeremonyTableName:   mocked.MockCreateTable(t, "ceremony-table", "challenge_id"),
 		CredentialTableName: mocked.MockCreateTable(t, "credential-table", "credential_id"),
 	}
 }
 
-func (dynamoClient *Client) MockSetCeremony(t *testing.T, wan *webauthn.WebAuthn, challenge string) {
+func (dynamoClient *Client) MockSetCeremony(t *testing.T, credential string, challenge string, type_ protocol.CeremonyType) {
 	t.Helper()
 
-	_, cer, err := wan.BeginRegistration("tester1")
+	cer := protocol.NewCeremony(credential, challenge, type_)
+
+	maper, err := cer.Put()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cer.Challenge, err = base64.URLEncoding.DecodeString(challenge)
-	if err != nil {
-		t.Fatal(err)
-	}
-	put, err := dynamoClient.NewCeremonyPut(cer)
-	if err != nil {
-		t.Fatal(err)
-	}
+	maper.TableName = aws.String(dynamoClient.CeremonyTableName)
 
 	err = dynamoClient.TransactWrite(context.Background(),
-		types.TransactWriteItem{Put: put},
+		types.TransactWriteItem{Put: maper},
 	)
 	if err != nil {
 		t.Fatal(err)

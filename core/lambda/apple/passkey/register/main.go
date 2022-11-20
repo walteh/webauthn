@@ -1,23 +1,23 @@
 package main
 
 import (
+	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/webauthn/protocol"
-	"nugg-auth/core/pkg/webauthn/webauthn"
 
 	"context"
 	"os"
 	"time"
 
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
@@ -25,13 +25,13 @@ type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
 type Handler struct {
-	Id       string
-	Ctx      context.Context
-	Dynamo   *dynamo.Client
-	Config   config.Config
-	Logger   zerolog.Logger
-	WebAuthn *webauthn.WebAuthn
-	counter  int
+	Id      string
+	Ctx     context.Context
+	Dynamo  *dynamo.Client
+	Config  config.Config
+	Logger  zerolog.Logger
+	Cognito cognito.Client
+	counter int
 }
 
 func init() {
@@ -40,12 +40,18 @@ func init() {
 
 type Invocation struct {
 	zerolog.Logger
-	Start time.Time
+	Start  time.Time
+	Ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func (h *Handler) NewInvocation(logger zerolog.Logger) *Invocation {
+func (h *Handler) NewInvocation(ctx context.Context, logger zerolog.Logger) *Invocation {
+	ctx, cnl := context.WithCancel(ctx)
+
 	h.counter++
 	return &Invocation{
+		cancel: cnl,
+		Ctx:    ctx,
 		Logger: h.Logger.With().Int("counter", h.counter).Str("handler", h.Id).Logger(),
 		Start:  time.Now(),
 	}
@@ -108,26 +114,14 @@ func main() {
 		return
 	}
 
-	web, err := webauthn.New(&webauthn.Config{
-		RPDisplayName: "nugg.xyz",
-		RPID:          "nugg.xyz",
-		RPOrigin:      "https://nugg.xyz",
-		// passkeys do not support attestation as they can move between devices
-		// https://developer.apple.com/forums/thread/713195
-		AttestationPreference: protocol.PreferNoAttestation,
-	})
-	if err != nil {
-		return
-	}
-
 	abc := &Handler{
-		Id:       ksuid.New().String(),
-		Ctx:      ctx,
-		Dynamo:   dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
-		Config:   cfg,
-		WebAuthn: web,
-		Logger:   zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
-		counter:  0,
+		Id:      ksuid.New().String(),
+		Ctx:     ctx,
+		Dynamo:  dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
+		Config:  cfg,
+		Cognito: cognito.NewClient(cfg, env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
+		Logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
+		counter: 0,
 	}
 
 	lambda.Start(abc.Invoke)
@@ -135,7 +129,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
-	inv := h.NewInvocation(h.Logger)
+	inv := h.NewInvocation(ctx, h.Logger)
 
 	attestation := payload.Headers["x-nugg-webauthn-creation"]
 
@@ -153,55 +147,76 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
 
-	getter := h.Dynamo.NewCeremonyGet(string(parsedResponse.Response.CollectedClientData.Challenge))
+	cerem := protocol.NewUnsafeGettableCeremony(parsedResponse.Response.CollectedClientData.Challenge)
 
-	res, err := h.Dynamo.TransactGet(ctx, types.TransactGetItem{Get: getter})
+	err = h.Dynamo.TransactGet(ctx, cerem)
 	if err != nil {
 		return inv.Error(err, 500, "failed to get ceremony")
 	}
 
-	ceremony, err := h.Dynamo.FindCeremonyInGetResult(res)
-	if err != nil || ceremony == nil {
-		if err == dynamo.ErrNotFound || ceremony == nil {
-			return inv.Error(err, 404, "ceremony not found")
-		}
-		return inv.Error(err, 500, "failed to load ceremony")
-	}
-
-	pp.Println(ceremony.SessionData)
-
-	credential, err := h.WebAuthn.CreateCredential("", *ceremony.SessionData, parsedResponse)
-	if err != nil {
-		return inv.Error(err, 500, "failed to create credential")
+	cred, invalidErr := parsedResponse.Verify(protocol.Challenge(cerem.ChallengeID), cerem.SessionID, false, "nugg.xyz", "https://nugg.xyz")
+	if invalidErr != nil {
+		return inv.Error(invalidErr, 400, "invalid attestation")
 	}
 
 	nuggid := safeid.Make()
 
-	_, sessionData, err := h.WebAuthn.BeginLogin(ceremony.SessionData.UserID, []webauthn.Credential{*credential})
-	if err != nil {
-		return inv.Error(err, 500, "failed to begin login")
-	}
+	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
+	defer close(chaner)
+	stale := false
+	var chanerr error
+
+	go func() {
+		go func() {
+			<-inv.Ctx.Done()
+			if !stale {
+				chaner <- nil
+			}
+			stale = true
+
+		}()
+
+		z, err := h.Cognito.GetDevCreds(ctx, cerem.CredentialID)
+		if !stale {
+			if err != nil {
+				chanerr = err
+				chaner <- nil
+			} else {
+				chaner <- z
+			}
+		}
+	}()
 
 	userput, err := h.Dynamo.NewUserPut(nuggid.String())
 	if err != nil {
 		return inv.Error(err, 500, "failed to create user put")
 	}
 
-	credput, err := h.Dynamo.NewApplePassKeyCredentialPut(nuggid.String(), sessionData.UserID, credential)
+	credput, err := h.Dynamo.BuildPut(cred)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create credential put")
 	}
 
-	cerput, err := h.Dynamo.NewCeremonyPut(sessionData)
+	ceremput, err := h.Dynamo.BuildPut(cerem)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create ceremony put")
 	}
 
-	h.Dynamo.TransactWrite(ctx,
+	err = h.Dynamo.TransactWrite(ctx,
 		types.TransactWriteItem{Put: userput},
 		types.TransactWriteItem{Put: credput},
-		types.TransactWriteItem{Put: cerput},
+		types.TransactWriteItem{Put: ceremput},
 	)
+	if err != nil {
+		return inv.Error(err, 500, "failed to write to dynamo")
+	}
 
-	return inv.Success(204, map[string]string{"x-nugg-challenge": sessionData.Challenge.String()}, "")
+	result := <-chaner
+	stale = true
+
+	if result == nil {
+		return inv.Error(chanerr, 500, "failed to get dev creds")
+	}
+
+	return inv.Success(204, map[string]string{"x-nugg-access-token": *result.Token}, "")
 }

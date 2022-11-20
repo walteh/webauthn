@@ -5,8 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
-	"log"
 	"net/http"
+	"time"
 )
 
 // The basic credential type that is inherited by WebAuthn's
@@ -101,7 +101,7 @@ func ParseCredentialCreationResponseHeader(data *XNuggWebauthnCreation, credenti
 
 	// client := base64.RawURLEncoding.EncodeToString(data.RawClientData)
 
-	log.Println("client", string(data.RawClientData))
+	// log.Println("client", string(data.RawClientData))
 
 	ccr := CredentialCreationResponse{
 		PublicKeyCredential: PublicKeyCredential{
@@ -163,12 +163,12 @@ func ParseCredentialCreationResponseObject(ccr *CredentialCreationResponse) (*Pa
 
 // Verifies the Client and Attestation data as laid out by §7.1. Registering a new credential
 // https://www.w3.org/TR/webauthn/#registering-a-new-credential
-func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, verifyUser bool, relyingPartyID, relyingPartyOrigin string) ([]byte, []byte, error) {
+func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, sessionId string, verifyUser bool, relyingPartyID, relyingPartyOrigin string) (*SavedCredential, error) {
 
 	// Handles steps 3 through 6 - Verifying the Client Data against the Relying Party's stored data
 	verifyError := pcc.Response.CollectedClientData.Verify(storedChallenge, CreateCeremony, relyingPartyOrigin)
 	if verifyError != nil {
-		return nil, nil, verifyError
+		return nil, verifyError
 	}
 
 	// Step 7. Compute the hash of response.clientDataJSON using SHA-256.
@@ -182,7 +182,7 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, verif
 	// Handle steps 9 through 14 - This verifies the attestaion object and
 	pk, r, verifyError := pcc.Response.AttestationObject.Verify(relyingPartyID, clientDataHash[:], verifyUser, true)
 	if verifyError != nil {
-		return nil, nil, verifyError
+		return nil, verifyError
 	}
 
 	// Step 15. If validation is successful, obtain a list of acceptable trust anchors (attestation root
@@ -221,7 +221,22 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, verif
 
 	// TODO: Not implemented for the reasons mentioned under Step 16
 
-	return pk, r, nil
+	z := &SavedCredential{
+		AAGUID: pcc.Response.AttestationObject.AuthData.AttData.AAGUID,
+		// AttestationType: pcc.Response.AttestationObject.AuthData.,
+		RawID:           pcc.Response.AttestationObject.AuthData.AttData.CredentialID,
+		SignCount:       pcc.Response.AttestationObject.AuthData.Counter,
+		PublicKey:       pk,
+		Type:            "public-key",
+		AttestationType: (pcc.Response.AttestationObject.Format),
+		Receipt:         r,
+		CloneWarning:    false,
+		CreatedAt:       uint64(time.Now().Unix()),
+		UpdatedAt:       uint64(time.Now().Unix()),
+		SessionId:       sessionId,
+	}
+
+	return z, nil
 }
 
 // GetAppID takes a AuthenticationExtensions object or nil. It then performs the following checks in order:
