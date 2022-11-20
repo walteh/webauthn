@@ -14,15 +14,15 @@ import (
 
 type DynamoUser struct {
 	UserId    string `dynamodbav:"user_id"`
-	CreatedAt string `dynamodbav:"created_at"`
-	UpdatedAt string `dynamodbav:"updated_at"`
+	CreatedAt int64  `dynamodbav:"created_at"`
+	UpdatedAt int64  `dynamodbav:"updated_at"`
 }
 
 func (client *Client) NewUserPut(id string) (*types.Put, error) {
 	usr := &DynamoUser{
 		UserId:    id,
-		CreatedAt: time.Now().String(),
-		UpdatedAt: time.Now().String(),
+		CreatedAt: (time.Now().Unix()),
+		UpdatedAt: time.Now().Unix(),
 	}
 	av, err := attributevalue.MarshalMap(usr)
 	if err != nil {

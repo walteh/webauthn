@@ -137,7 +137,9 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	_, sessionData, err := h.WebAuthn.BeginRegistration("tester1")
+	sessionId := payload.Headers["x-nugg-webauthn-sessionId"]
+
+	cha, err := protocol.CreateChallenge()
 	if err != nil {
 		return inv.Error(err, 500, "failed to begin registration")
 	}

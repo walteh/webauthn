@@ -76,67 +76,6 @@ func ParseWebauthnCreation(str string) (*XNuggWebauthnCreation, error) {
 	return &x, nil
 }
 
-// func ParseCredentialCreation(data *XNuggWebauthnCreation, credentialType string) (*ParsedCredentialCreationData, error) {
-
-// 	credentialId := base64.RawURLEncoding.EncodeToString(data.CredentialID)
-
-// 	if credentialId == "" {
-// 		log.Println("Missing ID")
-// 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing ID")
-// 	}
-
-// 	testB64, err := base64.RawURLEncoding.DecodeString(ResolveToRawURLEncoding(credentialId))
-// 	if err != nil || !(len(testB64) > 0) {
-// 		log.Println("ID not base64.RawURLEncoded")
-// 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded").WithParent(err)
-// 	}
-
-// 	if credentialType == "" {
-// 		log.Println("Missing type")
-// 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing type")
-// 	}
-
-// 	if credentialType != "public-key" {
-// 		log.Println("Type not public-key")
-// 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Type not public-key")
-// 	}
-
-// 	var pcc ParsedCredentialCreationData
-
-// 	pcc.ID = credentialId
-// 	pcc.RawID = []byte(credentialId)
-// 	pcc.Type = credentialType
-// 	pcc.ClientExtensionResults = AuthenticationExtensionsClientOutputs{}
-// 	pcc.Raw = CredentialCreationResponse{}
-
-// 	pcc.Raw.ID = credentialId
-// 	pcc.Raw.Type = credentialType
-// 	pcc.Raw.RawID = []byte(credentialId)
-
-// 	// a := ResolveToRawURLEncoding(string(data.RawAttestationObject))
-
-// 	// r, err := base64.RawURLEncoding.DecodeString(a)
-
-// 	// if err != nil {
-// 	// 	log.Println("Error decoding attestation object", err)
-// 	// 	return nil, ErrBadRequest.WithDetails("Error decoding attestation object").WithParent(err)
-// 	// }
-
-// 	pcc.Raw.AttestationResponse.ClientDataJSON = data.RawClientData
-// 	pcc.Raw.AttestationResponse.AttestationObject = data.RawAttestationObject
-
-// 	parsedAttestationResponse, err := pcc.Raw.AttestationResponse.Parse()
-// 	if err != nil {
-// 		log.Println("Error parsing attestation response", err)
-// 		return nil, ErrParsingData.WithDetails("Error parsing attestation response").WithParent(err)
-// 	}
-
-// 	pcc.Response = *parsedAttestationResponse
-
-// 	return &pcc, nil
-
-// }
-
 func ParseCredentialCreationResponse(response *http.Request) (*ParsedCredentialCreationData, error) {
 	if response == nil || response.Body == nil {
 		return nil, ErrBadRequest.WithDetails("No response given")
@@ -224,12 +163,12 @@ func ParseCredentialCreationResponseObject(ccr *CredentialCreationResponse) (*Pa
 
 // Verifies the Client and Attestation data as laid out by §7.1. Registering a new credential
 // https://www.w3.org/TR/webauthn/#registering-a-new-credential
-func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, verifyUser bool, relyingPartyID, relyingPartyOrigin string) error {
+func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, verifyUser bool, relyingPartyID, relyingPartyOrigin string) ([]byte, []byte, error) {
 
 	// Handles steps 3 through 6 - Verifying the Client Data against the Relying Party's stored data
 	verifyError := pcc.Response.CollectedClientData.Verify(storedChallenge, CreateCeremony, relyingPartyOrigin)
 	if verifyError != nil {
-		return verifyError
+		return nil, nil, verifyError
 	}
 
 	// Step 7. Compute the hash of response.clientDataJSON using SHA-256.
@@ -241,9 +180,9 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, verif
 
 	// We do the above step while parsing and decoding the CredentialCreationResponse
 	// Handle steps 9 through 14 - This verifies the attestaion object and
-	verifyError = pcc.Response.AttestationObject.Verify(relyingPartyID, clientDataHash[:], verifyUser, true)
+	pk, r, verifyError := pcc.Response.AttestationObject.Verify(relyingPartyID, clientDataHash[:], verifyUser, true)
 	if verifyError != nil {
-		return verifyError
+		return nil, nil, verifyError
 	}
 
 	// Step 15. If validation is successful, obtain a list of acceptable trust anchors (attestation root
@@ -282,7 +221,7 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, verif
 
 	// TODO: Not implemented for the reasons mentioned under Step 16
 
-	return nil
+	return pk, r, nil
 }
 
 // GetAppID takes a AuthenticationExtensions object or nil. It then performs the following checks in order:

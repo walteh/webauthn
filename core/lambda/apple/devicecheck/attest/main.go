@@ -146,10 +146,22 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	d := sha256.Sum256(b)
 
 	// relyiing part for apple appattestation
-	err = p.AttestationObject.Verify("4497QJSAD3.xyz.nugg.app", d[:], false, false)
+	_, _, err = p.AttestationObject.Verify("4497QJSAD3.xyz.nugg.app", d[:], false, false)
 	if err != nil {
 		return inv.Error(err, 400, err.Error())
 	}
+
+	// webauthn.MakeNewCredential(&protocol.ParsedCredentialCreationData{
+	// 	ParsedPublicKeyCredential: protocol.ParsedPublicKeyCredential{
+	// 		RawID: rec.RawID,
+	// 		Type:  rec.Type,
+	// 		ParsedCredential: protocol.ParsedCredential{
+	// 			ID: rec.ID,
+	// 			Type: "",
+	// 		},
+	// 		ClientExtensionResults: ,
+	// 	},
+	// })
 
 	// getter := h.Dynamo.NewCeremonyGet(string(clientData))
 

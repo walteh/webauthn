@@ -130,7 +130,7 @@ func (ccr *AuthenticatorAttestationResponse) Parse() (*ParsedAttestationResponse
 }
 
 // Verify - Perform Steps 9 through 14 of registration verification, delegating Steps
-func (attestationObject *AttestationObject) Verify(relyingPartyID string, clientDataHash []byte, verificationRequired bool, requireUserPresence bool) error {
+func (attestationObject *AttestationObject) Verify(relyingPartyID string, clientDataHash []byte, verificationRequired bool, requireUserPresence bool) ([]byte, []byte, error) {
 	// Steps 9 through 12 are verified against the auth data.
 	// These steps are identical to 11 through 14 for assertion
 	// so we handle them with AuthData
@@ -141,7 +141,7 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 	// Handle Steps 9 through 12
 	authDataVerificationError := attestationObject.AuthData.Verify(rpIDHash[:], nil, verificationRequired, requireUserPresence)
 	if authDataVerificationError != nil {
-		return authDataVerificationError
+		return nil, nil, authDataVerificationError
 	}
 
 	// Step 13. Determine the attestation statement format by performing a
@@ -158,23 +158,28 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 	// any of the following steps
 	if attestationObject.Format == "none" {
 		if len(attestationObject.AttStatement) != 0 {
-			return ErrAttestationFormat.WithInfo("Attestation format none with attestation present")
+			return nil, nil, ErrAttestationFormat.WithInfo("Attestation format none with attestation present")
 		}
-		return nil
+		return nil, nil, nil
 	}
 
 	formatHandler, valid := attestationRegistry[attestationObject.Format]
 	if !valid {
-		return ErrAttestationFormat.WithInfo(fmt.Sprintf("Attestation format %s is unsupported", attestationObject.Format))
+		return nil, nil, ErrAttestationFormat.WithInfo(fmt.Sprintf("Attestation format %s is unsupported", attestationObject.Format))
 	}
 
 	// Step 14. Verify that attStmt is a correct attestation statement, conveying a valid attestation signature, by using
 	// the attestation statement format fmt’s verification procedure given attStmt, authData and the hash of the serialized
 	// client data computed in step 7.
-	attestationType, _, err := formatHandler(*attestationObject, clientDataHash)
+	attestationType, receipt, err := formatHandler(*attestationObject, clientDataHash)
 	if err != nil {
-		return err.(*Error).WithInfo(attestationType)
+		return nil, nil, err.(*Error).WithInfo(attestationType)
 	}
 
-	return nil
+	rec, ok := receipt[0].([]byte)
+	if !ok {
+		return nil, nil, ErrAttestationFormat.WithInfo("Attestation receipt is not a byte array")
+	}
+
+	return []byte(attestationType), rec, nil
 }

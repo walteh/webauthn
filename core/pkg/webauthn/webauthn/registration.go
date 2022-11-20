@@ -5,8 +5,6 @@ import (
 
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
-
-	"github.com/k0kubun/pp"
 )
 
 // BEGIN REGISTRATION
@@ -28,15 +26,6 @@ func (webauthn *WebAuthn) BeginRegistration(displayName string, opts ...Registra
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// webAuthnUser := protocol.UserEntity{
-	// 	ID:          user.WebAuthnID(),
-	// 	DisplayName: user.WebAuthnDisplayName(),
-	// 	CredentialEntity: protocol.CredentialEntity{
-	// 		Name: user.WebAuthnName(),
-	// 		Icon: user.WebAuthnIcon(),
-	// 	},
-	// }
 
 	relyingParty := protocol.RelyingPartyEntity{
 		ID: webauthn.Config.RPID,
@@ -136,11 +125,27 @@ func (webauthn *WebAuthn) CreateCredential(webauthnUserId string, session Sessio
 	// 	return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session")
 	// }
 
-	shouldVerifyUser := session.UserVerification == protocol.VerificationRequired
+	// shouldVerifyUser := session.UserVerification == protocol.VerificationRequired
 
-	pp.Println("parsedResponse", parsedResponse)
+	pk, _, invalidErr := parsedResponse.Verify(session.Challenge, false, webauthn.Config.RPID, webauthn.Config.RPOrigin)
+	if invalidErr != nil {
+		return nil, invalidErr
+	}
 
-	invalidErr := parsedResponse.Verify(session.Challenge, shouldVerifyUser, webauthn.Config.RPID, webauthn.Config.RPOrigin)
+	parsedResponse.Response.AttestationObject.AuthData.AttData.CredentialPublicKey = pk
+
+	return MakeNewCredential(parsedResponse)
+}
+
+func (webauthn *WebAuthn) CreateCredential2(challenge protocol.Challenge, parsedResponse *protocol.ParsedCredentialCreationData) (*Credential, error) {
+	// TODO - do we really need this? the challenge already tells us if it's valid
+	// if !bytes.Equal([]byte(webauthnUserId), session.UserID) {
+	// 	return nil, protocol.ErrBadRequest.WithDetails("ID mismatch for User and Session")
+	// }
+
+	// shouldVerifyUser := session.UserVerification == protocol.VerificationRequired
+
+	_, _, invalidErr := parsedResponse.Verify(challenge, false, webauthn.Config.RPID, webauthn.Config.RPOrigin)
 	if invalidErr != nil {
 		return nil, invalidErr
 	}
