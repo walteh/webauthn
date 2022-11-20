@@ -4,6 +4,7 @@ import (
 	"context"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol"
 
 	"os"
@@ -120,27 +121,24 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	sessionId := input.Headers["X-Nugg-DeviceCheck-SessionID"]
-	if sessionId == "" {
+	sessionId := hex.HexToHash(input.Headers["x-nugg-hex-session-id"])
+	if sessionId.IsZero() {
 		return inv.Error(nil, 400, "missing X-Nugg-DeviceCheck-SessionID header")
 	}
 
-	challenge, err := protocol.CreateChallenge()
+	challenge := protocol.NewCeremony(hex.Hash{}, sessionId, "webauthn.create")
+
+	putter, err := dynamo.MakePut(h.Dynamo.MustCeremonyTableName(), challenge)
 	if err != nil {
-		return inv.Error(err, 500, "failed to create challenge")
+		return inv.Error(err, 500, "failed to make put")
 	}
 
-	cer, err := h.Dynamo.NewDeviceCheckCeremonyPut(challenge.String(), sessionId)
-	if err != nil {
-		return inv.Error(err, 500, "failed to create ceremony")
-	}
-
-	err = h.Dynamo.TransactWrite(ctx, types.TransactWriteItem{Put: cer})
+	err = h.Dynamo.TransactWrite(ctx, types.TransactWriteItem{Put: putter})
 	if err != nil {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}
 
 	return inv.Success(204, map[string]string{
-		"x-nugg-devicecheck-challenge": challenge.String(),
+		"x-nugg-hex-challenge": challenge.ChallengeID.Hex(),
 	}, "")
 }

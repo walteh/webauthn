@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"reflect"
@@ -40,15 +39,15 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 			name: "A",
 			args: Input{
 				Headers: map[string]string{
-					"Content-Type":                 "application/json",
-					"X-Nugg-DeviceCheck-SessionID": "abc",
+					"Content-Type":          "application/json",
+					"x-nugg-hex-session-id": "0xabc",
 				},
 			},
 			want: Output{
 				StatusCode: 204,
 				Headers: map[string]string{
-					"Content-Length":               "0",
-					"x-nugg-devicecheck-challenge": base64.RawURLEncoding.EncodeToString(expected.CalculateDeterministicHash(1)),
+					"Content-Length":       "0",
+					"x-nugg-hex-challenge": (expected.CalculateDeterministicHash(1).Hex()),
 				},
 			},
 			wantErr: false,
