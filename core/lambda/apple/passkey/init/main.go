@@ -4,11 +4,13 @@ import (
 	"context"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol"
 
 	"os"
 	"time"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -104,18 +106,6 @@ func main() {
 		return
 	}
 
-	// web, err := webauthn.New(&webauthn.Config{
-	// 	RPDisplayName: "nugg.xyz",
-	// 	RPID:          "nugg.xyz",
-	// 	RPOrigin:      "https://nugg.xyz",
-	// 	// passkeys do not support attestation as they can move between devices
-	// 	// https://developer.apple.com/forums/thread/713195
-	// 	AttestationPreference: protocol.PreferNoAttestation,
-	// })
-	if err != nil {
-		return
-	}
-
 	abc := &Handler{
 		Id:      ksuid.New().String(),
 		Ctx:     ctx,
@@ -132,9 +122,13 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	sessionId := payload.Headers["x-nugg-webauthn-sessionId"]
+	sessionId := hex.HexToHash(payload.Headers["x-nugg-webauthn-sessionId"])
 
-	cha := protocol.NewCeremony("*", sessionId, protocol.CreateCeremony)
+	if sessionId.IsZero() {
+		return inv.Error(nil, 400, "missing x-nugg-webauthn-sessionId header")
+	}
+
+	cha := protocol.NewCeremony(hex.Hash{}, sessionId, protocol.CreateCeremony)
 
 	cer, err := dynamo.MakePut(h.Dynamo.MustCeremonyTableName(), cha)
 	if err != nil {
@@ -146,5 +140,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}
 
-	return inv.Success(204, map[string]string{"x-nugg-webauthn-challenge": cha.ChallengeID}, "")
+	pp.Println(cha)
+
+	return inv.Success(204, map[string]string{"x-nugg-webauthn-challenge": cha.ChallengeID.Hex()}, "")
 }

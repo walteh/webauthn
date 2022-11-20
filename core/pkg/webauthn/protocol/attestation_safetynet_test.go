@@ -12,7 +12,7 @@ func Test_verifySafetyNetFormat(t *testing.T) {
 		clientDataHash []byte
 	}
 	successAttResponse := attestationTestUnpackResponse(t, safetyNetTestResponse["success"]).Response.AttestationObject
-	successClienDataHash := sha256.Sum256(attestationTestUnpackResponse(t, safetyNetTestResponse["success"]).Raw.AttestationResponse.ClientDataJSON)
+	successClienDataHash := sha256.Sum256([]byte(attestationTestUnpackResponse(t, safetyNetTestResponse["success"]).Raw.AttestationResponse.UTF8ClientDataJSON))
 	tests := []struct {
 		name    string
 		args    args

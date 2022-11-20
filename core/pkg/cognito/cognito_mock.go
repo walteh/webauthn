@@ -2,6 +2,7 @@ package cognito
 
 import (
 	"context"
+	"nugg-auth/core/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
@@ -24,7 +25,7 @@ func (c *MockClient) GetCredentials(ctx context.Context, identityId string, toke
 	return aws.Credentials{}, nil
 }
 
-func (c *MockClient) GetDevCreds(ctx context.Context, nuggId string) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error) {
+func (c *MockClient) GetDevCreds(ctx context.Context, nuggId hex.Hash) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error) {
 	return &cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput{
 		IdentityId:     aws.String("local:identity"),
 		Token:          aws.String("OpenIdToken"),

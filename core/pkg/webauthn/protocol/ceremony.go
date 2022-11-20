@@ -6,12 +6,14 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+
+	"nugg-auth/core/pkg/hex"
 )
 
 type SavedCeremony struct {
-	ChallengeID  string       `dynamodbav:"challenge_id" json:"challenge_id"`
-	SessionID    string       `dynamodbav:"session_id" json:"session_id"`
-	CredentialID string       `dynamodbav:"credential_id" json:"credential_id"`
+	ChallengeID  hex.Hash     `dynamodbav:"challenge_id" json:"challenge_id"`
+	SessionID    hex.Hash     `dynamodbav:"session_id" json:"session_id"`
+	CredentialID hex.Hash     `dynamodbav:"credential_id,omitempty" json:"credential_id,omitempty"`
 	CeremonyType CeremonyType `dynamodbav:"ceremony_type" json:"ceremony_type"`
 	CreatedAt    uint64       `dynamodbav:"created_at" json:"created_at"`
 	Ttl          uint64       `dynamodbav:"ttl" json:"ttl"`
@@ -24,9 +26,9 @@ type SavedCeremony struct {
 func (s SavedCeremony) MarshalDynamoDBAttributeValue() (types.AttributeValue, error) {
 	av := types.AttributeValueMemberM{}
 	av.Value = make(map[string]types.AttributeValue)
-	av.Value["challenge_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID}
-	av.Value["session_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID}
-	av.Value["credential_id"] = &types.AttributeValueMemberS{Value: s.CredentialID}
+	av.Value["challenge_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()}
+	av.Value["session_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()}
+	av.Value["credential_id"] = &types.AttributeValueMemberS{Value: s.CredentialID.Hex()}
 	av.Value["ceremony_type"] = &types.AttributeValueMemberS{Value: string(s.CeremonyType)}
 	av.Value["created_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.CreatedAt)}
 	av.Value["ttl"] = &types.AttributeValueMemberS{Value: fmt.Sprintf("%d", s.Ttl)}
@@ -49,21 +51,26 @@ func (s SavedCeremony) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) 
 
 }
 
-func NewCeremony(credentialID string, sessionId string, ceremonyType CeremonyType) *SavedCeremony {
+func NewCeremony(credentialID hex.Hash, sessionId hex.Hash, ceremonyType CeremonyType) *SavedCeremony {
 
 	chal, err := CreateChallenge()
 	if err != nil {
 		panic(err)
 	}
 
-	return &SavedCeremony{
-		CredentialID: credentialID,
+	cer := &SavedCeremony{
 		SessionID:    sessionId,
-		ChallengeID:  chal.String(),
+		ChallengeID:  chal,
 		CeremonyType: ceremonyType,
 		CreatedAt:    Now(),
 		Ttl:          Now() + 300,
 	}
+
+	if credentialID.IsZero() {
+		cer.CredentialID = chal
+	}
+
+	return cer
 }
 
 func Now() uint64 {
@@ -73,12 +80,12 @@ func Now() uint64 {
 func (s SavedCeremony) Get() *types.Get {
 	return &types.Get{
 		Key: map[string]types.AttributeValue{
-			"credential_id": &types.AttributeValueMemberS{Value: s.ChallengeID},
+			"credential_id": &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()},
 		},
 	}
 }
 
-func NewUnsafeGettableCeremony(id string) *SavedCeremony {
+func NewUnsafeGettableCeremony(id hex.Hash) *SavedCeremony {
 	return &SavedCeremony{
 		ChallengeID: id,
 	}

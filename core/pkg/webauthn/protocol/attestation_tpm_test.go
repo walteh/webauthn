@@ -13,7 +13,7 @@ func TestTPMAttestationVerificationSuccess(t *testing.T) {
 	for i := range testAttestationTPMResponses {
 		t.Run("TPM Positive tests", func(t *testing.T) {
 			pcc := attestationTestUnpackResponse(t, testAttestationTPMResponses[i])
-			clientDataHash := sha256.Sum256(pcc.Raw.AttestationResponse.ClientDataJSON)
+			clientDataHash := sha256.Sum256([]byte(pcc.Raw.AttestationResponse.UTF8ClientDataJSON))
 
 			attestationKey, _, err := verifyTPMFormat(pcc.Response.AttestationObject, clientDataHash[:])
 			if err != nil {

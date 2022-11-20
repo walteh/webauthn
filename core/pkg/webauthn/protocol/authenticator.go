@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncbor"
 )
 
@@ -23,7 +24,7 @@ type AuthenticatorResponse struct {
 	// From the spec https://www.w3.org/TR/webauthn/#dom-authenticatorresponse-clientdatajson
 	// This attribute contains a JSON serialization of the client data passed to the authenticator
 	// by the client in its call to either create() or get().
-	ClientDataJSON URLEncodedBase64 `json:"clientDataJSON"`
+	UTF8ClientDataJSON string `json:"clientDataJSON"`
 }
 
 // AuthenticatorData From §6.1 of the spec.
@@ -39,18 +40,18 @@ type AuthenticatorResponse struct {
 // The authenticator data, at least during attestation, contains the Public Key that the RP stores
 // and will associate with the user attempting to register.
 type AuthenticatorData struct {
-	RPIDHash []byte                 `json:"rpid"`
+	RPIDHash hex.Hash               `json:"rpid"`
 	Flags    AuthenticatorFlags     `json:"flags"`
 	Counter  uint64                 `json:"sign_count"`
 	AttData  AttestedCredentialData `json:"att_data"`
-	ExtData  []byte                 `json:"ext_data"`
+	ExtData  hex.Hash               `json:"ext_data"`
 }
 
 type AttestedCredentialData struct {
-	AAGUID       []byte `json:"aaguid"`
-	CredentialID []byte `json:"credential_id"`
+	AAGUID       hex.Hash `json:"aaguid"`
+	CredentialID hex.Hash `json:"credential_id"`
 	// The raw credential public key bytes received from the attestation data
-	CredentialPublicKey []byte `json:"public_key"`
+	CredentialPublicKey hex.Hash `json:"public_key"`
 }
 
 // AuthenticatorAttachment https://www.w3.org/TR/webauthn/#dom-authenticatorselectioncriteria-authenticatorattachment

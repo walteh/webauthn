@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"io"
+	"nugg-auth/core/pkg/hex"
 	"testing"
 )
 
@@ -19,14 +20,14 @@ func NewDeterministic(str string) io.Reader {
 	}
 }
 
-func (f *MockHashDeterministicReader) CalculateDeterministicHash(hashes int) []byte {
+func (f *MockHashDeterministicReader) CalculateDeterministicHash(hashes int) hex.Hash {
 	rns := NewDeterministic(string(f.initial))
 	var dummy []byte
 	for i := 0; i < hashes; i++ {
 		rns.Read(dummy)
 	}
 
-	return rns.(*MockHashDeterministicReader).last
+	return hex.BytesToHash(rns.(*MockHashDeterministicReader).last).Sha256()
 }
 
 func (m *MockHashDeterministicReader) Read(p []byte) (n int, err error) {

@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncbor"
 )
 
@@ -18,12 +19,12 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 		response *http.Request
 	}
 
-	byteID, _ := base64.RawURLEncoding.DecodeString("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
+	byteID := hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
 	byteAuthData, _ := base64.RawURLEncoding.DecodeString("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
 	byteRPIDHash, _ := base64.RawURLEncoding.DecodeString("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvA")
 	byteCredentialPubKey, _ := base64.RawURLEncoding.DecodeString("pSJYIMfCKfxl2SvnqJIiHQysHmpmITNgtCkQ5ESExSRjqrhXAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNc")
 	byteAttObject, _ := base64.RawURLEncoding.DecodeString("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjEdKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
-	byteClientDataJSON, _ := base64.RawURLEncoding.DecodeString("eyJjaGFsbGVuZ2UiOiJXOEd6RlU4cEdqaG9SYldyTERsYW1BZnFfeTRTMUNaRzFWdW9lUkxBUnJFIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ")
+	byteClientDataJSON := hex.MustBase64ToHash("eyJjaGFsbGVuZ2UiOiJXOEd6RlU4cEdqaG9SYldyTERsYW1BZnFfeTRTMUNaRzFWdW9lUkxBUnJFIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ")
 
 	tests := []struct {
 		name    string
@@ -39,7 +40,7 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 			want: &ParsedCredentialCreationData{
 				ParsedPublicKeyCredential: ParsedPublicKeyCredential{
 					ParsedCredential: ParsedCredential{
-						ID:   "6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g",
+						ID:   byteID,
 						Type: "public-key",
 					},
 					ClientExtensionResults: AuthenticationExtensionsClientOutputs{
@@ -50,7 +51,7 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 				Response: ParsedAttestationResponse{
 					CollectedClientData: CollectedClientData{
 						Type:      CeremonyType("webauthn.create"),
-						Challenge: "W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE",
+						Challenge: hex.MustBase64ToHash("W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE"),
 						Origin:    "https://webauthn.io",
 					},
 					AttestationObject: AttestationObject{
@@ -72,7 +73,7 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 					PublicKeyCredential: PublicKeyCredential{
 						Credential: Credential{
 							Type: "public-key",
-							ID:   "6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g",
+							ID:   byteID,
 						},
 						ClientExtensionResults: AuthenticationExtensionsClientOutputs{
 							"appid": true,
@@ -81,7 +82,7 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 					},
 					AttestationResponse: AuthenticatorAttestationResponse{
 						AuthenticatorResponse: AuthenticatorResponse{
-							ClientDataJSON: byteClientDataJSON,
+							UTF8ClientDataJSON: byteClientDataJSON.Utf8(),
 						},
 						AttestationObject: byteAttObject,
 					},
@@ -143,13 +144,13 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 }
 
 func TestParsedCredentialCreationData_Verify(t *testing.T) {
-	byteID, _ := base64.RawURLEncoding.DecodeString("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
-	byteChallenge, _ := base64.RawURLEncoding.DecodeString("W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE")
-	byteAuthData, _ := base64.RawURLEncoding.DecodeString("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
-	byteRPIDHash, _ := base64.RawURLEncoding.DecodeString("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvA")
-	byteCredentialPubKey, _ := base64.RawURLEncoding.DecodeString("pSJYIMfCKfxl2SvnqJIiHQysHmpmITNgtCkQ5ESExSRjqrhXAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNc")
-	byteAttObject, _ := base64.RawURLEncoding.DecodeString("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjEdKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
-	byteClientDataJSON, _ := base64.RawURLEncoding.DecodeString("eyJjaGFsbGVuZ2UiOiJXOEd6RlU4cEdqaG9SYldyTERsYW1BZnFfeTRTMUNaRzFWdW9lUkxBUnJFIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ")
+	byteID := hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
+	byteChallenge := hex.MustBase64ToHash("W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE")
+	byteAuthData := hex.MustBase64ToHash("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
+	byteRPIDHash := hex.MustBase64ToHash("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvA")
+	byteCredentialPubKey := hex.MustBase64ToHash("pSJYIMfCKfxl2SvnqJIiHQysHmpmITNgtCkQ5ESExSRjqrhXAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNc")
+	byteAttObject := hex.MustBase64ToHash("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjEdKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
+	byteClientDataJSON := hex.MustBase64ToHash("eyJjaGFsbGVuZ2UiOiJXOEd6RlU4cEdqaG9SYldyTERsYW1BZnFfeTRTMUNaRzFWdW9lUkxBUnJFIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ")
 
 	type fields struct {
 		ParsedPublicKeyCredential ParsedPublicKeyCredential
@@ -157,7 +158,7 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 		Raw                       CredentialCreationResponse
 	}
 	type args struct {
-		storedChallenge    Challenge
+		storedChallenge    hex.Hash
 		verifyUser         bool
 		relyingPartyID     string
 		relyingPartyOrigin string
@@ -173,7 +174,7 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 			fields: fields{
 				ParsedPublicKeyCredential: ParsedPublicKeyCredential{
 					ParsedCredential: ParsedCredential{
-						ID:   "6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g",
+						ID:   byteID,
 						Type: "public-key",
 					},
 					RawID: byteID,
@@ -181,7 +182,7 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 				Response: ParsedAttestationResponse{
 					CollectedClientData: CollectedClientData{
 						Type:      CeremonyType("webauthn.create"),
-						Challenge: "W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE",
+						Challenge: hex.MustBase64ToHash("W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE"),
 						Origin:    "https://webauthn.io",
 					},
 					AttestationObject: AttestationObject{
@@ -203,13 +204,13 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 					PublicKeyCredential: PublicKeyCredential{
 						Credential: Credential{
 							Type: "public-key",
-							ID:   "6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g",
+							ID:   byteID,
 						},
 						RawID: byteID,
 					},
 					AttestationResponse: AuthenticatorAttestationResponse{
 						AuthenticatorResponse: AuthenticatorResponse{
-							ClientDataJSON: byteClientDataJSON,
+							UTF8ClientDataJSON: byteClientDataJSON.Utf8(),
 						},
 						AttestationObject: byteAttObject,
 					},
@@ -231,7 +232,7 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 				Response:                  tt.fields.Response,
 				Raw:                       tt.fields.Raw,
 			}
-			if _, err := pcc.Verify(tt.args.storedChallenge, "any-session-id", tt.args.verifyUser, tt.args.relyingPartyID, tt.args.relyingPartyOrigin); (err != nil) != tt.wantErr {
+			if _, err := pcc.Verify(tt.args.storedChallenge, hex.Hash{}, tt.args.verifyUser, tt.args.relyingPartyID, tt.args.relyingPartyOrigin); (err != nil) != tt.wantErr {
 				t.Errorf("ParsedCredentialCreationData.Verify() error = %+v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
 )
 
@@ -15,7 +16,7 @@ type CredentialAssertion struct {
 // In order to create a Credential via create(), the caller specifies a few parameters in a CredentialCreationOptions object.
 // See §5.4. Options for Credential Creation https://www.w3.org/TR/webauthn/#dictionary-makecredentialoptions
 type PublicKeyCredentialCreationOptions struct {
-	Challenge              Challenge                `json:"challenge"`
+	Challenge              hex.Hash                 `json:"challenge"`
 	RelyingParty           RelyingPartyEntity       `json:"rp"`
 	User                   UserEntity               `json:"user"`
 	Parameters             []CredentialParameter    `json:"pubKeyCredParams,omitempty"`
@@ -30,7 +31,7 @@ type PublicKeyCredentialCreationOptions struct {
 // Its challenge member MUST be present, while its other members are OPTIONAL.
 // See §5.5. Options for Assertion Generation https://www.w3.org/TR/webauthn/#assertion-options
 type PublicKeyCredentialRequestOptions struct {
-	Challenge          Challenge                   `json:"challenge"`
+	Challenge          hex.Hash                    `json:"challenge"`
 	Timeout            int                         `json:"timeout,omitempty"`
 	RelyingPartyID     string                      `json:"rpId,omitempty"`
 	AllowedCredentials []CredentialDescriptor      `json:"allowCredentials,omitempty"`

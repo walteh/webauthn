@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncbor"
 )
 
@@ -35,7 +36,7 @@ type AuthenticatorAttestationResponse struct {
 	// It also contains any additional information that the Relying Party's server
 	// requires to validate the attestation statement, as well as to decode and
 	// validate the authenticator data along with the JSON-serialized client data.
-	AttestationObject URLEncodedBase64 `json:"attestationObject"`
+	AttestationObject hex.Hash `json:"attestationObject"`
 }
 
 // The parsed out version of AuthenticatorAttestationResponse.
@@ -73,9 +74,9 @@ func FormatAttestationInput(clientData, attestation string) (*AuthenticatorAttes
 	}
 	return &AuthenticatorAttestationResponse{
 		AuthenticatorResponse: AuthenticatorResponse{
-			ClientDataJSON: URLEncodedBase64(clientData),
+			UTF8ClientDataJSON: (clientData),
 		},
-		AttestationObject: URLEncodedBase64(dec),
+		AttestationObject: (dec),
 	}, nil
 	// a.AuthenticatorResponse.ClientDataJSON = URLEncodedBase64(clientData)
 	// a.AttestationObject = URLEncodedBase64(attestation)
@@ -100,7 +101,7 @@ func RegisterAttestationFormat(format string, handler attestationFormatValidatio
 func (ccr *AuthenticatorAttestationResponse) Parse() (*ParsedAttestationResponse, error) {
 	var p ParsedAttestationResponse
 
-	err := json.Unmarshal(ccr.ClientDataJSON, &p.CollectedClientData)
+	err := json.Unmarshal([]byte(ccr.UTF8ClientDataJSON), &p.CollectedClientData)
 	if err != nil {
 		log.Println("Error unmarshalling client data JSON", err)
 		return nil, ErrParsingData.WithInfo(err.Error())

@@ -158,6 +158,10 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to send transact get")
 	}
 
+	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
+		return inv.Error(nil, 400, "invalid credential id")
+	}
+
 	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
 	defer close(chaner)
 	stale := false
@@ -185,7 +189,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	}()
 
 	// Handle steps 4 through 16
-	validError := parsedResponse.Verify(protocol.Challenge(cerem.ChallengeID), env.RPID(), env.RPOrigin(), cerem.CredentialID, false, cred.PublicKey, nil)
+	validError := parsedResponse.Verify(cerem.ChallengeID, env.RPID(), env.RPOrigin(), "none", false, cred.PublicKey, nil)
 	if validError != nil {
 		return inv.Error(validError, 400, "failed to verify assertion")
 	}

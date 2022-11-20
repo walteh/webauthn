@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"nugg-auth/core/pkg/hex"
 	"testing"
 )
 
@@ -30,7 +31,7 @@ func TestAttestationVerify(t *testing.T) {
 			pcc.Response = *parsedAttestationResponse
 
 			// Test Base Verification
-			_, err = pcc.Verify(options.Response.Challenge, "any-session-id", false, options.Response.RelyingParty.ID, options.Response.RelyingParty.Name)
+			_, err = pcc.Verify(options.Response.Challenge, hex.Hash{0, 2, 3}, false, options.Response.RelyingParty.ID, options.Response.RelyingParty.Name)
 			if err != nil {
 				t.Fatalf("Not valid: %+v (%+s)", err, err.(*Error).DevInfo)
 			}
@@ -71,7 +72,7 @@ func TestPackedAttestationVerification(t *testing.T) {
 
 		// Test Packed Verification
 		// Unpack args
-		clientDataHash := sha256.Sum256(pcc.Raw.AttestationResponse.ClientDataJSON)
+		clientDataHash := sha256.Sum256([]byte(pcc.Raw.AttestationResponse.UTF8ClientDataJSON))
 
 		_, _, err := verifyPackedFormat(pcc.Response.AttestationObject, clientDataHash[:])
 		if err != nil {

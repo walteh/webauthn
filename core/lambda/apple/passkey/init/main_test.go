@@ -39,14 +39,15 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 			name: "A",
 			args: Input{
 				Headers: map[string]string{
-					"Content-Type": "application/json",
+					"Content-Type":              "application/json",
+					"x-nugg-webauthn-sessionId": "0xff33ff",
 				},
 			},
 			want: Output{
 				StatusCode: 204,
 				Headers: map[string]string{
-					"Content-Length":   "0",
-					"x-nugg-challenge": string(expected.CalculateDeterministicHash(1)),
+					"Content-Length":            "0",
+					"x-nugg-webauthn-challenge": expected.CalculateDeterministicHash(1).Hex(),
 				},
 			},
 			wantErr: false,

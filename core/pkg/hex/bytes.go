@@ -15,7 +15,7 @@
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
 // Package common contains various helper functions.
-package hexutil
+package hex
 
 import (
 	"encoding/hex"
@@ -71,6 +71,10 @@ func isHex(str string) bool {
 // Bytes2Hex returns the hexadecimal encoding of d.
 func Bytes2Hex(d []byte) string {
 	return hex.EncodeToString(d)
+}
+
+func (b Bytes) Hex() string {
+	return Bytes2Hex(b)
 }
 
 // Hex2Bytes returns the bytes represented by the hexadecimal string str.

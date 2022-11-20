@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"nugg-auth/core/pkg/hex"
 	"time"
 )
 
@@ -16,7 +17,7 @@ type Credential struct {
 	// ID is The credential’s identifier. The requirements for the
 	// identifier are distinct for each type of credential. It might
 	// represent a username for username/password tuples, for example.
-	ID string `json:"id"`
+	ID hex.Hash `json:"id"`
 	// Type is the value of the object’s interface object's [[type]] slot,
 	// which specifies the credential type represented by this object.
 	// This should be type "public-key" for Webauthn credentials.
@@ -29,19 +30,19 @@ type Credential struct {
 //
 // is created, or a new assertion is requested.
 type ParsedCredential struct {
-	ID   string `cbor:"id"`
-	Type string `cbor:"type"`
+	ID   hex.Hash `cbor:"id"`
+	Type string   `cbor:"type"`
 }
 
 type PublicKeyCredential struct {
 	Credential
-	RawID                  URLEncodedBase64                      `json:"rawId"`
+	RawID                  hex.Hash                              `json:"rawId"`
 	ClientExtensionResults AuthenticationExtensionsClientOutputs `json:"clientExtensionResults,omitempty"`
 }
 
 type ParsedPublicKeyCredential struct {
 	ParsedCredential
-	RawID                  []byte                                `json:"rawId"`
+	RawID                  hex.Hash                              `json:"rawId"`
 	ClientExtensionResults AuthenticationExtensionsClientOutputs `json:"clientExtensionResults,omitempty"`
 }
 
@@ -57,9 +58,9 @@ type ParsedCredentialCreationData struct {
 }
 
 type XNuggWebauthnCreation struct {
-	RawAttestationObject []byte `json:"rawAttestationObject"`
-	RawClientData        []byte `json:"rawClientDataJSON"`
-	CredentialID         []byte `json:"credentialId"`
+	RawAttestationObject hex.Hash `json:"rawAttestationObject"`
+	RawClientData        string   `json:"rawClientDataJSON"`
+	CredentialID         hex.Hash `json:"credentialId"`
 }
 
 func ParseWebauthnCreation(str string) (*XNuggWebauthnCreation, error) {
@@ -95,7 +96,7 @@ func ParseCredentialCreationResponseBody(body io.Reader) (*ParsedCredentialCreat
 
 func ParseCredentialCreationResponseHeader(data *XNuggWebauthnCreation, credentialType string) (*ParsedCredentialCreationData, error) {
 
-	credentialId := base64.RawURLEncoding.EncodeToString(data.CredentialID)
+	// credentialId := base64.RawURLEncoding.EncodeToString(data.CredentialID)
 
 	// attest := base64.RawURLEncoding.EncodeToString(data.RawAttestationObject)
 
@@ -106,16 +107,16 @@ func ParseCredentialCreationResponseHeader(data *XNuggWebauthnCreation, credenti
 	ccr := CredentialCreationResponse{
 		PublicKeyCredential: PublicKeyCredential{
 			Credential: Credential{
-				ID:   credentialId,
+				ID:   data.CredentialID,
 				Type: credentialType,
 			},
-			RawID:                  URLEncodedBase64(credentialId),
+			RawID:                  (data.CredentialID),
 			ClientExtensionResults: AuthenticationExtensionsClientOutputs{},
 		},
 		AttestationResponse: AuthenticatorAttestationResponse{
-			AttestationObject: URLEncodedBase64(data.RawAttestationObject),
+			AttestationObject: (data.RawAttestationObject),
 			AuthenticatorResponse: AuthenticatorResponse{
-				ClientDataJSON: data.RawClientData,
+				UTF8ClientDataJSON: data.RawClientData,
 			},
 		},
 	}
@@ -130,14 +131,14 @@ func ParseCredentialCreationResponseObject(ccr *CredentialCreationResponse) (*Pa
 	// 	return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo(err.Error())
 	// }
 
-	if ccr.ID == "" {
+	if ccr.ID.IsZero() {
 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing ID")
 	}
 
-	testB64, err := base64.RawURLEncoding.DecodeString(ccr.ID)
-	if err != nil || !(len(testB64) > 0) {
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded").WithParent(err)
-	}
+	// testB64, err := base64.RawURLEncoding.DecodeString(ccr.ID)
+	// if err != nil || !(len(testB64) > 0) {
+	// 	return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded").WithParent(err)
+	// }
 
 	if ccr.PublicKeyCredential.Credential.Type == "" {
 		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing type")
@@ -163,7 +164,7 @@ func ParseCredentialCreationResponseObject(ccr *CredentialCreationResponse) (*Pa
 
 // Verifies the Client and Attestation data as laid out by §7.1. Registering a new credential
 // https://www.w3.org/TR/webauthn/#registering-a-new-credential
-func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, sessionId string, verifyUser bool, relyingPartyID, relyingPartyOrigin string) (*SavedCredential, error) {
+func (pcc *ParsedCredentialCreationData) Verify(storedChallenge hex.Hash, sessionId hex.Hash, verifyUser bool, relyingPartyID, relyingPartyOrigin string) (*SavedCredential, error) {
 
 	// Handles steps 3 through 6 - Verifying the Client Data against the Relying Party's stored data
 	verifyError := pcc.Response.CollectedClientData.Verify(storedChallenge, CreateCeremony, relyingPartyOrigin)
@@ -172,7 +173,7 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge Challenge, sessi
 	}
 
 	// Step 7. Compute the hash of response.clientDataJSON using SHA-256.
-	clientDataHash := sha256.Sum256(pcc.Raw.AttestationResponse.ClientDataJSON)
+	clientDataHash := sha256.Sum256([]byte(pcc.Raw.AttestationResponse.UTF8ClientDataJSON))
 
 	// Step 8. Perform CBOR decoding on the attestationObject field of the AuthenticatorAttestationResponse
 	// structure to obtain the attestation statement format fmt, the authenticator data authData, and the

@@ -2,6 +2,7 @@ package cognito
 
 import (
 	"context"
+	"nugg-auth/core/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -9,7 +10,7 @@ import (
 )
 
 type Client interface {
-	GetDevCreds(ctx context.Context, nuggId string) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error)
+	GetDevCreds(ctx context.Context, nuggId hex.Hash) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error)
 	GetIdentityId(ctx context.Context, token string) (string, error)
 	GetCredentials(ctx context.Context, identityId string, token string) (aws.Credentials, error)
 }
@@ -67,11 +68,11 @@ func (c *DefaultClient) GetCredentials(ctx context.Context, identityId string, t
 	return res, nil
 }
 
-func (c *DefaultClient) GetDevCreds(ctx context.Context, nuggId string) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error) {
+func (c *DefaultClient) GetDevCreds(ctx context.Context, nuggId hex.Hash) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error) {
 
 	resp, err := c.GetOpenIdTokenForDeveloperIdentity(ctx, &cognitoidentity.GetOpenIdTokenForDeveloperIdentityInput{
 		Logins: map[string]string{
-			c.ProviderName: nuggId,
+			c.ProviderName: nuggId.Hex(),
 		},
 		IdentityPoolId: aws.String(c.PoolName),
 	})

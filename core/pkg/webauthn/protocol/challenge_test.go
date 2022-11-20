@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/base64"
+	"nugg-auth/core/pkg/hex"
 	"reflect"
 	"testing"
 )
@@ -9,12 +10,12 @@ import (
 func TestCreateChallenge(t *testing.T) {
 	tests := []struct {
 		name    string
-		want    Challenge
+		want    hex.Hash
 		wantErr bool
 	}{
 		{
 			"Successfull Challenge Create",
-			Challenge{},
+			hex.Hash{},
 			false,
 		},
 	}
@@ -42,7 +43,7 @@ func TestChallenge_String(t *testing.T) {
 	wantChallenge := base64.RawURLEncoding.EncodeToString(newChallenge)
 	tests := []struct {
 		name string
-		c    Challenge
+		c    hex.Hash
 		want string
 	}{
 		{

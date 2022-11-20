@@ -154,7 +154,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to get ceremony")
 	}
 
-	cred, invalidErr := parsedResponse.Verify(protocol.Challenge(cerem.ChallengeID), cerem.SessionID, false, "nugg.xyz", "https://nugg.xyz")
+	cred, invalidErr := parsedResponse.Verify(cerem.ChallengeID, cerem.SessionID, false, "nugg.xyz", "https://nugg.xyz")
 	if invalidErr != nil {
 		return inv.Error(invalidErr, 400, "invalid attestation")
 	}

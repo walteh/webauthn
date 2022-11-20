@@ -2,10 +2,9 @@ package protocol
 
 import (
 	"crypto/subtle"
-	"encoding/base64"
 	"fmt"
-	"log"
 	"net/url"
+	"nugg-auth/core/pkg/hex"
 	"strings"
 )
 
@@ -19,7 +18,7 @@ type CollectedClientData struct {
 	// purpose of this member is to prevent certain types of signature confusion attacks
 	//(where an attacker substitutes one legitimate signature for another).
 	Type         CeremonyType  `json:"type"`
-	Challenge    string        `json:"challenge"`
+	Challenge    hex.Hash      `json:"challenge"`
 	Origin       string        `json:"origin"`
 	TokenBinding *TokenBinding `json:"tokenBinding,omitempty"`
 	// Chromium (Chrome) returns a hint sometimes about how to handle clientDataJSON in a safe manner
@@ -61,7 +60,7 @@ func FullyQualifiedOrigin(u *url.URL) string {
 // new credential and steps 7 through 10 of verifying an authentication assertion
 // See https://www.w3.org/TR/webauthn/#registering-a-new-credential
 // and https://www.w3.org/TR/webauthn/#verifying-assertion
-func (c *CollectedClientData) Verify(storedChallenge Challenge, ceremony CeremonyType, relyingPartyOrigin string) error {
+func (c *CollectedClientData) Verify(storedChallenge hex.Hash, ceremony CeremonyType, relyingPartyOrigin string) error {
 
 	// Registration Step 3. Verify that the value of C.type is webauthn.create.
 
@@ -81,18 +80,18 @@ func (c *CollectedClientData) Verify(storedChallenge Challenge, ceremony Ceremon
 
 	challenge := c.Challenge
 
-	rdata, err := base64.RawURLEncoding.DecodeString(challenge)
-	if err != nil {
-		return err
-	}
+	// rdata, err := base64.RawURLEncoding.DecodeString(challenge)
+	// if err != nil {
+	// 	return err
+	// }
 
-	abc := base64.RawURLEncoding.EncodeToString(storedChallenge)
+	// abc := base64.RawURLEncoding.EncodeToString(storedChallenge)
 
-	log.Println(abc)
+	// log.Println(abc)
 
-	if subtle.ConstantTimeCompare(storedChallenge, []byte(rdata)) != 1 {
+	if subtle.ConstantTimeCompare(storedChallenge, challenge) != 1 {
 		err := ErrVerification.WithDetails("Error validating challenge")
-		return err.WithInfo(fmt.Sprintf("Expected b Value: %#v\nReceived b: %#v\n", storedChallenge, []byte(rdata)))
+		return err.WithInfo(fmt.Sprintf("Expected b Value: %#v\nReceived b: %#v\n", storedChallenge, challenge))
 	}
 
 	// Registration Step 5 & Assertion Step 9. Verify that the value of C.origin matches

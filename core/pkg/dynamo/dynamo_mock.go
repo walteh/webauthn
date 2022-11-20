@@ -3,6 +3,7 @@ package dynamo
 import (
 	"context"
 	"log"
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"os"
 	"testing"
@@ -90,7 +91,7 @@ func NewMockClient(t *testing.T) *Client {
 	}
 }
 
-func (dynamoClient *Client) MockSetCeremony(t *testing.T, credential string, challenge string, type_ protocol.CeremonyType) {
+func (dynamoClient *Client) MockSetCeremony(t *testing.T, credential hex.Hash, challenge hex.Hash, type_ protocol.CeremonyType) {
 	t.Helper()
 
 	cer := protocol.NewCeremony(credential, challenge, type_)
