@@ -52,10 +52,10 @@ type SavedCredential struct {
 // }
 
 func (s SavedCredential) ID() string {
-	return base64.RawStdEncoding.EncodeToString(s.RawID)
+	return (s.RawID.Hex())
 }
 
-func (s SavedCredential) MarshalDynamoDBAttributeValue() (types.AttributeValue, error) {
+func (s SavedCredential) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error) {
 	av := types.AttributeValueMemberM{}
 	av.Value = make(map[string]types.AttributeValue)
 	av.Value["credential_id"] = &types.AttributeValueMemberS{Value: s.ID()}
@@ -64,10 +64,10 @@ func (s SavedCredential) MarshalDynamoDBAttributeValue() (types.AttributeValue, 
 	av.Value["attestation_type"] = &types.AttributeValueMemberS{Value: s.AttestationType}
 	av.Value["receipt"] = &types.AttributeValueMemberS{Value: s.Receipt.Hex()}
 	av.Value["aaguid"] = &types.AttributeValueMemberS{Value: s.AAGUID.Hex()}
-	av.Value["sign_count"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%x", s.SignCount)}
+	av.Value["sign_count"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.SignCount)}
 	av.Value["clone_warning"] = &types.AttributeValueMemberBOOL{Value: s.CloneWarning}
-	av.Value["created_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%x", s.CreatedAt)}
-	av.Value["updated_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%x", s.UpdatedAt)}
+	av.Value["created_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.CreatedAt)}
+	av.Value["updated_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.UpdatedAt)}
 	av.Value["session_id"] = &types.AttributeValueMemberS{Value: s.SessionId.Hex()}
 	return &av, nil
 }
@@ -83,11 +83,7 @@ func (s SavedCredential) MarshalDynamoDBAttributeValue() (types.AttributeValue, 
 // 	}
 // }
 
-func (s SavedCredential) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) (err error) {
-	m, ok := av.(*types.AttributeValueMemberM)
-	if !ok {
-		return fmt.Errorf("expected *types.AttributeValueMemberM, got %T", av)
-	}
+func (s SavedCredential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
 
 	if s.RawID, err = base64.RawURLEncoding.DecodeString(m.Value["credential_id"].(*types.AttributeValueMemberS).Value); err != nil {
 		return err
@@ -129,9 +125,9 @@ func (s SavedCredential) Update(table *string, counter uint64) (*types.TransactW
 				"#g": "updated_at",
 			},
 			ExpressionAttributeValues: map[string]types.AttributeValue{
-				":e": av.(*types.AttributeValueMemberM).Value["sign_count"],
-				":f": av.(*types.AttributeValueMemberM).Value["clone_warning"],
-				":g": av.(*types.AttributeValueMemberM).Value["updated_at"],
+				":e": av.Value["sign_count"],
+				":f": av.Value["clone_warning"],
+				":g": av.Value["updated_at"],
 			},
 			UpdateExpression: aws.String("SET #e = :e, #f = :f, #g = :g"),
 		}}, nil
@@ -170,13 +166,8 @@ func (s SavedCredential) Put() (*types.Put, error) {
 		return nil, err
 	}
 
-	r, ok := av.(*types.AttributeValueMemberM)
-	if !ok {
-		return nil, fmt.Errorf("expected *types.AttributeValueMemberM, got %T", av)
-	}
-
 	return &types.Put{
-		Item: r.Value,
+		Item: av.Value,
 	}, nil
 }
 

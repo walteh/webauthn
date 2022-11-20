@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"nugg-auth/core/pkg/hex"
@@ -21,7 +22,7 @@ func TestParseCredentialRequestResponse(t *testing.T) {
 	byteSignature := hex.MustBase64ToHash("MEUCIBtIVOQxzFYdyWQyxaLR0tik1TnuPhGVhXVSNgFwLmN5AiEAnxXdCq0UeAVGWxOaFcjBZ_mEZoXqNboY5IkQDdlWZYc")
 	byteUserHandle := hex.MustBase64ToHash("0ToAAAAAAAAAAA")
 	byteCredentialPubKey := hex.MustBase64ToHash("pQMmIAEhWCAoCF-x0dwEhzQo-ABxHIAgr_5WL6cJceREc81oIwFn7iJYIHEHx8ZhBIE42L26-rSC_3l0ZaWEmsHAKyP9rgslApUdAQI")
-	byteClientDataJSON := hex.MustBase64ToHash("eyJjaGFsbGVuZ2UiOiJFNFBUY0lIX0hmWDFwQzZTaWdrMVNDOU5BbGdlenROMDQzOXZpOHpfYzlrIiwibmV3X2tleXNfbWF5X2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgiLCJvcmlnaW4iOiJodHRwczovL3dlYmF1dGhuLmlvIiwidHlwZSI6IndlYmF1dGhuLmdldCJ9")
+	byteClientDataJSON := "{\"challenge\":\"0x1383d37081ff1df5f5a42e928a0935482f4d02581eced374e37f6f8bccff73d9\",\"new_keys_may_be_added_here\":\"do not compare clientDataJSON against a template. See https://goo.gl/yabPex\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.get\"}"
 
 	type args struct {
 		response *http.Request
@@ -75,7 +76,7 @@ func TestParseCredentialRequestResponse(t *testing.T) {
 					},
 					AssertionResponse: AuthenticatorAssertionResponse{
 						AuthenticatorResponse: AuthenticatorResponse{
-							UTF8ClientDataJSON: byteClientDataJSON.Utf8(),
+							UTF8ClientDataJSON: byteClientDataJSON,
 						},
 						AuthenticatorData: byteAuthData,
 						Signature:         byteSignature,
@@ -180,28 +181,39 @@ func TestParsedCredentialAssertionData_Verify(t *testing.T) {
 
 var testAssertionOptions = map[string]string{
 	// None Attestation - MacOS TouchID
-	`success`: `{
-		"id":"AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng",
-		"rawId":"AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng",
+	`success`: fmt.Sprintf(`{
+		"id":"%s",
+		"rawId":"%s",
 		"type":"public-key",
 		"response":{
-			"attestationObject":"o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVi7dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBFXJJiFa3OAAI1vMYKZIsLJfHwVQMANwCOw-atj9C0vhWpfWU-whzNjeQS21Lpxfdk_G-omAtffWztpGoErlNOfuXWRqm9Uj9ANJck1p6lAQIDJiABIVggKAhfsdHcBIc0KPgAcRyAIK_-Vi-nCXHkRHPNaCMBZ-4iWCBxB8fGYQSBONi9uvq0gv95dGWlhJrBwCsj_a4LJQKVHQ",
-			"clientDataJSON":"eyJjaGFsbGVuZ2UiOiJmeWV1dUdQOXp1ZWoyRkdqZXZpNzlienFNS1d4aTRQWUlhXzV3ajI2MVcwIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ"}
+			"attestationObject":"%s",
+			"clientDataJSON":"%s"}
 		}
 	`,
+		hex.MustBase64ToHash("AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng").Hex(),
+		hex.MustBase64ToHash("AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng").Hex(),
+		hex.MustBase64ToHash("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVi7dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBFXJJiFa3OAAI1vMYKZIsLJfHwVQMANwCOw-atj9C0vhWpfWU-whzNjeQS21Lpxfdk_G-omAtffWztpGoErlNOfuXWRqm9Uj9ANJck1p6lAQIDJiABIVggKAhfsdHcBIc0KPgAcRyAIK_-Vi-nCXHkRHPNaCMBZ-4iWCBxB8fGYQSBONi9uvq0gv95dGWlhJrBwCsj_a4LJQKVHQ").Hex(),
+		hex.MustBase64ToHash("eyJjaGFsbGVuZ2UiOiJmeWV1dUdQOXp1ZWoyRkdqZXZpNzlienFNS1d4aTRQWUlhXzV3ajI2MVcwIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ").Utf8(),
+	),
 }
 
 var testAssertionResponses = map[string]string{
 	// None Attestation - MacOS TouchID
-	`success`: `{
-		"id":"AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng",
-		"rawId":"AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng",
+	`success`: fmt.Sprintf(`{
+		"id":"%s",
+		"rawId":"%s",
 		"type":"public-key",
 		"response":{
-			"authenticatorData":"dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBFXJJiGa3OAAI1vMYKZIsLJfHwVQMANwCOw-atj9C0vhWpfWU-whzNjeQS21Lpxfdk_G-omAtffWztpGoErlNOfuXWRqm9Uj9ANJck1p6lAQIDJiABIVggKAhfsdHcBIc0KPgAcRyAIK_-Vi-nCXHkRHPNaCMBZ-4iWCBxB8fGYQSBONi9uvq0gv95dGWlhJrBwCsj_a4LJQKVHQ",
-			"clientDataJSON":"eyJjaGFsbGVuZ2UiOiJFNFBUY0lIX0hmWDFwQzZTaWdrMVNDOU5BbGdlenROMDQzOXZpOHpfYzlrIiwibmV3X2tleXNfbWF5X2JlX2FkZGVkX2hlcmUiOiJkbyBub3QgY29tcGFyZSBjbGllbnREYXRhSlNPTiBhZ2FpbnN0IGEgdGVtcGxhdGUuIFNlZSBodHRwczovL2dvby5nbC95YWJQZXgiLCJvcmlnaW4iOiJodHRwczovL3dlYmF1dGhuLmlvIiwidHlwZSI6IndlYmF1dGhuLmdldCJ9",
-			"signature":"MEUCIBtIVOQxzFYdyWQyxaLR0tik1TnuPhGVhXVSNgFwLmN5AiEAnxXdCq0UeAVGWxOaFcjBZ_mEZoXqNboY5IkQDdlWZYc",
-			"userHandle":"0ToAAAAAAAAAAA"}
-		}
-	`,
+			"authenticatorData":"%s",
+			"clientDataJSON":"{\"challenge\":\"%s\",\"new_keys_may_be_added_here\":\"do not compare clientDataJSON against a template. See https://goo.gl/yabPex\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.get\"}",
+			"signature":"%s",
+			"sessionId":"%s"
+		}}`,
+		hex.MustBase64ToHash("AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng").Hex(),
+		hex.MustBase64ToHash("AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng").Hex(),
+		hex.MustBase64ToHash("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBFXJJiGa3OAAI1vMYKZIsLJfHwVQMANwCOw-atj9C0vhWpfWU-whzNjeQS21Lpxfdk_G-omAtffWztpGoErlNOfuXWRqm9Uj9ANJck1p6lAQIDJiABIVggKAhfsdHcBIc0KPgAcRyAIK_-Vi-nCXHkRHPNaCMBZ-4iWCBxB8fGYQSBONi9uvq0gv95dGWlhJrBwCsj_a4LJQKVHQ").Hex(),
+		hex.MustBase64ToHash("E4PTcIH_HfX1pC6Sigk1SC9NAlgeztN0439vi8z_c9k").Hex(),
+		hex.MustBase64ToHash("MEUCIBtIVOQxzFYdyWQyxaLR0tik1TnuPhGVhXVSNgFwLmN5AiEAnxXdCq0UeAVGWxOaFcjBZ_mEZoXqNboY5IkQDdlWZYc").Hex(),
+		hex.MustBase64ToHash("0ToAAAAAAAAAAA"),
+	),
 }

@@ -140,7 +140,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}
 
-	pp.Println(cha)
+	pp.Println(cer)
 
 	return inv.Success(204, map[string]string{"x-nugg-webauthn-challenge": cha.ChallengeID.Hex()}, "")
 }

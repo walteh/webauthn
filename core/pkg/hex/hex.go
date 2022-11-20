@@ -77,7 +77,7 @@ func MustBase64ToHash(s string) Hash {
 }
 
 func (h Hash) Utf8() string {
-	return fmt.Sprintf("%q", h.Bytes())
+	return string(h.Bytes())
 }
 
 // TerminalString implements log.TerminalStringer, formatting a string for console
@@ -124,12 +124,13 @@ func (h Hash) Format(s fmt.State, c rune) {
 
 // UnmarshalText parses a hash in hex syntax.
 func (h *Hash) UnmarshalText(input []byte) error {
-	return UnmarshalFixedText("Hash", input, *h)
+	return h.UnmarshalFixedTextHash("Hash", input)
 }
 
 // UnmarshalJSON parses a hash in hex syntax.
 func (h *Hash) UnmarshalJSON(input []byte) error {
-	return UnmarshalFixedJSON(hashT, input, *h)
+	err := h.UnmarshalFixedJSONHash(hashT, input)
+	return err
 }
 
 // MarshalText returns the hex representation of h.

@@ -4,6 +4,7 @@ import (
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/webauthn/protocol"
 
@@ -11,6 +12,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -130,19 +132,18 @@ func main() {
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(ctx, h.Logger)
+	// RawAttestationObject hex.Hash `json:"rawAttestationObject"`
+	// RawClientData        string   `json:"rawClientDataJSON"`
+	// CredentialID         hex.Hash `json:"credentialId"`
+	attestation := hex.HexToHash(payload.Headers["x-nugg-hex-attestation-object"])
+	clientData := payload.Headers["x-nugg-utf-client-data-json"]
+	credentialID := hex.HexToHash(payload.Headers["x-nugg-hex-credential-id"])
 
-	attestation := payload.Headers["x-nugg-webauthn-creation"]
-
-	if attestation == "" {
+	if attestation.IsZero() || clientData == "" || credentialID.IsZero() {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-creation")
 	}
 
-	creation, err := protocol.ParseWebauthnCreation(attestation)
-	if err != nil {
-		return inv.Error(err, 400, "failed to parse webauthn creation")
-	}
-
-	parsedResponse, err := protocol.ParseCredentialCreationResponseHeader(creation, "public-key")
+	parsedResponse, err := protocol.ParseCredentialCreationResponseHeader(attestation, clientData, credentialID, "public-key")
 	if err != nil {
 		return inv.Error(err, 400, "failed to parse attestation")
 	}
@@ -217,6 +218,8 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	if result == nil {
 		return inv.Error(chanerr, 500, "failed to get dev creds")
 	}
+
+	pp.Println(userput, credput, ceremput)
 
 	return inv.Success(204, map[string]string{"x-nugg-access-token": *result.Token}, "")
 }

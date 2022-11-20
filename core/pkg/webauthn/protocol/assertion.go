@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -71,20 +70,27 @@ func ParseCredentialRequestResponse(response *http.Request) (*ParsedCredentialAs
 // manageable structures
 func ParseCredentialRequestResponseBody(body io.Reader) (*ParsedCredentialAssertionData, error) {
 	var car CredentialAssertionResponse
-	err := json.NewDecoder(body).Decode(&car)
+
+	reader, err := io.ReadAll(body)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Parse error for Assertion")
+		return nil, ErrBadRequest.WithDetails("Unable to read response body")
+	}
+
+	err = json.Unmarshal([]byte(reader), &car)
+	if err != nil {
+		return nil, ErrBadRequest.WithDetails("Parse error for Assertion").WithParent(err)
 	}
 
 	return ParseCredentialAssertionResponse(car)
 }
 
+// "{\n\t\t\"id\":\"0x008ec3e6ad8fd0b4be15a97d653ec21ccd8de412db52e9c5f764fc6fa8980b5f7d6ceda46a04ae534e7ee5d646a9bd523f40349724d69e\",\n\t\t\"rawId\":\"0x008ec3e6ad8fd0b4be15a97d653ec21ccd8de412db52e9c5f764fc6fa8980b5f7d6ceda46a04ae534e7ee5d646a9bd523f40349724d69e\",\n\t\t\"type\":\"public-key\",\n\t\t\"response\":{\n\t\t\t\"authenticatorData\":\"0x74a6ea9213c99c2f74b22492b320cf40262a94c1a950a0397f29250b60841ef0455c926219adce000235bcc60a648b0b25f1f055030037008ec3e6ad8fd0b4be15a97d653ec21ccd8de412db52e9c5f764fc6fa8980b5f7d6ceda46a04ae534e7ee5d"
 // Parse the credential request response into a format that is either required by the specification
 // or makes the assertion verification steps easier to complete. This takes an CredentialAssertionResponse that contains
 // the assertion response data in a raw, mostly base64 encoded format, and parses the data into
 func ParseCredentialAssertionResponsePayload(body string) (*BetterCredentialAssertionResponse, error) {
 
-	dec, err := base64.StdEncoding.DecodeString(body)
+	dec, err := hex.ParseHexOrString(body)
 	if err != nil {
 		return nil, ErrBadRequest.WithDetails("Parse error for Assertion")
 	}

@@ -47,7 +47,7 @@ type CredentialDescriptor struct {
 	// The valid credential types.
 	Type CredentialType `json:"type"`
 	// CredentialID The ID of a credential to allow/disallow
-	CredentialID URLEncodedBase64 `json:"id"`
+	CredentialID hex.Hash `json:"id"`
 	// The authenticator transports that can be used
 	Transport []AuthenticatorTransport `json:"transports,omitempty"`
 }
@@ -117,8 +117,8 @@ const (
 	PreferDirectAttestation ConveyancePreference = "direct"
 )
 
-func (a *PublicKeyCredentialRequestOptions) GetAllowedCredentialIDs() []URLEncodedBase64 {
-	var allowedCredentialIDs = make([]URLEncodedBase64, len(a.AllowedCredentials))
+func (a *PublicKeyCredentialRequestOptions) GetAllowedCredentialIDs() []hex.Hash {
+	var allowedCredentialIDs = make([]hex.Hash, len(a.AllowedCredentials))
 	for i, credential := range a.AllowedCredentials {
 		allowedCredentialIDs[i] = credential.CredentialID
 	}

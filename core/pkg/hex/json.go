@@ -95,7 +95,7 @@ func (b *Bytes) UnmarshalGraphQL(input interface{}) error {
 // UnmarshalFixedJSON decodes the input as a string with 0x prefix. The length of out
 // determines the required input length. This function is commonly used to implement the
 // UnmarshalJSON method for fixed-size types.
-func UnmarshalFixedJSON(typ reflect.Type, input, out []byte) error {
+func UnmarshalFixedJSON(typ reflect.Type, input []byte, out []byte) error {
 	if !isString(input) {
 		return errNonString(typ)
 	}
@@ -105,12 +105,13 @@ func UnmarshalFixedJSON(typ reflect.Type, input, out []byte) error {
 // UnmarshalFixedText decodes the input as a string with 0x prefix. The length of out
 // determines the required input length. This function is commonly used to implement the
 // UnmarshalText method for fixed-size types.
-func UnmarshalFixedText(typname string, input, out []byte) error {
+func UnmarshalFixedText(typname string, input []byte, out []byte) error {
 	raw, err := checkText(input, true)
 	if err != nil {
 		return err
 	}
 	if len(raw)/2 != len(out) {
+
 		return fmt.Errorf("hex string has length %d, want %d for %s", len(raw), len(out)*2, typname)
 	}
 	// Pre-verify syntax before modifying out.
@@ -120,6 +121,37 @@ func UnmarshalFixedText(typname string, input, out []byte) error {
 		}
 	}
 	hex.Decode(out, raw)
+	return nil
+}
+
+// UnmarshalFixedJSON decodes the input as a string with 0x prefix. The length of out
+// determines the required input length. This function is commonly used to implement the
+// UnmarshalJSON method for fixed-size types.
+func (hash *Hash) UnmarshalFixedJSONHash(typ reflect.Type, input []byte) error {
+	if !isString(input) {
+		return errNonString(typ)
+	}
+	return wrapTypeError(hash.UnmarshalFixedTextHash(typ.String(), input[1:len(input)-1]), typ)
+}
+
+// UnmarshalFixedText decodes the input as a string with 0x prefix. The length of out
+// determines the required input length. This function is commonly used to implement the
+// UnmarshalText method for fixed-size types.
+func (hash *Hash) UnmarshalFixedTextHash(typname string, input []byte) error {
+	raw, err := checkText(input, true)
+	if err != nil {
+		return err
+	}
+
+	// Pre-verify syntax before modifying out.
+	for _, b := range raw {
+		if decodeNibble(b) == badNibble {
+			return ErrSyntax
+		}
+	}
+	decoded := make([]byte, len(raw)/2)
+	hex.Decode(decoded, raw)
+	hash.SetBytes(decoded)
 	return nil
 }
 

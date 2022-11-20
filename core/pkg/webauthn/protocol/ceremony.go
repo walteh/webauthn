@@ -23,7 +23,7 @@ type SavedCeremony struct {
 // 	MarshalDynamoDBAttributeValue() (types.AttributeValue, error)
 // }
 
-func (s SavedCeremony) MarshalDynamoDBAttributeValue() (types.AttributeValue, error) {
+func (s SavedCeremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error) {
 	av := types.AttributeValueMemberM{}
 	av.Value = make(map[string]types.AttributeValue)
 	av.Value["challenge_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()}
@@ -39,10 +39,10 @@ func (s SavedCeremony) MarshalDynamoDBAttributeValue() (types.AttributeValue, er
 // 	UnmarshalDynamoDBAttributeValue(types.AttributeValue) error
 // }
 
-func (s SavedCeremony) UnmarshalDynamoDBAttributeValue(av types.AttributeValue) (err error) {
+func (s SavedCeremony) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
 
 	// plain unmarshal
-	err = attributevalue.Unmarshal(av, &s)
+	err = attributevalue.UnmarshalMap(m.Value, &s)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func NewCeremony(credentialID hex.Hash, sessionId hex.Hash, ceremonyType Ceremon
 	}
 
 	if credentialID.IsZero() {
-		cer.CredentialID = chal
+		cer.CredentialID = credentialID
 	}
 
 	return cer
@@ -80,7 +80,7 @@ func Now() uint64 {
 func (s SavedCeremony) Get() *types.Get {
 	return &types.Get{
 		Key: map[string]types.AttributeValue{
-			"credential_id": &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()},
+			"challenge_id": &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()},
 		},
 	}
 }
@@ -98,12 +98,7 @@ func (s SavedCeremony) Put() (*types.Put, error) {
 		return nil, err
 	}
 
-	r, ok := av.(*types.AttributeValueMemberM)
-	if !ok {
-		return nil, fmt.Errorf("expected *types.AttributeValueMemberM, got %T", av)
-	}
-
 	return &types.Put{
-		Item: r.Value,
+		Item: av.Value,
 	}, nil
 }

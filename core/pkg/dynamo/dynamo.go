@@ -29,7 +29,7 @@ func NewClient(config aws.Config, userTableName string, ceremonyTableName string
 }
 
 type Puttable interface {
-	attributevalue.Marshaler
+	MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error)
 	Put() (*types.Put, error)
 }
 
@@ -77,17 +77,17 @@ type GetOutput struct {
 }
 
 type Gettable interface {
-	attributevalue.Unmarshaler
+	UnmarshalDynamoDBAttributeValue(*types.AttributeValueMemberM) error
 	Get() *types.Get
 }
 
 func (c *Client) BuildPut(d Puttable) (*types.Put, error) {
 	switch d.(type) {
-	case protocol.SavedCeremony:
+	case *protocol.SavedCeremony:
 		return MakePut(c.MustCeremonyTableName(), d)
 	// case protocol.SavedUser:
 	// 	return MakePut(c.MustUserTableName(), d)
-	case protocol.SavedCredential:
+	case *protocol.SavedCredential:
 		return MakePut(c.MustCredentialTableName(), d)
 	default:
 		return nil, fmt.Errorf("unknown type %T", d)
@@ -100,14 +100,14 @@ func (c *Client) TransactGet(ctx context.Context, items ...Gettable) error {
 	for _, item := range items {
 		var tbl *string
 		switch item.(type) {
-		case protocol.SavedCeremony:
+		case *protocol.SavedCeremony:
 			tbl = c.MustCeremonyTableName()
 		// case protocol.UserEntity:
 		// 	tbl = c.MustUserTableName()
-		case protocol.SavedCredential:
+		case *protocol.SavedCredential:
 			tbl = c.MustCredentialTableName()
 		default:
-			return errors.New("unknown table type")
+			return fmt.Errorf("unknown type %T", item)
 		}
 
 		this := item.Get()

@@ -2,7 +2,7 @@ package protocol
 
 import (
 	"bytes"
-	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
@@ -10,21 +10,27 @@ import (
 
 	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncbor"
+
+	"github.com/k0kubun/pp"
 )
 
+var byteID = hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
+var byteClientDataJSON = `{\"challenge\":\"0x5bc1b3154f291a386845b5ab2c395a9807eaff2e12d42646d55ba87912c046b1\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}`
+var byteAttObject = hex.MustBase64ToHash("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjEdKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
+var abc = "{\"challenge\":\"0x5bc1b3154f291a386845b5ab2c395a9807eaff2e12d42646d55ba87912c046b1\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}"
+
 func TestParseCredentialCreationResponse(t *testing.T) {
+	pp.Println(byteAttObject.Hex())
+
 	reqBody := ioutil.NopCloser(bytes.NewReader([]byte(testCredentialRequestBody)))
 	httpReq := &http.Request{Body: reqBody}
 	type args struct {
 		response *http.Request
 	}
 
-	byteID := hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
-	byteAuthData, _ := base64.RawURLEncoding.DecodeString("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
-	byteRPIDHash, _ := base64.RawURLEncoding.DecodeString("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvA")
-	byteCredentialPubKey, _ := base64.RawURLEncoding.DecodeString("pSJYIMfCKfxl2SvnqJIiHQysHmpmITNgtCkQ5ESExSRjqrhXAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNc")
-	byteAttObject, _ := base64.RawURLEncoding.DecodeString("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjEdKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
-	byteClientDataJSON := hex.MustBase64ToHash("eyJjaGFsbGVuZ2UiOiJXOEd6RlU4cEdqaG9SYldyTERsYW1BZnFfeTRTMUNaRzFWdW9lUkxBUnJFIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ")
+	byteAuthData := hex.MustBase64ToHash("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
+	byteRPIDHash := hex.MustBase64ToHash("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvA")
+	byteCredentialPubKey := hex.MustBase64ToHash("pSJYIMfCKfxl2SvnqJIiHQysHmpmITNgtCkQ5ESExSRjqrhXAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNc")
 
 	tests := []struct {
 		name    string
@@ -82,7 +88,7 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 					},
 					AttestationResponse: AuthenticatorAttestationResponse{
 						AuthenticatorResponse: AuthenticatorResponse{
-							UTF8ClientDataJSON: byteClientDataJSON.Utf8(),
+							UTF8ClientDataJSON: abc,
 						},
 						AttestationObject: byteAttObject,
 					},
@@ -94,6 +100,7 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			got, err := ParseCredentialCreationResponse(tt.args.response)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseCredentialCreationResponse() error = %v, wantErr %v", err, tt.wantErr)
@@ -112,6 +119,8 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 				t.Errorf("ParsedPublicKeyCredential = %v \n want: %v", got, tt.want)
 			}
 			if !reflect.DeepEqual(got.Raw, tt.want.Raw) {
+				pp.Println(got.Raw)
+				pp.Println(tt.want.Raw)
 				t.Errorf("Raw = %v \n want: %v", got, tt.want)
 			}
 			if !reflect.DeepEqual(got.RawID, tt.want.RawID) {
@@ -239,15 +248,6 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 	}
 }
 
-var testCredentialRequestBody = `{
-	"id":"6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g",
-	"rawId":"6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g",
-	"type":"public-key",
-	"clientExtensionResults":{
-		"appid":true
-	},
-	"response":{
-		"attestationObject":"o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjEdKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw",
-		"clientDataJSON":"eyJjaGFsbGVuZ2UiOiJXOEd6RlU4cEdqaG9SYldyTERsYW1BZnFfeTRTMUNaRzFWdW9lUkxBUnJFIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ"
-		}
-	}`
+var testCredentialRequestBody = fmt.Sprintf(
+	`{"id":"%s","rawId":"%s","type":"public-key","clientExtensionResults":{"appid":true},"response":{"attestationObject":"%s","clientDataJSON":"%s"}}`,
+	byteID.Hex(), byteID.Hex(), byteAttObject.Hex(), byteClientDataJSON)

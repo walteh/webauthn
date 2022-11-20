@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"nugg-auth/core/pkg/hex"
 	"time"
+
+	"github.com/k0kubun/pp"
 )
 
 // The basic credential type that is inherited by WebAuthn's
@@ -86,37 +88,39 @@ func ParseCredentialCreationResponse(response *http.Request) (*ParsedCredentialC
 
 func ParseCredentialCreationResponseBody(body io.Reader) (*ParsedCredentialCreationData, error) {
 	var ccr CredentialCreationResponse
-	err := json.NewDecoder(body).Decode(&ccr)
+
+	reader, err := io.ReadAll(body)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo(err.Error())
+		return nil, ErrBadRequest.WithDetails("Unable to read response body")
+	}
+
+	pp.Println(string(reader))
+
+	pp.Println(ccr)
+
+	err = json.Unmarshal(reader, &ccr)
+	if err != nil {
+		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithParent(err)
 	}
 
 	return ParseCredentialCreationResponseObject(&ccr)
 }
 
-func ParseCredentialCreationResponseHeader(data *XNuggWebauthnCreation, credentialType string) (*ParsedCredentialCreationData, error) {
-
-	// credentialId := base64.RawURLEncoding.EncodeToString(data.CredentialID)
-
-	// attest := base64.RawURLEncoding.EncodeToString(data.RawAttestationObject)
-
-	// client := base64.RawURLEncoding.EncodeToString(data.RawClientData)
-
-	// log.Println("client", string(data.RawClientData))
+func ParseCredentialCreationResponseHeader(attestation hex.Hash, clientDataJson string, credentialId hex.Hash, credentialType string) (*ParsedCredentialCreationData, error) {
 
 	ccr := CredentialCreationResponse{
 		PublicKeyCredential: PublicKeyCredential{
 			Credential: Credential{
-				ID:   data.CredentialID,
+				ID:   credentialId,
 				Type: credentialType,
 			},
-			RawID:                  (data.CredentialID),
+			RawID:                  (credentialId),
 			ClientExtensionResults: AuthenticationExtensionsClientOutputs{},
 		},
 		AttestationResponse: AuthenticatorAttestationResponse{
-			AttestationObject: (data.RawAttestationObject),
+			AttestationObject: (attestation),
 			AuthenticatorResponse: AuthenticatorResponse{
-				UTF8ClientDataJSON: data.RawClientData,
+				UTF8ClientDataJSON: clientDataJson,
 			},
 		},
 	}

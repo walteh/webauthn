@@ -58,7 +58,7 @@ type AttestationObject struct {
 	// The authenticator data, including the newly created public key. See AuthenticatorData for more info
 	AuthData AuthenticatorData
 	// The byteform version of the authenticator data, used in part for signature validation
-	RawAuthData []byte `json:"authData" cbor:"authData"`
+	RawAuthData hex.Hash `json:"authData" cbor:"authData"`
 	// The format of the Attestation data.
 	Format string `json:"fmt" cbor:"fmt"`
 	// The attestation statement data sent back if attestation is requested.

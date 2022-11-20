@@ -4,6 +4,8 @@ import (
 	"nugg-auth/core/pkg/hex"
 	"reflect"
 	"testing"
+
+	"github.com/k0kubun/pp"
 )
 
 func TestPublicKeyCredentialRequestOptions_GetAllowedCredentialIDs(t *testing.T) {
@@ -18,7 +20,7 @@ func TestPublicKeyCredentialRequestOptions_GetAllowedCredentialIDs(t *testing.T)
 	tests := []struct {
 		name   string
 		fields fields
-		want   [][]byte
+		want   []hex.Hash
 	}{
 		{
 			"Correct Credential IDs",
@@ -34,8 +36,8 @@ func TestPublicKeyCredentialRequestOptions_GetAllowedCredentialIDs(t *testing.T)
 				UserVerification: VerificationPreferred,
 				Extensions:       AuthenticationExtensions{},
 			},
-			[][]byte{
-				[]byte("1234"),
+			[]hex.Hash{
+				hex.Hash([]byte("1234")),
 			},
 		},
 	}
@@ -50,6 +52,7 @@ func TestPublicKeyCredentialRequestOptions_GetAllowedCredentialIDs(t *testing.T)
 				Extensions:         tt.fields.Extensions,
 			}
 			if got := a.GetAllowedCredentialIDs(); !reflect.DeepEqual(got, tt.want) {
+				pp.Println(got, tt.want)
 				t.Errorf("PublicKeyCredentialRequestOptions.GetAllowedCredentialIDs() = %v, want %v", got, tt.want)
 			}
 		})

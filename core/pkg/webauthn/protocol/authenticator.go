@@ -167,22 +167,23 @@ func (flag AuthenticatorFlags) HasExtensions() bool {
 // devices with limited capabilities and low power requirements, with much simpler software stacks than the client platform.
 // The authenticator data structure is a byte array of 37 bytes or more, and is laid out in this table:
 // https://www.w3.org/TR/webauthn/#table-authData
-func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) error {
+func (a *AuthenticatorData) Unmarshal(rawAuthData hex.Hash) error {
+	byt := rawAuthData.Bytes()
 	if minAuthDataLength > len(rawAuthData) {
 		err := ErrBadRequest.WithDetails("Authenticator data length too short")
 		info := fmt.Sprintf("Expected data greater than %d bytes. Got %d bytes\n", minAuthDataLength, len(rawAuthData))
 		return err.WithInfo(info)
 	}
 
-	a.RPIDHash = rawAuthData[:32]
-	a.Flags = AuthenticatorFlags(rawAuthData[32])
-	a.Counter = binary.BigEndian.Uint64(rawAuthData[33:37])
+	a.RPIDHash = byt[:32]
+	a.Flags = AuthenticatorFlags(byt[32])
+	a.Counter = uint64(binary.BigEndian.Uint32(byt[33:37]))
 
-	remaining := len(rawAuthData) - minAuthDataLength
+	remaining := len(byt) - minAuthDataLength
 
 	if a.Flags.HasAttestedCredentialData() {
-		if len(rawAuthData) > minAttestedAuthLength {
-			validError := a.unmarshalAttestedData(rawAuthData)
+		if len(byt) > minAttestedAuthLength {
+			validError := a.unmarshalAttestedData(byt)
 			if validError != nil {
 				return validError
 			}
@@ -192,14 +193,14 @@ func (a *AuthenticatorData) Unmarshal(rawAuthData []byte) error {
 			return ErrBadRequest.WithDetails("Attested credential flag set but data is missing")
 		}
 	} else {
-		if !a.Flags.HasExtensions() && len(rawAuthData) != 37 {
+		if !a.Flags.HasExtensions() && len(byt) != 37 {
 			return ErrBadRequest.WithDetails("Attested credential flag not set")
 		}
 	}
 
 	if a.Flags.HasExtensions() {
 		if remaining != 0 {
-			a.ExtData = rawAuthData[len(rawAuthData)-remaining:]
+			a.ExtData = byt[len(byt)-remaining:]
 			remaining -= len(a.ExtData)
 		} else {
 			return ErrBadRequest.WithDetails("Extensions flag set but extensions data is missing")
