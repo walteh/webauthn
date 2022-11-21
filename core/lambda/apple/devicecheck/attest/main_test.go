@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"nugg-webauthn/core/pkg/dynamo"
 	"nugg-webauthn/core/pkg/hex"
 	"reflect"
@@ -20,7 +19,7 @@ func DummyHandler(t *testing.T) *Handler {
 		Ctx:    context.Background(),
 		Config: nil,
 		Dynamo: dynamo.NewMockClient(t),
-		Logger: zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
+		logger: zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 	}
 
 }
@@ -40,7 +39,7 @@ func TestHandler_Invoke(t *testing.T) {
 			args: Input{
 				Headers: map[string]string{
 					"x-nugg-hex-attestation":      hex.MustBase64ToHash(abc).Hex(),
-					"x-nugg-utf-client-data-json": fmt.Sprintf("{\"challenge\":\"%s\",\"origin\":\"https://nugg.xyz\",\"type\":\"webauthn.attest\"}", hex.MustBase64ToHash("YWJj").Hex()),
+					"x-nugg-utf-client-data-json": ("{\"challenge\":\"YWJj\",\"origin\":\"https://nugg.xyz\",\"type\":\"webauthn.attest\"}"),
 					"x-nugg-hex-payload":          hex.MustBase64ToHash("abc").Hex(),
 				},
 			},

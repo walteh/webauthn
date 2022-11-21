@@ -40,10 +40,36 @@ func (s SavedCeremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMem
 // }
 
 func (s *SavedCeremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMemberM) (err error) {
-	s.ChallengeID = hex.HexToHash(av.Value["challenge_id"].(*types.AttributeValueMemberS).Value)
-	s.SessionID = hex.HexToHash(av.Value["session_id"].(*types.AttributeValueMemberS).Value)
-	s.CredentialID = hex.HexToHash(av.Value["credential_id"].(*types.AttributeValueMemberS).Value)
-	s.CeremonyType = CeremonyType(av.Value["ceremony_type"].(*types.AttributeValueMemberS).Value)
+
+	if av.Value == nil {
+		return fmt.Errorf("attribute value is nil")
+	}
+
+	if x, ok := av.Value["challenge_id"].(*types.AttributeValueMemberS); ok {
+		s.ChallengeID = hex.HexToHash(x.Value)
+	} else {
+		return fmt.Errorf("could not unmarshal challenge_id")
+	}
+
+	if x, ok := av.Value["session_id"].(*types.AttributeValueMemberS); ok {
+		s.SessionID = hex.HexToHash(x.Value)
+	} else {
+		return fmt.Errorf("could not unmarshal session_id")
+
+	}
+
+	if x, ok := av.Value["credential_id"].(*types.AttributeValueMemberS); ok {
+
+		s.CredentialID = hex.HexToHash(x.Value)
+	} else {
+		return fmt.Errorf("could not unmarshal credential_id")
+	}
+
+	if x, ok := av.Value["ceremony_type"].(*types.AttributeValueMemberS); ok {
+		s.CeremonyType = CeremonyType(x.Value)
+	} else {
+		return fmt.Errorf("could not unmarshal ceremony_type")
+	}
 
 	if s.CreatedAt, err = strconv.ParseUint(av.Value["created_at"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
 		return err

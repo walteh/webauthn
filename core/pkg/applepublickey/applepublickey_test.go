@@ -67,7 +67,7 @@ func TestJwtApple(t *testing.T) {
 				Signature: "H1vlDXhXXXj_OQFwyzklrMu3r1qQupK_M5Ot6lbIpHNK9eB8WQHCjvD2dND-ov_eNFWae8gIKRxH4ev_lMfgZFc-IomcB4aqld5uIbEy53VInfCJ9sGNyAjt31kZidLdasqTSSzXxtKbBf89gtiZqHuqHmWF0rSPqs7xM1x2CHfvQYu5642COq8vfwcajbXdYsBLEBnfsSyKVikD7_6Ggl0fwUpixOgGg0i2syNEm8uJ5eCTi0K5k3fEhNESxV7A-voKw-wERNQnxsh1Isr-6s2YHXMhWR2iHLSDn1-H-k2sKgkqTE7P20Y2BAlfAvXccctUtfHAplS7CbFJ0Zs3pw",
 				Valid:     true,
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "A",
@@ -98,7 +98,7 @@ func TestJwtApple(t *testing.T) {
 				Signature: "H1vlDXhXXXj_OQFwyzklrMu3r1qQupK_M5Ot6lbIpHNK9eB8WQHCjvD2dND-ov_eNFWae8gIKRxH4ev_lMfgZFc-IomcB4aqld5uIbEy53VInfCJ9sGNyAjt31kZidLdasqTSSzXxtKbBf89gtiZqHuqHmWF0rSPqs7xM1x2CHfvQYu5642COq8vfwcajbXdYsBLEBnfsSyKVikD7_6Ggl0fwUpixOgGg0i2syNEm8uJ5eCTi0K5k3fEhNESxV7A-voKw-wERNQnxsh1Isr-6s2YHXMhWR2iHLSDn1-H-k2sKgkqTE7P20Y2BAlfAvXccctUtfHAplS7CbFJ0Zs3pw",
 				Valid:     true,
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 

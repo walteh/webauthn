@@ -22,7 +22,7 @@ func TestParseCredentialRequestResponse(t *testing.T) {
 	byteSignature := hex.MustBase64ToHash("MEUCIBtIVOQxzFYdyWQyxaLR0tik1TnuPhGVhXVSNgFwLmN5AiEAnxXdCq0UeAVGWxOaFcjBZ_mEZoXqNboY5IkQDdlWZYc")
 	byteUserHandle := hex.MustBase64ToHash("0ToAAAAAAAAAAA")
 	byteCredentialPubKey := hex.MustBase64ToHash("pQMmIAEhWCAoCF-x0dwEhzQo-ABxHIAgr_5WL6cJceREc81oIwFn7iJYIHEHx8ZhBIE42L26-rSC_3l0ZaWEmsHAKyP9rgslApUdAQI")
-	byteClientDataJSON := "{\"challenge\":\"0x1383d37081ff1df5f5a42e928a0935482f4d02581eced374e37f6f8bccff73d9\",\"new_keys_may_be_added_here\":\"do not compare clientDataJSON against a template. See https://goo.gl/yabPex\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.get\"}"
+	byteClientDataJSON := "{\"challenge\":\"E4PTcIH_HfX1pC6Sigk1SC9NAlgeztN0439vi8z_c9k\",\"new_keys_may_be_added_here\":\"do not compare clientDataJSON against a template. See https://goo.gl/yabPex\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.get\"}"
 
 	type args struct {
 		response *http.Request
@@ -187,13 +187,11 @@ var testAssertionOptions = map[string]string{
 		"type":"public-key",
 		"response":{
 			"attestationObject":"%s",
-			"clientDataJSON":"%s"}
-		}
-	`,
+			"clientDataJSON":"{\"challenge\":\"fyeuuGP9zuej2FGjevi79bzqMKWxi4PYIa_5wj261W0\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}"}
+		}`,
 		hex.MustBase64ToHash("AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng").Hex(),
 		hex.MustBase64ToHash("AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng").Hex(),
 		hex.MustBase64ToHash("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVi7dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBFXJJiFa3OAAI1vMYKZIsLJfHwVQMANwCOw-atj9C0vhWpfWU-whzNjeQS21Lpxfdk_G-omAtffWztpGoErlNOfuXWRqm9Uj9ANJck1p6lAQIDJiABIVggKAhfsdHcBIc0KPgAcRyAIK_-Vi-nCXHkRHPNaCMBZ-4iWCBxB8fGYQSBONi9uvq0gv95dGWlhJrBwCsj_a4LJQKVHQ").Hex(),
-		hex.MustBase64ToHash("eyJjaGFsbGVuZ2UiOiJmeWV1dUdQOXp1ZWoyRkdqZXZpNzlienFNS1d4aTRQWUlhXzV3ajI2MVcwIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5pbyIsInR5cGUiOiJ3ZWJhdXRobi5jcmVhdGUifQ").Utf8(),
 	),
 }
 
@@ -205,14 +203,13 @@ var testAssertionResponses = map[string]string{
 		"type":"public-key",
 		"response":{
 			"authenticatorData":"%s",
-			"clientDataJSON":"{\"challenge\":\"%s\",\"new_keys_may_be_added_here\":\"do not compare clientDataJSON against a template. See https://goo.gl/yabPex\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.get\"}",
+			"clientDataJSON":"{\"challenge\":\"E4PTcIH_HfX1pC6Sigk1SC9NAlgeztN0439vi8z_c9k\",\"new_keys_may_be_added_here\":\"do not compare clientDataJSON against a template. See https://goo.gl/yabPex\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.get\"}",
 			"signature":"%s",
 			"sessionId":"%s"
 		}}`,
 		hex.MustBase64ToHash("AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng").Hex(),
 		hex.MustBase64ToHash("AI7D5q2P0LS-Fal9ZT7CHM2N5BLbUunF92T8b6iYC199bO2kagSuU05-5dZGqb1SP0A0lyTWng").Hex(),
 		hex.MustBase64ToHash("dKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBFXJJiGa3OAAI1vMYKZIsLJfHwVQMANwCOw-atj9C0vhWpfWU-whzNjeQS21Lpxfdk_G-omAtffWztpGoErlNOfuXWRqm9Uj9ANJck1p6lAQIDJiABIVggKAhfsdHcBIc0KPgAcRyAIK_-Vi-nCXHkRHPNaCMBZ-4iWCBxB8fGYQSBONi9uvq0gv95dGWlhJrBwCsj_a4LJQKVHQ").Hex(),
-		hex.MustBase64ToHash("E4PTcIH_HfX1pC6Sigk1SC9NAlgeztN0439vi8z_c9k").Hex(),
 		hex.MustBase64ToHash("MEUCIBtIVOQxzFYdyWQyxaLR0tik1TnuPhGVhXVSNgFwLmN5AiEAnxXdCq0UeAVGWxOaFcjBZ_mEZoXqNboY5IkQDdlWZYc").Hex(),
 		hex.MustBase64ToHash("0ToAAAAAAAAAAA"),
 	),

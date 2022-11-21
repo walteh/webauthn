@@ -178,13 +178,15 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 		return nil, err.(*Error).WithInfo(attestationType)
 	}
 
-	rec, ok := receipt[0].([]byte)
-	if !ok {
-		return nil, ErrAttestationFormat.WithInfo("Attestation receipt is not a byte array")
+	if len(receipt) > 0 {
+		rec, ok := receipt[0].([]byte)
+		if !ok {
+			return nil, ErrAttestationFormat.WithInfo("Attestation receipt is not a byte array")
+		}
+		abc.Receipt = rec
 	}
 
 	abc.PublicKey = pk
-	abc.Receipt = rec
 
 	return abc, nil
 }

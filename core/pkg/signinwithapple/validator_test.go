@@ -22,7 +22,7 @@ func TestNewClientWithUrlString(t *testing.T) {
 		"clientID",
 	)
 	assert.IsType(t, &Client{}, c, "expected New to return a Client type")
-	assert.Equal(t, "someURL", c.validationURL, "expected the client's url to be %s, but got %s", "someURL", c.validationURL)
+	assert.Equal(t, "https://appleid.apple.com", c.validationURL, "expected the client's url to be %s, but got %s", "https://appleid.apple.com", c.validationURL)
 	assert.NotNil(t, c.httpClient, "the client's http client should not be empty")
 }
 

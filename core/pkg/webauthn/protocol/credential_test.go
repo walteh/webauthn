@@ -15,9 +15,9 @@ import (
 )
 
 var byteID = hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
-var byteClientDataJSON = `{\"challenge\":\"0x5bc1b3154f291a386845b5ab2c395a9807eaff2e12d42646d55ba87912c046b1\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}`
+var byteClientDataJSON = `{\"challenge\":\"W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}`
 var byteAttObject = hex.MustBase64ToHash("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjEdKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
-var abc = "{\"challenge\":\"0x5bc1b3154f291a386845b5ab2c395a9807eaff2e12d42646d55ba87912c046b1\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}"
+var abc = "{\"challenge\":\"W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}"
 
 func TestParseCredentialCreationResponse(t *testing.T) {
 
