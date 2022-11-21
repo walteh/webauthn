@@ -8,7 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"fmt"
-	"nugg-auth/core/pkg/hex"
+	"nugg-webauthn/core/pkg/hex"
 )
 
 var appleAppattestAttestationKey = "apple-appattest"

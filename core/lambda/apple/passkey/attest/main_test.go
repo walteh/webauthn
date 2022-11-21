@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"nugg-auth/core/pkg/cognito"
-	"nugg-auth/core/pkg/dynamo"
+	"nugg-webauthn/core/pkg/cognito"
+	"nugg-webauthn/core/pkg/dynamo"
 
 	"reflect"
 	"testing"

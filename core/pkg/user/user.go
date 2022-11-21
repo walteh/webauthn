@@ -1,7 +1,7 @@
 package user
 
 import (
-	"nugg-auth/core/pkg/signinwithapple"
+	"nugg-webauthn/core/pkg/signinwithapple"
 	"time"
 )
 

@@ -10,10 +10,10 @@ import (
 	"math/big"
 	"strings"
 
-	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncose"
 
-	"nugg-auth/core/pkg/webauthn/protocol/googletpm"
+	"nugg-webauthn/core/pkg/webauthn/protocol/googletpm"
 )
 
 var tpmAttestationKey = "tpm"

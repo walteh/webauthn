@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"nugg-auth/core/pkg/dynamo"
-	"nugg-auth/core/pkg/hex"
+	"nugg-webauthn/core/pkg/dynamo"
+	"nugg-webauthn/core/pkg/hex"
 	"reflect"
 	"testing"
 

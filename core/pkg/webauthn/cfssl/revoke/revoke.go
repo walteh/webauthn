@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"nugg-auth/core/pkg/webauthn/cfssl/helpers"
-	"nugg-auth/core/pkg/webauthn/cfssl/log"
+	"nugg-webauthn/core/pkg/webauthn/cfssl/helpers"
+	"nugg-webauthn/core/pkg/webauthn/cfssl/log"
 
 	"golang.org/x/crypto/ocsp"
 )

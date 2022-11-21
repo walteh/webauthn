@@ -1,7 +1,7 @@
 package dynamo
 
 import (
-	"nugg-auth/core/pkg/webauthn/protocol"
+	"nugg-webauthn/core/pkg/webauthn/protocol"
 
 	"time"
 

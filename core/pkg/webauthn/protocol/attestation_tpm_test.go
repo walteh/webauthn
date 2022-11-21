@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"nugg-auth/core/pkg/webauthn/protocol/googletpm"
+	"nugg-webauthn/core/pkg/webauthn/protocol/googletpm"
 
 	"github.com/stretchr/testify/assert"
 )

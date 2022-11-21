@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/webauthn/protocol/webauthncbor"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncbor"
 )
 
 const (

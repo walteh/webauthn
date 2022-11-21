@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
-	"nugg-auth/core/pkg/hex"
+	"nugg-webauthn/core/pkg/hex"
 )
 
 type SavedCeremony struct {

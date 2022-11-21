@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"nugg-auth/core/pkg/hex"
 	"strings"
+
+	"nugg-webauthn/core/pkg/hex"
 )
 
 // CollectedClientData represents the contextual bindings of both the WebAuthn Relying Party

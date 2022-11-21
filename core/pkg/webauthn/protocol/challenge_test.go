@@ -1,7 +1,7 @@
 package protocol
 
 import (
-	"nugg-auth/core/pkg/hex"
+	"nugg-webauthn/core/pkg/hex"
 	"reflect"
 	"testing"
 )

@@ -5,10 +5,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/x509"
-	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/webauthn/protocol/webauthncbor"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncbor"
 
-	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
+	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncose"
 )
 
 var u2fAttestationKey = "fido-u2f"

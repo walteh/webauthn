@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"io"
-	"nugg-auth/core/pkg/hex"
+	"nugg-webauthn/core/pkg/hex"
 	"testing"
 )
 

@@ -8,8 +8,8 @@ import (
 	"log"
 	"net/http"
 
-	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncose"
 )
 
 // The raw response returned to us from an authenticator when we request a

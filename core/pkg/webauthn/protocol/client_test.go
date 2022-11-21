@@ -2,7 +2,7 @@ package protocol
 
 import (
 	"net/url"
-	"nugg-auth/core/pkg/hex"
+	"nugg-webauthn/core/pkg/hex"
 	"testing"
 )
 

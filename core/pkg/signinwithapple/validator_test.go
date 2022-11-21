@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"nugg-auth/core/pkg/applepublickey"
+	"nugg-webauthn/core/pkg/applepublickey"
 	"testing"
 
 	"github.com/golang-jwt/jwt/v4"

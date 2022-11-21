@@ -6,8 +6,8 @@ import (
 	"encoding/asn1"
 	"fmt"
 
-	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncose"
 )
 
 var androidAttestationKey = "android-key"

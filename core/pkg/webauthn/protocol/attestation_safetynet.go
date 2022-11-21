@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/webauthn/metadata"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/metadata"
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/mitchellh/mapstructure"

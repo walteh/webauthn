@@ -3,7 +3,7 @@ package protocol
 import (
 	"crypto/rand"
 	"io"
-	"nugg-auth/core/pkg/hex"
+	"nugg-webauthn/core/pkg/hex"
 	"sync"
 )
 

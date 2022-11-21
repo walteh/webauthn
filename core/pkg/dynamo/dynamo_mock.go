@@ -3,8 +3,8 @@ package dynamo
 import (
 	"context"
 	"log"
-	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/webauthn/protocol"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/protocol"
 	"os"
 	"os/exec"
 	"testing"

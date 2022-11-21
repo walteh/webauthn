@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"log"
-	"nugg-auth/core/pkg/cognito"
-	"nugg-auth/core/pkg/dynamo"
-	"nugg-auth/core/pkg/env"
-	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/invocation"
-	"nugg-auth/core/pkg/webauthn/protocol"
+	"nugg-webauthn/core/pkg/cognito"
+	"nugg-webauthn/core/pkg/dynamo"
+	"nugg-webauthn/core/pkg/env"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/invocation"
+	"nugg-webauthn/core/pkg/webauthn/protocol"
 
 	"os"
 
