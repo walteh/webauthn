@@ -1,36 +1,36 @@
-resource "null_resource" "challenge" {
+resource "null_resource" "init" {
   triggers = { src_hash = "${data.archive_file.core.output_sha}" }
   provisioner "local-exec" {
     environment = {
-      dir = local.challenge_dir
-      tag = "${aws_ecr_repository.core.repository_url}:${local.challenge_tag}"
+      dir = local.init_dir
+      tag = "${aws_ecr_repository.core.repository_url}:${local.init_tag}"
     }
     command = local.lambda_docker_deploy_command
   }
 }
 
-data "aws_ecr_image" "challenge" {
-  depends_on      = [null_resource.challenge]
+data "aws_ecr_image" "init" {
+  depends_on      = [null_resource.init]
   repository_name = aws_ecr_repository.core.name
-  image_tag       = local.challenge_tag
+  image_tag       = local.init_tag
 }
 
 
-resource "aws_lambda_function" "challenge" {
+resource "aws_lambda_function" "init" {
   depends_on = [
     aws_ecr_repository.core,
-    data.aws_ecr_image.challenge
+    data.aws_ecr_image.init
   ]
 
-  function_name    = "${local.app_stack}-challenge"
-  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.challenge_tag}"
-  role             = aws_iam_role.challenge.arn
+  function_name    = "${local.app_stack}-init"
+  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.init_tag}"
+  role             = aws_iam_role.init.arn
   memory_size      = 128
   timeout          = 120
   package_type     = "Image"
   publish          = true
   architectures    = ["arm64"]
-  source_code_hash = trimprefix(data.aws_ecr_image.challenge.image_digest, "sha256:")
+  source_code_hash = trimprefix(data.aws_ecr_image.init.image_digest, "sha256:")
 
   environment {
     variables = {
@@ -50,12 +50,12 @@ resource "aws_lambda_function" "challenge" {
 
 
 
-resource "aws_iam_role" "challenge" {
-  name               = "${local.app_stack}-challenge-ExecutionRole"
+resource "aws_iam_role" "init" {
+  name               = "${local.app_stack}-init-ExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   inline_policy {
-    name   = "${local.app_stack}-challenge-ExecutionRolePolicy"
-    policy = data.aws_iam_policy_document.challenge_lambda_inline.json
+    name   = "${local.app_stack}-init-ExecutionRolePolicy"
+    policy = data.aws_iam_policy_document.init_lambda_inline.json
   }
 
   managed_policy_arns = [
@@ -65,7 +65,7 @@ resource "aws_iam_role" "challenge" {
 }
 
 
-data "aws_iam_policy_document" "challenge_lambda_inline" {
+data "aws_iam_policy_document" "init_lambda_inline" {
   statement {
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue"]
@@ -85,25 +85,25 @@ data "aws_iam_policy_document" "challenge_lambda_inline" {
 		API Gateway
 ////////////////////////*/
 
-resource "aws_apigatewayv2_route" "challenge" {
+resource "aws_apigatewayv2_route" "init" {
   api_id             = aws_apigatewayv2_api.auth.id
-  route_key          = "POST /challenge"
+  route_key          = "POST /init"
   authorization_type = "NONE"
-  target             = "integrations/${aws_apigatewayv2_integration.challenge_lambda.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.init_lambda.id}"
 }
 
-resource "aws_lambda_permission" "challenge" {
-  statement_id  = "${local.app_stack}-challenge-AllowExecutionFromApiGatewayRoute"
+resource "aws_lambda_permission" "init" {
+  statement_id  = "${local.app_stack}-init-AllowExecutionFromApiGatewayRoute"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.challenge.function_name
+  function_name = aws_lambda_function.init.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/challenge"
+  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/init"
 }
 
-resource "aws_apigatewayv2_integration" "challenge_lambda" {
+resource "aws_apigatewayv2_integration" "init_lambda" {
   api_id                 = aws_apigatewayv2_api.auth.id
   integration_type       = "AWS_PROXY"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.challenge.invoke_arn
+  integration_uri        = aws_lambda_function.init.invoke_arn
   payload_format_version = "2.0"
 }

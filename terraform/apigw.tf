@@ -34,13 +34,13 @@ resource "aws_apigatewayv2_api_mapping" "auth" {
   api_id          = aws_apigatewayv2_api.auth.id
   domain_name     = local.rs_mesh_apigw_host
   stage           = aws_apigatewayv2_stage.default.id
-  api_mapping_key = "auth"
+  api_mapping_key = local.app
 }
 
 resource "aws_apigatewayv2_deployment" "default" {
   depends_on = [
     aws_apigatewayv2_route.apple_passkey_attest,
-    aws_apigatewayv2_route.challenge,
+    aws_apigatewayv2_route.init,
     aws_apigatewayv2_route.apple_passkey_assert,
   ]
   api_id = aws_apigatewayv2_api.auth.id

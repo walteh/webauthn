@@ -5,7 +5,7 @@ locals {
 }
 
 locals {
-  app       = "auth"
+  app       = "webauthn"
   env       = terraform.workspace
   app_stack = "${local.env}-${local.app}"
 
@@ -25,17 +25,22 @@ locals {
 locals {
   latest = "latest"
 
-  appsync_dir              = "lambda/appsync-authorizer"
-  apigw_dir                = "lambda/apigw-authorizer"
-  apple_passkey_attest_dir = "lambda/apple/passkey/attest"
-  challenge_dir            = "lambda/challenge"
-  apple_passkey_assert_dir = "lambda/apple/passkey/assert"
+  appsync_dir                  = "lambda/appsync/authorizer"
+  apigw_dir                    = "lambda/apigw/authorizer"
+  init_dir                     = "lambda/init"
+  apple_passkey_attest_dir     = "lambda/apple/passkey/attest"
+  apple_passkey_assert_dir     = "lambda/apple/passkey/assert"
+  apple_devicecheck_attest_dir = "lambda/apple/devicecheck/attest"
 
-  apigw_tag                = replace("${local.apigw_dir}/${local.latest}", "/", "_")
-  appsync_tag              = replace("${local.appsync_dir}/${local.latest}", "/", "_")
-  apple_passkey_attest_tag = replace("${local.apple_passkey_attest_dir}/${local.latest}", "/", "_")
-  challenge_tag            = replace("${local.challenge_dir}/${local.latest}", "/", "_")
-  apple_passkey_assert_tag = replace("${local.apple_passkey_assert_dir}/${local.latest}", "/", "_")
+  apple_devicecheck_assert_dir = "lambda/apple/devicecheck/assert"
+
+  apigw_tag                    = replace("${local.apigw_dir}/${local.latest}", "/", "_")
+  appsync_tag                  = replace("${local.appsync_dir}/${local.latest}", "/", "_")
+  init_tag                     = replace("${local.init_dir}/${local.latest}", "/", "_")
+  apple_passkey_attest_tag     = replace("${local.apple_passkey_attest_dir}/${local.latest}", "/", "_")
+  apple_passkey_assert_tag     = replace("${local.apple_passkey_assert_dir}/${local.latest}", "/", "_")
+  apple_devicecheck_attest_tag = replace("${local.apple_devicecheck_attest_dir}/${local.latest}", "/", "_")
+  apple_devicecheck_assert_tag = replace("${local.apple_devicecheck_assert_dir}/${local.latest}", "/", "_")
 
   primary = "primary"
 

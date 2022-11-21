@@ -15,7 +15,7 @@ terraform {
   }
   backend "s3" {
     bucket = "nugg.xyz-terraform"
-    key    = "auth.tfstate"
+    key    = "webauthn.tfstate"
     region = "us-east-1"
   }
 }

@@ -33,11 +33,11 @@ resource "aws_dynamodb_table" "users" {
 
 resource "aws_dynamodb_table" "ceremonies" {
   name         = "${local.app_stack}-ceremonies"
-  hash_key     = "ceremony_id"
+  hash_key     = "challenge_id"
   billing_mode = "PAY_PER_REQUEST"
 
   attribute {
-    name = "ceremony_id"
+    name = "challenge_id"
     type = "S"
   }
 }
