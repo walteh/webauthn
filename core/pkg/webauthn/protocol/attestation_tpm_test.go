@@ -15,7 +15,7 @@ func TestTPMAttestationVerificationSuccess(t *testing.T) {
 			pcc := attestationTestUnpackResponse(t, testAttestationTPMResponses[i])
 			clientDataHash := sha256.Sum256([]byte(pcc.Raw.AttestationResponse.UTF8ClientDataJSON))
 
-			attestationKey, _, err := verifyTPMFormat(pcc.Response.AttestationObject, clientDataHash[:])
+			_, attestationKey, _, err := verifyTPMFormat(pcc.Response.AttestationObject, clientDataHash[:])
 			if err != nil {
 				t.Fatalf("Not valid: %+v", err)
 			}
@@ -110,7 +110,7 @@ func TestTPMAttestationVerificationFailAttStatement(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		attestationKey, _, err := verifyTPMFormat(tt.att, nil)
+		_, attestationKey, _, err := verifyTPMFormat(tt.att, nil)
 		if tt.wantErr != "" {
 			assert.Contains(t, err.Error(), tt.wantErr)
 		} else {
@@ -137,7 +137,7 @@ func TestTPMAttestationVerificationFailPubArea(t *testing.T) {
 		att := AttestationObject{
 			AttStatement: attStmt,
 		}
-		attestationKey, _, err := verifyTPMFormat(att, nil)
+		_, attestationKey, _, err := verifyTPMFormat(att, nil)
 		if tt.wantErr != "" {
 			assert.Contains(t, err.Error(), tt.wantErr)
 		} else {
@@ -154,7 +154,7 @@ func TestTPMAttestationVerificationFailCertInfo(t *testing.T) {
 		wantErr        string
 	}{}
 	for _, tt := range tests {
-		attestationKey, _, err := verifyTPMFormat(tt.att, tt.clientDataHash[:])
+		_, attestationKey, _, err := verifyTPMFormat(tt.att, tt.clientDataHash[:])
 		if tt.wantErr != "" {
 			assert.Contains(t, err.Error(), tt.wantErr)
 		} else {
@@ -171,7 +171,7 @@ func TestTPMAttestationVerificationFailX5c(t *testing.T) {
 		wantErr        string
 	}{}
 	for _, tt := range tests {
-		attestationKey, _, err := verifyTPMFormat(tt.att, tt.clientDataHash[:])
+		_, attestationKey, _, err := verifyTPMFormat(tt.att, tt.clientDataHash[:])
 		if tt.wantErr != "" {
 			assert.Contains(t, err.Error(), tt.wantErr)
 		} else {

@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"strings"
 
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
 
 	"nugg-auth/core/pkg/webauthn/protocol/googletpm"
@@ -22,7 +23,7 @@ func init() {
 	googletpm.UseTPM20LengthPrefixSize()
 }
 
-func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []interface{}, error) {
+func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
 	// Given the verification procedure inputs attStmt, authenticatorData
 	// and clientDataHash, the verification procedure is as follows
 
@@ -31,16 +32,16 @@ func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []in
 
 	ver, present := att.AttStatement["ver"].(string)
 	if !present {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving ver value")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving ver value")
 	}
 
 	if ver != "2.0" {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("WebAuthn only supports TPM 2.0 currently")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("WebAuthn only supports TPM 2.0 currently")
 	}
 
 	alg, present := att.AttStatement["alg"].(int64)
 	if !present {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving alg value")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving alg value")
 	}
 
 	coseAlg := webauthncose.COSEAlgorithmIdentifier(alg)
@@ -48,56 +49,56 @@ func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []in
 	x5c, x509present := att.AttStatement["x5c"].([]interface{})
 	if !x509present {
 		// Handle Basic Attestation steps for the x509 Certificate
-		return tpmAttestationKey, nil, ErrNotImplemented
+		return nil, tpmAttestationKey, nil, ErrNotImplemented
 	}
 
 	_, ecdaaKeyPresent := att.AttStatement["ecdaaKeyId"].([]byte)
 	if ecdaaKeyPresent {
-		return tpmAttestationKey, nil, ErrNotImplemented
+		return nil, tpmAttestationKey, nil, ErrNotImplemented
 	}
 
 	sigBytes, present := att.AttStatement["sig"].([]byte)
 	if !present {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving sig value")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving sig value")
 	}
 
 	certInfoBytes, present := att.AttStatement["certInfo"].([]byte)
 	if !present {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving certInfo value")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving certInfo value")
 	}
 
 	pubAreaBytes, present := att.AttStatement["pubArea"].([]byte)
 	if !present {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving pubArea value")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving pubArea value")
 	}
 
 	// Verify that the public key specified by the parameters and unique fields of pubArea
 	// is identical to the credentialPublicKey in the attestedCredentialData in authenticatorData.
 	pubArea, err := googletpm.DecodePublic(pubAreaBytes)
 	if err != nil {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Unable to decode TPMT_PUBLIC in attestation statement")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Unable to decode TPMT_PUBLIC in attestation statement")
 	}
 
 	key, err := webauthncose.ParsePublicKey(att.AuthData.AttData.CredentialPublicKey)
 	if err != nil {
-		return tpmAttestationKey, nil, err
+		return nil, tpmAttestationKey, nil, err
 	}
 	switch key := key.(type) {
 	case webauthncose.EC2PublicKeyData:
 		if pubArea.ECCParameters.CurveID != key.TPMCurveID() ||
 			pubArea.ECCParameters.Point.X.Cmp(new(big.Int).SetBytes(key.XCoord)) != 0 ||
 			pubArea.ECCParameters.Point.Y.Cmp(new(big.Int).SetBytes(key.YCoord)) != 0 {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Mismatch between ECCParameters in pubArea and credentialPublicKey")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Mismatch between ECCParameters in pubArea and credentialPublicKey")
 		}
 	case webauthncose.RSAPublicKeyData:
 		mod := new(big.Int).SetBytes(key.Modulus)
 		exp := uint32(key.Exponent[0]) + uint32(key.Exponent[1])<<8 + uint32(key.Exponent[2])<<16
 		if pubArea.RSAParameters.Modulus.Cmp(mod) != 0 ||
 			pubArea.RSAParameters.Exponent != exp {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Mismatch between RSAParameters in pubArea and credentialPublicKey")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Mismatch between RSAParameters in pubArea and credentialPublicKey")
 		}
 	default:
-		return "", nil, ErrUnsupportedKey
+		return nil, "", nil, ErrUnsupportedKey
 	}
 
 	// Concatenate authenticatorData and clientDataHash to form attToBeSigned
@@ -106,22 +107,22 @@ func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []in
 	// Validate that certInfo is valid:
 	certInfo, err := googletpm.DecodeAttestationData(certInfoBytes)
 	if err != nil {
-		return tpmAttestationKey, nil, err
+		return nil, tpmAttestationKey, nil, err
 	}
 	// 1/4 Verify that magic is set to TPM_GENERATED_VALUE.
 	if certInfo.Magic != 0xff544347 {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Magic is not set to TPM_GENERATED_VALUE")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Magic is not set to TPM_GENERATED_VALUE")
 	}
 	// 2/4 Verify that type is set to TPM_ST_ATTEST_CERTIFY.
 	if certInfo.Type != googletpm.TagAttestCertify {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Type is not set to TPM_ST_ATTEST_CERTIFY")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Type is not set to TPM_ST_ATTEST_CERTIFY")
 	}
 	// 3/4 Verify that extraData is set to the hash of attToBeSigned using the hash algorithm employed in "alg".
 	f := webauthncose.HasherFromCOSEAlg(coseAlg)
 	h := f()
 	h.Write(attToBeSigned)
 	if !bytes.Equal(certInfo.ExtraData, h.Sum(nil)) {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("ExtraData is not set to hash of attToBeSigned")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("ExtraData is not set to hash of attToBeSigned")
 	}
 	// 4/4 Verify that attested contains a TPMS_CERTIFY_INFO structure as specified in
 	// [TPMv2-Part2] section 10.12.3, whose name field contains a valid Name for pubArea,
@@ -131,7 +132,7 @@ func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []in
 	h = f()
 	h.Write(pubAreaBytes)
 	if !bytes.Equal(h.Sum(nil), certInfo.AttestedCertifyInfo.Name.Digest.Value) {
-		return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Hash value mismatch attested and pubArea")
+		return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Hash value mismatch attested and pubArea")
 	}
 
 	// Note that the remaining fields in the "Standard Attestation Structure"
@@ -144,29 +145,29 @@ func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []in
 		// Verify the sig is a valid signature over certInfo using the attestation public key in aikCert with the algorithm specified in alg.
 		aikCertBytes, valid := x5c[0].([]byte)
 		if !valid {
-			return tpmAttestationKey, nil, ErrAttestation.WithDetails("Error getting certificate from x5c cert chain")
+			return nil, tpmAttestationKey, nil, ErrAttestation.WithDetails("Error getting certificate from x5c cert chain")
 		}
 
 		aikCert, err := x509.ParseCertificate(aikCertBytes)
 		if err != nil {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error parsing certificate from ASN.1")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Error parsing certificate from ASN.1")
 		}
 
 		sigAlg := webauthncose.SigAlgFromCOSEAlg(coseAlg)
 
 		err = aikCert.CheckSignature(x509.SignatureAlgorithm(sigAlg), certInfoBytes, sigBytes)
 		if err != nil {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails(fmt.Sprintf("Signature validation error: %+v\n", err))
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails(fmt.Sprintf("Signature validation error: %+v\n", err))
 		}
 		// Verify that aikCert meets the requirements in §8.3.1 TPM Attestation Statement Certificate Requirements
 
 		// 1/6 Version MUST be set to 3.
 		if aikCert.Version != 3 {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate version must be 3")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate version must be 3")
 		}
 		// 2/6 Subject field MUST be set to empty.
 		if aikCert.Subject.String() != "" {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate subject must be empty")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate subject must be empty")
 		}
 
 		// 3/6 The Subject Alternative Name extension MUST be set as defined in [TPMv2-EK-Profile] section 3.2.9{}
@@ -175,17 +176,17 @@ func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []in
 			if ext.Id.Equal([]int{2, 5, 29, 17}) {
 				manufacturer, model, version, err = parseSANExtension(ext.Value)
 				if err != nil {
-					return tpmAttestationKey, nil, err
+					return nil, tpmAttestationKey, nil, err
 				}
 			}
 		}
 
 		if manufacturer == "" || model == "" || version == "" {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Invalid SAN data in AIK certificate")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Invalid SAN data in AIK certificate")
 		}
 
 		if !isValidTPMManufacturer(manufacturer) {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Invalid TPM manufacturer")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("Invalid TPM manufacturer")
 		}
 
 		// 4/6 The Extended Key Usage extension MUST contain the "joint-iso-itu-t(2) internationalorganizations(23) 133 tcg-kp(8) tcg-kp-AIKCertificate(3)" OID.
@@ -195,13 +196,13 @@ func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []in
 			if ext.Id.Equal([]int{2, 5, 29, 37}) {
 				rest, err := asn1.Unmarshal(ext.Value, &eku)
 				if len(rest) != 0 || err != nil || !eku[0].Equal(tcgKpAIKCertificate) {
-					return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate EKU missing 2.23.133.8.3")
+					return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate EKU missing 2.23.133.8.3")
 				}
 				ekuValid = true
 			}
 		}
 		if !ekuValid {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate missing EKU")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate missing EKU")
 		}
 
 		// 5/6 The Basic Constraints extension MUST have the CA component set to false.
@@ -213,21 +214,21 @@ func verifyTPMFormat(att AttestationObject, clientDataHash []byte) (string, []in
 		for _, ext := range aikCert.Extensions {
 			if ext.Id.Equal([]int{2, 5, 29, 19}) {
 				if rest, err := asn1.Unmarshal(ext.Value, &constraints); err != nil {
-					return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate basic constraints malformed")
+					return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate basic constraints malformed")
 				} else if len(rest) != 0 {
-					return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate basic constraints contains extra data")
+					return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate basic constraints contains extra data")
 				}
 			}
 		}
 		if constraints.IsCA {
-			return tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate basic constraints missing or CA is true")
+			return nil, tpmAttestationKey, nil, ErrAttestationFormat.WithDetails("AIK certificate basic constraints missing or CA is true")
 		}
 		// 6/6 An Authority Information Access (AIA) extension with entry id-ad-ocsp and a CRL Distribution Point
 		// extension [RFC5280] are both OPTIONAL as the status of many attestation certificates is available
 		// through metadata services. See, for example, the FIDO Metadata Service.
 	}
 
-	return tpmAttestationKey, x5c, err
+	return att.AuthData.AttData.CredentialPublicKey, tpmAttestationKey, x5c, err
 }
 func forEachSAN(extension []byte, callback func(tag int, data []byte) error) error {
 	// RFC 5280, 4.2.1.6

@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 )
@@ -119,9 +120,9 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	attestation := input.Headers["X-Nugg-DeviceCheck-Attestation"]
-	clientData := input.Headers["X-Nugg-DeviceCheck-ClientDataJSON"]
-	payload := input.Headers["X-Nugg-DeviceCheck-Payload"]
+	attestation := input.Headers["x-nugg-devicecheck-attestation"]
+	clientData := input.Headers["x-nugg-devicecheck-clientdatajson"]
+	payload := input.Headers["x-nugg-devicecheck-payload"]
 
 	if attestation == "" || clientData == "" {
 		return inv.Error(nil, 400, "missing required headers")
@@ -144,9 +145,19 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	d := sha256.Sum256(b)
 
 	// relyiing part for apple appattestation
-	_, _, err = p.AttestationObject.Verify("4497QJSAD3.xyz.nugg.app", d[:], false, false)
+	pk, err := p.AttestationObject.Verify("4497QJSAD3.xyz.nugg.app", d[:], false, false)
 	if err != nil {
 		return inv.Error(err, 400, err.Error())
+	}
+
+	putter, err := dynamo.MakePut(h.Dynamo.MustCredentialTableName(), pk)
+	if err != nil {
+		return inv.Error(err, 500, err.Error())
+	}
+
+	err = h.Dynamo.TransactWrite(ctx, types.TransactWriteItem{Put: putter})
+	if err != nil {
+		return inv.Error(err, 500, err.Error())
 	}
 
 	// webauthn.MakeNewCredential(&protocol.ParsedCredentialCreationData{

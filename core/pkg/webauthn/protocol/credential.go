@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"nugg-auth/core/pkg/hex"
-	"time"
 
 	"github.com/k0kubun/pp"
 )
@@ -185,7 +184,7 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge hex.Hash, sessio
 
 	// We do the above step while parsing and decoding the CredentialCreationResponse
 	// Handle steps 9 through 14 - This verifies the attestaion object and
-	pk, r, verifyError := pcc.Response.AttestationObject.Verify(relyingPartyID, clientDataHash[:], verifyUser, true)
+	pk, verifyError := pcc.Response.AttestationObject.Verify(relyingPartyID, clientDataHash[:], verifyUser, true)
 	if verifyError != nil {
 		return nil, verifyError
 	}
@@ -226,22 +225,22 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge hex.Hash, sessio
 
 	// TODO: Not implemented for the reasons mentioned under Step 16
 
-	z := &SavedCredential{
-		AAGUID: pcc.Response.AttestationObject.AuthData.AttData.AAGUID,
-		// AttestationType: pcc.Response.AttestationObject.AuthData.,
-		RawID:           pcc.Response.AttestationObject.AuthData.AttData.CredentialID,
-		SignCount:       pcc.Response.AttestationObject.AuthData.Counter,
-		PublicKey:       pk,
-		Type:            "public-key",
-		AttestationType: (pcc.Response.AttestationObject.Format),
-		Receipt:         r,
-		CloneWarning:    false,
-		CreatedAt:       uint64(time.Now().Unix()),
-		UpdatedAt:       uint64(time.Now().Unix()),
-		SessionId:       sessionId,
-	}
+	// z := &SavedCredential{
+	// 	AAGUID: pcc.Response.AttestationObject.AuthData.AttData.AAGUID,
+	// 	// AttestationType: pcc.Response.AttestationObject.AuthData.,
+	// 	RawID:           pcc.Response.AttestationObject.AuthData.AttData.CredentialID,
+	// 	SignCount:       pcc.Response.AttestationObject.AuthData.Counter,
+	// 	PublicKey:       pk,
+	// 	Type:            "public-key",
+	// 	AttestationType: (pcc.Response.AttestationObject.Format),
+	// 	Receipt:         r,
+	// 	CloneWarning:    false,
+	// 	CreatedAt:       uint64(time.Now().Unix()),
+	// 	UpdatedAt:       uint64(time.Now().Unix()),
+	// 	SessionId:       sessionId,
+	// }
 
-	return z, nil
+	return pk, nil
 }
 
 // GetAppID takes a AuthenticationExtensions object or nil. It then performs the following checks in order:

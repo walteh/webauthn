@@ -33,7 +33,7 @@ func Test_verifySafetyNetFormat(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := verifySafetyNetFormat(tt.args.att, tt.args.clientDataHash)
+			_, got, got1, err := verifySafetyNetFormat(tt.args.att, tt.args.clientDataHash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("verifySafetyNetFormat() error = %v, wantErr %v", err, tt.wantErr)
 				return
