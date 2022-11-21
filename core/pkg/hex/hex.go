@@ -15,6 +15,14 @@ import (
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
 type Hash []byte
 
+func (h Hash) Cmp(other Hash) int {
+	return bytes.Compare(h[:], other[:])
+}
+
+func (h Hash) Equals(other Hash) bool {
+	return h.Cmp(other) == 0
+}
+
 // BytesToHash sets b to hash.
 // If b is larger than len(h), b will be cropped from the left.
 func BytesToHash(b []byte) Hash {

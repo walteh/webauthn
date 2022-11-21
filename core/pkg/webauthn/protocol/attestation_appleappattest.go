@@ -152,7 +152,7 @@ func verifyAppleAppattestKeyFormat(att AttestationObject, clientDataHash []byte)
 	case *ecdsa.PublicKey:
 		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
 		pubKeyHash := sha256.Sum256(publicKeyBytes)
-		if bytes.Equal(pubKeyHash[:], att.AuthData.AttData.CredentialID) {
+		if !bytes.Equal(pubKeyHash[:], att.AuthData.AttData.CredentialID) {
 			return nil, "", nil, ErrInvalidAttestation.WithDetails("The key id is not a valid SHA256 hash of the certificate public key.")
 		}
 	default:

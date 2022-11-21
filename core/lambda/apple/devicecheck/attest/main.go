@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
-	"crypto/sha256"
-	"encoding/base64"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol"
+
+	"context"
 	"os"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 )
@@ -36,12 +37,18 @@ func init() {
 
 type Invocation struct {
 	zerolog.Logger
-	Start time.Time
+	Start  time.Time
+	Ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func (h *Handler) NewInvocation(logger zerolog.Logger) *Invocation {
+func (h *Handler) NewInvocation(ctx context.Context, logger zerolog.Logger) *Invocation {
+	ctx, cnl := context.WithCancel(ctx)
+
 	h.counter++
 	return &Invocation{
+		cancel: cnl,
+		Ctx:    ctx,
 		Logger: h.Logger.With().Int("counter", h.counter).Str("handler", h.Id).Logger(),
 		Start:  time.Now(),
 	}
@@ -107,7 +114,7 @@ func main() {
 	abc := &Handler{
 		Id:      ksuid.New().String(),
 		Ctx:     ctx,
-		Dynamo:  dynamo.NewClient(cfg, "", env.DynamoCeremoniesTableName(), ""),
+		Dynamo:  dynamo.NewClient(cfg, "", env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
 		Config:  cfg,
 		Logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
 		counter: 0,
@@ -118,34 +125,33 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
-	inv := h.NewInvocation(h.Logger)
+	inv := h.NewInvocation(ctx, h.Logger)
 
-	attestation := input.Headers["x-nugg-devicecheck-attestation"]
-	clientData := input.Headers["x-nugg-devicecheck-clientdatajson"]
-	payload := input.Headers["x-nugg-devicecheck-payload"]
+	attestation := hex.HexToHash(input.Headers["x-nugg-hex-attestation"])
+	clientData := input.Headers["x-nugg-utf-client-data-json"]
+	payload := hex.HexToHash(input.Headers["x-nugg-hex-payload"])
 
-	if attestation == "" || clientData == "" {
+	if attestation.IsZero() || clientData == "" {
 		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	i, err := protocol.FormatAttestationInput(clientData, attestation)
-	if err != nil {
-		return inv.Error(err, 400, "invalid attestation")
-	}
-
-	p, err := i.Parse()
+	p, err := protocol.FormatAttestationInput(clientData, attestation).Parse()
 	if err != nil {
 		return inv.Error(err, 400, err.Error())
 	}
 
-	b, err := base64.RawURLEncoding.DecodeString(payload)
-	if err != nil {
-		return inv.Error(err, 400, "invalid payload")
-	}
-	d := sha256.Sum256(b)
+	cer := protocol.NewUnsafeGettableCeremony(p.CollectedClientData.Challenge)
 
-	// relyiing part for apple appattestation
-	pk, err := p.AttestationObject.Verify("4497QJSAD3.xyz.nugg.app", d[:], false, false)
+	err = h.Dynamo.TransactGet(ctx, cer)
+	if err != nil {
+		return inv.Error(err, 400, err.Error())
+	}
+
+	if !cer.ChallengeID.Equals(p.CollectedClientData.Challenge) {
+		return inv.Error(nil, 400, "invalid credential id")
+	}
+
+	pk, err := p.AttestationObject.Verify("4497QJSAD3.xyz.nugg.app", payload.Sha256(), false, false)
 	if err != nil {
 		return inv.Error(err, 400, err.Error())
 	}
@@ -155,41 +161,13 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(err, 500, err.Error())
 	}
 
-	err = h.Dynamo.TransactWrite(ctx, types.TransactWriteItem{Put: putter})
+	err = h.Dynamo.TransactWrite(inv.Ctx, types.TransactWriteItem{Put: putter})
 	if err != nil {
 		return inv.Error(err, 500, err.Error())
 	}
 
-	// webauthn.MakeNewCredential(&protocol.ParsedCredentialCreationData{
-	// 	ParsedPublicKeyCredential: protocol.ParsedPublicKeyCredential{
-	// 		RawID: rec.RawID,
-	// 		Type:  rec.Type,
-	// 		ParsedCredential: protocol.ParsedCredential{
-	// 			ID: rec.ID,
-	// 			Type: "",
-	// 		},
-	// 		ClientExtensionResults: ,
-	// 	},
-	// })
+	pp.Println(putter)
 
-	// getter := h.Dynamo.NewCeremonyGet(string(clientData))
-
-	// res, err := h.Dynamo.TransactGet(ctx, types.TransactGetItem{Get: getter})
-	// if err != nil {
-	// 	return inv.Error(err, 500, "failed to get ceremony")
-	// }
-
-	// c, err := h.Dynamo.FindDeviceCheckCeremonyInGetResult(res)
-	// if err != nil {
-	// 	return inv.Error(err, 500, "failed to find ceremony")
-	// }
-
-	// if c.Id != clientData {
-	// 	return inv.Error(nil, 400, "ceremony mismatch")
-	// }
-
-	return inv.Success(204, map[string]string{
-		"Content-Length": "0",
-	}, "")
+	return inv.Success(204, map[string]string{}, "")
 
 }

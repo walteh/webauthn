@@ -122,13 +122,14 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	inv := h.NewInvocation(h.Logger)
 
-	sessionId := hex.HexToHash(payload.Headers["x-nugg-webauthn-sessionId"])
+	sessionId := hex.HexToHash(payload.Headers["x-nugg-hex-session-id"])
+	credentialId := hex.HexToHash(payload.Headers["x-nugg-hex-credential-id"])
 
 	if sessionId.IsZero() {
-		return inv.Error(nil, 400, "missing x-nugg-webauthn-sessionId header")
+		return inv.Error(nil, 400, "missing x-nugg-hex-sessionId header")
 	}
 
-	cha := protocol.NewCeremony(hex.Hash{}, sessionId, protocol.CreateCeremony)
+	cha := protocol.NewCeremony(credentialId, sessionId, protocol.CreateCeremony)
 
 	cer, err := dynamo.MakePut(h.Dynamo.MustCeremonyTableName(), cha)
 	if err != nil {
@@ -142,5 +143,5 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	pp.Println(cer)
 
-	return inv.Success(204, map[string]string{"x-nugg-webauthn-challenge": cha.ChallengeID.Hex()}, "")
+	return inv.Success(204, map[string]string{"x-nugg-hex-challenge": cha.ChallengeID.Hex()}, "")
 }

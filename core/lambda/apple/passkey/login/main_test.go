@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
+	"nugg-auth/core/pkg/hex"
 
 	"reflect"
 	"testing"
@@ -14,15 +16,6 @@ import (
 
 func DummyHandler(t *testing.T) *Handler {
 	dynamoClient := dynamo.NewMockClient(t)
-
-	// wan, err := webauthn.New(&webauthn.Config{
-	// 	RPDisplayName: "nugg.xyz",
-	// 	RPID:          "nugg.xyz",
-	// 	RPOrigin:      "https://nugg.xyz",
-	// })
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
 
 	err := dynamoClient.TransactWrite(context.Background(),
 		types.TransactWriteItem{
@@ -44,48 +37,38 @@ func DummyHandler(t *testing.T) *Handler {
 		types.TransactWriteItem{
 			Put: &types.Put{
 				Item: map[string]types.AttributeValue{
-					"dat": &types.AttributeValueMemberB{
-						Value: []uint8{
-							0x7b, 0x22, 0x63, 0x72, 0x65, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x5f, 0x69, 0x64, 0x22,
-							0x3a, 0x22, 0x63, 0x46, 0x50, 0x74, 0x43, 0x51, 0x41, 0x4d, 0x2b, 0x76, 0x33, 0x57, 0x34, 0x64,
-							0x6d, 0x4e, 0x6b, 0x70, 0x65, 0x57, 0x2b, 0x63, 0x42, 0x38, 0x52, 0x6d, 0x73, 0x3d, 0x22, 0x2c,
-							0x22, 0x70, 0x75, 0x62, 0x6c, 0x69, 0x63, 0x5f, 0x6b, 0x65, 0x79, 0x22, 0x3a, 0x22, 0x70, 0x51,
-							0x45, 0x43, 0x41, 0x79, 0x59, 0x67, 0x41, 0x53, 0x46, 0x59, 0x49, 0x44, 0x44, 0x66, 0x75, 0x44,
-							0x48, 0x72, 0x73, 0x34, 0x4b, 0x38, 0x76, 0x55, 0x57, 0x73, 0x62, 0x4c, 0x46, 0x30, 0x55, 0x69,
-							0x4b, 0x33, 0x32, 0x42, 0x72, 0x59, 0x31, 0x45, 0x71, 0x7a, 0x50, 0x69, 0x44, 0x53, 0x76, 0x61,
-							0x59, 0x79, 0x74, 0x57, 0x6b, 0x71, 0x49, 0x6c, 0x67, 0x67, 0x39, 0x6b, 0x6c, 0x74, 0x41, 0x39,
-							0x4e, 0x58, 0x63, 0x58, 0x31, 0x32, 0x61, 0x61, 0x65, 0x76, 0x53, 0x51, 0x79, 0x48, 0x42, 0x76,
-							0x37, 0x77, 0x55, 0x73, 0x43, 0x42, 0x6d, 0x67, 0x4b, 0x39, 0x79, 0x6b, 0x75, 0x53, 0x76, 0x55,
-							0x4a, 0x46, 0x6d, 0x67, 0x41, 0x3d, 0x22, 0x2c, 0x22, 0x61, 0x74, 0x74, 0x65, 0x73, 0x74, 0x61,
-							0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x22, 0x3a, 0x22, 0x6e, 0x6f, 0x6e, 0x65,
-							0x22, 0x2c, 0x22, 0x61, 0x75, 0x74, 0x68, 0x65, 0x6e, 0x74, 0x69, 0x63, 0x61, 0x74, 0x6f, 0x72,
-							0x22, 0x3a, 0x7b, 0x22, 0x61, 0x61, 0x67, 0x75, 0x69, 0x64, 0x22, 0x3a, 0x22, 0x41, 0x41, 0x41,
-							0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,
-							0x41, 0x41, 0x41, 0x3d, 0x3d, 0x22, 0x2c, 0x22, 0x73, 0x69, 0x67, 0x6e, 0x5f, 0x63, 0x6f, 0x75,
-							0x6e, 0x74, 0x22, 0x3a, 0x30, 0x2c, 0x22, 0x63, 0x6c, 0x6f, 0x6e, 0x65, 0x5f, 0x77, 0x61, 0x72,
-							0x6e, 0x69, 0x6e, 0x67, 0x22, 0x3a, 0x66, 0x61, 0x6c, 0x73, 0x65, 0x7d, 0x7d,
-						},
+					"receipt": &types.AttributeValueMemberS{
+						Value: "0x",
 					},
-					"credential_id": &types.AttributeValueMemberS{
-						Value: "cFPtCQAM-v3W4dmNkpeW-cB8Rms",
-					},
-					"nugg_id": &types.AttributeValueMemberS{
-						Value: "01GJ64VW4WB50CYYN2KDN94WKH",
-					},
-					"credential_user_id": &types.AttributeValueMemberB{
-						Value: []uint8{
-							0x68, 0x4f, 0x43, 0x65, 0x35, 0x38, 0x38, 0x64, 0x61, 0x4a, 0x5a, 0x75, 0x47, 0x41, 0x36, 0x50,
-							0x65, 0x4a, 0x54, 0x63, 0x7a, 0x51,
-						},
-					},
-					"type": &types.AttributeValueMemberS{
-						Value: "apple-passkey",
+					"aaguid": &types.AttributeValueMemberS{
+						Value: "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
 					},
 					"created_at": &types.AttributeValueMemberN{
-						Value: "1668801228",
+						Value: "1669001824",
+					},
+					"credential_id": &types.AttributeValueMemberS{
+						Value: "0x7053ed09000cfafdd6e1d98d929796f9c07c466b",
+					},
+					"credential_type": &types.AttributeValueMemberS{
+						Value: "public-key",
+					},
+					"public_key": &types.AttributeValueMemberS{
+						Value: "0xa501020326200121582030dfb831ebb382bcbd45ac6cb1745222b7d81ad8d44ab33e20d2bda632b5692a225820f6496d03d357717d7669a7af490c8706fef052c0819a02bdca4b92bd42459a00",
 					},
 					"updated_at": &types.AttributeValueMemberN{
-						Value: "1668801228",
+						Value: "1669001824",
+					},
+					"session_id": &types.AttributeValueMemberS{
+						Value: "0x",
+					},
+					"attestation_type": &types.AttributeValueMemberS{
+						Value: "none",
+					},
+					"sign_count": &types.AttributeValueMemberN{
+						Value: "0",
+					},
+					"clone_warning": &types.AttributeValueMemberBOOL{
+						Value: false,
 					},
 				},
 				TableName: &dynamoClient.CredentialTableName,
@@ -93,38 +76,23 @@ func DummyHandler(t *testing.T) *Handler {
 		}, types.TransactWriteItem{
 			Put: &types.Put{
 				Item: map[string]types.AttributeValue{
-					"session_data": &types.AttributeValueMemberM{
-						Value: map[string]types.AttributeValue{
-							"challenge": &types.AttributeValueMemberB{
-								Value: []uint8{
-									0xe1, 0x2e, 0x11, 0x5a, 0xcf, 0x45, 0x52, 0xb2, 0x56, 0x8b, 0x55, 0xe9, 0x3c, 0xbd, 0x39, 0x39,
-								},
-							},
-							"user_id": &types.AttributeValueMemberB{
-								Value: []uint8{
-									0x84, 0xe0, 0x9e, 0xe7, 0xcf, 0x1d, 0x68, 0x96, 0x6e, 0x18, 0x0e, 0x8f, 0x78, 0x94, 0xdc, 0xcd,
-								},
-							},
-							"allowed_credentials": &types.AttributeValueMemberL{
-								Value: []types.AttributeValue{
-									&types.AttributeValueMemberB{
-										Value: []uint8{
-											0x70, 0x53, 0xed, 0x09, 0x00, 0x0c, 0xfa, 0xfd, 0xd6, 0xe1, 0xd9, 0x8d, 0x92, 0x97, 0x96, 0xf9,
-											0xc0, 0x7c, 0x46, 0x6b,
-										},
-									},
-								},
-							},
-							"user_verification": &types.AttributeValueMemberS{
-								Value: "",
-							},
-						},
+					"challenge_id": &types.AttributeValueMemberS{
+						Value: "0xe12e115acf4552b2568b55e93cbd3939",
+					},
+					"session_id": &types.AttributeValueMemberS{
+						Value: "0xe12e115acf4552b2568b55e93cbd3939",
+					},
+					"credential_id": &types.AttributeValueMemberS{
+						Value: "0x7053ed09000cfafdd6e1d98d929796f9c07c466b",
+					},
+					"ceremony_type": &types.AttributeValueMemberS{
+						Value: "",
+					},
+					"created_at": &types.AttributeValueMemberN{
+						Value: "0",
 					},
 					"ttl": &types.AttributeValueMemberN{
-						Value: "1669101228",
-					},
-					"ceremony_id": &types.AttributeValueMemberS{
-						Value: "4S4RWs9FUrJWi1XpPL05OQ",
+						Value: "0",
 					},
 				},
 				TableName: &dynamoClient.CeremonyTableName,
@@ -146,6 +114,16 @@ func DummyHandler(t *testing.T) *Handler {
 		counter: 0,
 	}
 }
+
+var arg = fmt.Sprintf(
+	`{"rawAuthenticatorData":"%s","signature":"%s","userID":"%s","rawClientDataJSON":"%s","credentialID":"%s","credentialType":"public-key"}`,
+	hex.MustBase64ToHash("qbmr9/xGsTVktJ1c+FvL83H5y2MODWs1S8YLUeBl2kgdAAAAAA==").Hex(),
+	hex.MustBase64ToHash("MEUCIA8DhDsdF8XcwD6T9X0R1C68oeFw+gNgy1lHMYGxi/WHAiEA6+JXpbLdY39d6fK9oDRDpLtDAv7DplSl7p+Nm/NiFJc=").Hex(),
+	hex.MustBase64ToHash("hOCe588daJZuGA6PeJTczQ==").Hex(),
+	fmt.Sprintf(`{\"type\":\"webauthn.get\",\"challenge\":\"%s\",\"origin\":\"https://nugg.xyz\"}`, hex.MustBase64ToHash("4S4RWs9FUrJWi1XpPL05OQ").Hex()),
+	hex.MustBase64ToHash("cFPtCQAM+v3W4dmNkpeW+cB8Rms=").Hex(),
+)
+
 func TestHandler_Invoke(t *testing.T) {
 
 	Handler := DummyHandler(t)
@@ -160,7 +138,7 @@ func TestHandler_Invoke(t *testing.T) {
 			name: "A",
 			args: Input{
 				Headers: map[string]string{
-					"x-nugg-webauthn-assertion": "eyJyYXdBdXRoZW50aWNhdG9yRGF0YSI6InFibXI5XC94R3NUVmt0SjFjK0Z2TDgzSDV5Mk1PRFdzMVM4WUxVZUJsMmtnZEFBQUFBQT09Iiwic2lnbmF0dXJlIjoiTUVVQ0lBOERoRHNkRjhYY3dENlQ5WDBSMUM2OG9lRncrZ05neTFsSE1ZR3hpXC9XSEFpRUE2K0pYcGJMZFkzOWQ2Zks5b0RSRHBMdERBdjdEcGxTbDdwK05tXC9OaUZKYz0iLCJ1c2VySUQiOiJoT0NlNTg4ZGFKWnVHQTZQZUpUY3pRPT0iLCJyYXdDbGllbnREYXRhSlNPTiI6ImV5SjBlWEJsSWpvaWQyVmlZWFYwYUc0dVoyVjBJaXdpWTJoaGJHeGxibWRsSWpvaU5GTTBVbGR6T1VaVmNrcFhhVEZZY0ZCTU1EVlBVU0lzSW05eWFXZHBiaUk2SW1oMGRIQnpPaTh2Ym5Wblp5NTRlWG9pZlE9PSIsImNyZWRlbnRpYWxJRCI6ImNGUHRDUUFNK3YzVzRkbU5rcGVXK2NCOFJtcz0iLCJjcmVkZW50aWFsVHlwZSI6InB1YmxpYy1rZXkifQ==",
+					"x-nugg-hex-assertion": hex.Hash(arg).Hex(),
 				},
 			},
 			want: Output{

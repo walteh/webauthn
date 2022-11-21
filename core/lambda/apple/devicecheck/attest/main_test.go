@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"nugg-auth/core/pkg/dynamo"
+	"nugg-auth/core/pkg/hex"
 	"reflect"
 	"testing"
 
@@ -16,6 +19,7 @@ func DummyHandler(t *testing.T) *Handler {
 		Id:     "test",
 		Ctx:    context.Background(),
 		Config: nil,
+		Dynamo: dynamo.NewMockClient(t),
 		Logger: zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 	}
 
@@ -35,10 +39,9 @@ func TestHandler_Invoke(t *testing.T) {
 			name: "A",
 			args: Input{
 				Headers: map[string]string{
-					"X-Nugg-DeviceCheck-Attestation":    abc,
-					"X-Nugg-DeviceCheck-ClientDataJSON": "{\"challenge\":\"YWJj\",\"origin\":\"https://nugg.xyz\",\"type\":\"webauthn.attest\"}",
-					"X-Nugg-DeviceCheck-Payload":        "abc",
-					// "X-Nugg-DeviceCheck-ClientDataJSON": "eyJjaGFsbGVuZ2UiOiJhYmMiLCJvcmlnaW4iOiJodHRwczovL251Z2cueHl6IiwidHlwZSI6IndlYmF1dGhuLmF0dGVzdCJ9",
+					"x-nugg-hex-attestation":      hex.MustBase64ToHash(abc).Hex(),
+					"x-nugg-utf-client-data-json": fmt.Sprintf("{\"challenge\":\"%s\",\"origin\":\"https://nugg.xyz\",\"type\":\"webauthn.attest\"}", hex.MustBase64ToHash("YWJj").Hex()),
+					"x-nugg-hex-payload":          hex.MustBase64ToHash("abc").Hex(),
 				},
 			},
 			want: Output{

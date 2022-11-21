@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"log"
 	"nugg-auth/core/pkg/cognito"
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
+	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol"
 
 	"os"
 	"time"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -131,11 +134,15 @@ func main() {
 	lambda.Start(abc.Invoke)
 }
 
-func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
+func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	inv := h.NewInvocation(ctx, h.Logger)
 
-	assertion := payload.Headers["x-nugg-webauthn-assertion"]
+	assertion := hex.HexToHash(input.Headers["x-nugg-hex-assertion"])
+
+	if assertion.IsZero() {
+		return inv.Error(nil, 400, "invalid assertion")
+	}
 
 	args, err := protocol.ParseCredentialAssertionResponsePayload(assertion)
 	if err != nil {
@@ -158,7 +165,10 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to send transact get")
 	}
 
+	pp.Println(cred, cerem)
+
 	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
+		log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
 		return inv.Error(nil, 400, "invalid credential id")
 	}
 

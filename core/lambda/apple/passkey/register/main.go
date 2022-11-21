@@ -5,7 +5,6 @@ import (
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/hex"
-	"nugg-auth/core/pkg/safeid"
 	"nugg-auth/core/pkg/webauthn/protocol"
 
 	"context"
@@ -160,8 +159,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(invalidErr, 400, "invalid attestation")
 	}
 
-	nuggid := safeid.Make()
-
 	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
 	defer close(chaner)
 	stale := false
@@ -188,11 +185,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		}
 	}()
 
-	userput, err := h.Dynamo.NewUserPut(nuggid.String())
-	if err != nil {
-		return inv.Error(err, 500, "failed to create user put")
-	}
-
 	credput, err := h.Dynamo.BuildPut(cred)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create credential put")
@@ -204,7 +196,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	}
 
 	err = h.Dynamo.TransactWrite(ctx,
-		types.TransactWriteItem{Put: userput},
 		types.TransactWriteItem{Put: credput},
 		types.TransactWriteItem{Put: ceremput},
 	)
@@ -219,7 +210,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(chanerr, 500, "failed to get dev creds")
 	}
 
-	pp.Println(userput, credput, ceremput)
+	pp.Println(credput, ceremput)
 
 	return inv.Success(204, map[string]string{"x-nugg-access-token": *result.Token}, "")
 }

@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -65,24 +64,13 @@ type AttestationObject struct {
 	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
 }
 
-func FormatAttestationInput(clientData, attestation string) (*AuthenticatorAttestationResponse, error) {
-
-	dec, err := base64.RawStdEncoding.DecodeString(attestation)
-	if err != nil {
-		log.Println("Error decoding attestation", err)
-		return nil, ErrParsingData.WithInfo(err.Error())
-	}
+func FormatAttestationInput(clientData string, attestation hex.Hash) *AuthenticatorAttestationResponse {
 	return &AuthenticatorAttestationResponse{
 		AuthenticatorResponse: AuthenticatorResponse{
 			UTF8ClientDataJSON: (clientData),
 		},
-		AttestationObject: (dec),
-	}, nil
-	// a.AuthenticatorResponse.ClientDataJSON = URLEncodedBase64(clientData)
-	// a.AttestationObject = URLEncodedBase64(attestation)
-	// a.Challenge = URLEncodedBase64(challenge)
-	// a.KeyID = keyId
-	// return &a
+		AttestationObject: attestation,
+	}
 }
 
 type attestationFormatValidationHandler func(AttestationObject, []byte) (hex.Hash, string, []interface{}, error)
@@ -155,13 +143,26 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 	// Since there is not an active registry yet, we'll check it against our internal
 	// Supported types.
 
+	abc := &SavedCredential{
+		PublicKey:       attestationObject.AuthData.AttData.CredentialPublicKey,
+		RawID:           attestationObject.AuthData.AttData.CredentialID,
+		Type:            "public-key",
+		AttestationType: attestationObject.Format,
+		AAGUID:          attestationObject.AuthData.AttData.AAGUID,
+		SignCount:       attestationObject.AuthData.Counter,
+		CloneWarning:    false,
+		CreatedAt:       Now(),
+		UpdatedAt:       Now(),
+		SessionId:       hex.Hash{},
+	}
+
 	// But first let's make sure attestation is present. If it isn't, we don't need to handle
 	// any of the following steps
 	if attestationObject.Format == "none" {
 		if len(attestationObject.AttStatement) != 0 {
 			return nil, ErrAttestationFormat.WithInfo("Attestation format none with attestation present")
 		}
-		return nil, nil
+		return abc, nil
 	}
 
 	formatHandler, valid := attestationRegistry[attestationObject.Format]
@@ -182,19 +183,8 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 		return nil, ErrAttestationFormat.WithInfo("Attestation receipt is not a byte array")
 	}
 
-	abc := &SavedCredential{
-		PublicKey:       pk,
-		RawID:           attestationObject.AuthData.AttData.CredentialID,
-		Type:            "public-key",
-		AttestationType: attestationObject.Format,
-		Receipt:         rec,
-		AAGUID:          attestationObject.AuthData.AttData.AAGUID,
-		SignCount:       attestationObject.AuthData.Counter,
-		CloneWarning:    false,
-		CreatedAt:       Now(),
-		UpdatedAt:       Now(),
-		SessionId:       hex.Hash{},
-	}
+	abc.PublicKey = pk
+	abc.Receipt = rec
 
 	return abc, nil
 }

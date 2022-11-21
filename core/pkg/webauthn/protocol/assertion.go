@@ -10,6 +10,8 @@ import (
 
 	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol/webauthncose"
+
+	"github.com/k0kubun/pp"
 )
 
 // The raw response returned to us from an authenticator when we request a
@@ -88,17 +90,12 @@ func ParseCredentialRequestResponseBody(body io.Reader) (*ParsedCredentialAssert
 // Parse the credential request response into a format that is either required by the specification
 // or makes the assertion verification steps easier to complete. This takes an CredentialAssertionResponse that contains
 // the assertion response data in a raw, mostly base64 encoded format, and parses the data into
-func ParseCredentialAssertionResponsePayload(body string) (*BetterCredentialAssertionResponse, error) {
-
-	dec, err := hex.ParseHexOrString(body)
-	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Parse error for Assertion")
-	}
-
+func ParseCredentialAssertionResponsePayload(body hex.Hash) (*BetterCredentialAssertionResponse, error) {
+	pp.Println(string(body))
 	var car BetterCredentialAssertionResponse
-	err = json.Unmarshal(dec, &car)
+	err := json.Unmarshal(body.Bytes(), &car)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Parse error for Assertion")
+		return nil, ErrBadRequest.WithDetails("Parse error for Assertion").WithParent(err)
 	}
 
 	return &car, nil

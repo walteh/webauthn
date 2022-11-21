@@ -47,10 +47,6 @@ type SavedCredential struct {
 	SessionId hex.Hash `dynamodbav:"session_id" json:"session_id"`
 }
 
-// type Marshaler interface {
-// 	MarshalDynamoDBAttributeValue() (types.AttributeValue, error)
-// }
-
 func (s SavedCredential) ID() string {
 	return (s.RawID.Hex())
 }
@@ -63,7 +59,7 @@ func (s SavedCredential) MarshalDynamoDBAttributeValue() (*types.AttributeValueM
 	av.Value["public_key"] = &types.AttributeValueMemberS{Value: s.PublicKey.Hex()}
 	av.Value["attestation_type"] = &types.AttributeValueMemberS{Value: s.AttestationType}
 	av.Value["receipt"] = &types.AttributeValueMemberS{Value: s.Receipt.Hex()}
-	av.Value["aaguid"] = &types.AttributeValueMemberS{Value: s.AAGUID.Hex()}
+	av.Value["aaguid"] = &types.AttributeValueMemberS{Value: s.AAGUID.Utf8()}
 	av.Value["sign_count"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.SignCount)}
 	av.Value["clone_warning"] = &types.AttributeValueMemberBOOL{Value: s.CloneWarning}
 	av.Value["created_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.CreatedAt)}
@@ -72,36 +68,31 @@ func (s SavedCredential) MarshalDynamoDBAttributeValue() (*types.AttributeValueM
 	return &av, nil
 }
 
-//type Unmarshaler interface {
-// 	UnmarshalDynamoDBAttributeValue(types.AttributeValue) error
-// }
-
-// func Parse[AV types.AttributeValue, T interface{}](m types.AttributeValueMemberM, field string) (T, bool) {
-// 	var v types.AttributeValue
-// 	if v, ok := m.Value[field].(AV); ok {
-// 		s.ID = m.Value[field].(AV).isAttributeValue()
-// 	}
-// }
-
-func (s SavedCredential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
+func (s *SavedCredential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
 
 	if s.RawID, err = base64.RawURLEncoding.DecodeString(m.Value["credential_id"].(*types.AttributeValueMemberS).Value); err != nil {
 		return err
 	}
 
 	s.RawID = hex.HexToHash(m.Value["credential_id"].(*types.AttributeValueMemberS).Value)
-
 	s.Type = CredentialType(m.Value["credential_type"].(*types.AttributeValueMemberS).Value)
 	s.PublicKey = hex.HexToHash(m.Value["public_key"].(*types.AttributeValueMemberS).Value)
 	s.AttestationType = m.Value["attestation_type"].(*types.AttributeValueMemberS).Value
 	s.Receipt = hex.HexToHash(m.Value["receipt"].(*types.AttributeValueMemberS).Value)
 	s.AAGUID = hex.HexToHash(m.Value["aaguid"].(*types.AttributeValueMemberS).Value)
-	s.SignCount, err = strconv.ParseUint(m.Value["sign_count"].(*types.AttributeValueMemberN).Value, 10, 64)
-	s.CloneWarning = m.Value["clone_warning"].(*types.AttributeValueMemberBOOL).Value
-	s.CreatedAt, err = strconv.ParseUint(m.Value["created_at"].(*types.AttributeValueMemberN).Value, 10, 64)
-	s.UpdatedAt, err = strconv.ParseUint(m.Value["updated_at"].(*types.AttributeValueMemberN).Value, 10, 64)
 	s.SessionId = hex.HexToHash(m.Value["session_id"].(*types.AttributeValueMemberS).Value)
-	return
+	s.CloneWarning = m.Value["clone_warning"].(*types.AttributeValueMemberBOOL).Value
+
+	if s.SignCount, err = strconv.ParseUint(m.Value["sign_count"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+		return err
+	}
+	if s.CreatedAt, err = strconv.ParseUint(m.Value["created_at"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+		return err
+	}
+	if s.UpdatedAt, err = strconv.ParseUint(m.Value["updated_at"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+		return err
+	}
+	return err
 }
 
 func (s SavedCredential) Update(table *string, counter uint64) (*types.TransactWriteItem, error) {

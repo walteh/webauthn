@@ -57,17 +57,7 @@ func DummyHandler(t *testing.T) *Handler {
 
 func TestHandler_Invoke(t *testing.T) {
 
-	// {"challenge":"0xa55af63d41bf95eea575ef70c5e2261c","origin":"https://nugg.xyz","type":"webauthn.create"}
-
-	// log.Println(hex.MustBase64ToHash("0xa55af63d41bf95eea575ef70c5e2261c").Hex())
-
-	// log.Println(hex.MustBase64ToHash("cFPtCQAM+v3W4dmNkpeW+cB8Rms=").Hex())
-
-	// log.Println(hex.MustBase64ToHash("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYqbmr9/xGsTVktJ1c+FvL83H5y2MODWs1S8YLUeBl2khdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFHBT7QkADPr91uHZjZKXlvnAfEZrpQECAyYgASFYIDDfuDHrs4K8vUWsbLF0UiK32BrY1EqzPiDSvaYytWkqIlgg9kltA9NXcX12aaevSQyHBv7wUsCBmgK9ykuSvUJFmgA=").Hex())
-
 	Handler := DummyHandler(t)
-
-	// rander := protocol.MockSetRander(t, "ABCD")
 
 	tests := []struct {
 		name    string

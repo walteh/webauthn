@@ -25,8 +25,6 @@ func DummyHandler(t *testing.T) *Handler {
 
 func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 
-	Handler := DummyHandler(t)
-
 	expected := protocol.MockSetRander(t, "xsTWpSak5HWm")
 
 	tests := []struct {
@@ -39,15 +37,33 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 			name: "A",
 			args: Input{
 				Headers: map[string]string{
-					"Content-Type":              "application/json",
-					"x-nugg-webauthn-sessionId": "0xff33ff",
+					"Content-Type":          "application/json",
+					"x-nugg-hex-session-id": "0xff33ff",
 				},
 			},
 			want: Output{
 				StatusCode: 204,
 				Headers: map[string]string{
-					"Content-Length":            "0",
-					"x-nugg-webauthn-challenge": expected.CalculateDeterministicHash(1).Hex(),
+					"Content-Length":       "0",
+					"x-nugg-hex-challenge": expected.CalculateDeterministicHash(1).Hex(),
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "B",
+			args: Input{
+				Headers: map[string]string{
+					"Content-Type":             "application/json",
+					"x-nugg-hex-session-id":    "0xff33ff",
+					"x-nugg-hex-credential-id": "0x7053ed09000cfafdd6e1d98d929796f9c07c466b",
+				},
+			},
+			want: Output{
+				StatusCode: 204,
+				Headers: map[string]string{
+					"Content-Length":       "0",
+					"x-nugg-hex-challenge": expected.CalculateDeterministicHash(1).Hex(),
 				},
 			},
 			wantErr: false,
@@ -55,6 +71,10 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			expected = protocol.MockSetRander(t, "xsTWpSak5HWm")
+
+			Handler := DummyHandler(t)
 
 			got, err := Handler.Invoke(context.Background(), tt.args)
 			if (err != nil) != tt.wantErr {
