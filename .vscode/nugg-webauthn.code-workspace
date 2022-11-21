@@ -37,5 +37,9 @@
 				"source.formatAll.terraform": true
 			},
 		},
+		"material-icon-theme.folders.associations": {
+			"dynamo": "database",
+			"webauthn": "guard",
+		}
 	}
 }

@@ -2,6 +2,7 @@ package invocation
 
 import (
 	"context"
+	"nugg-webauthn/core/pkg/errors"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -39,18 +40,27 @@ func NewInvocation(ctx context.Context, handler Handler, input Input) *Invocatio
 }
 
 func (h *Invocation) Error(err error, code int, message string) (Output, error) {
-	h.Logger.Error().Err(err).
-		Int("status_code", code).
+
+	event := h.Logger.Error()
+
+	// if error is an error type, then we can use the With* methods
+	if e, ok := err.(*errors.Error); ok {
+		err = e.Roots()[0]
+		roots := e.Roots()
+		event = event.Errs("roots", roots[1:])
+
+	}
+
+	event.
+		Err(err).
 		Str("body", "").
 		CallerSkipFrame(2).
 		TimeDiff("duration", time.Now(), h.Start).
-		Msg(message)
+		Msg("returning error")
 
 	go h.cancel()
 
-	return Output{
-		StatusCode: code,
-	}, nil
+	return Output{StatusCode: code}, nil
 }
 
 func (h *Invocation) Success(code int, headers map[string]string, message string) (Output, error) {

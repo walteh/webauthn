@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncbor"
 )
@@ -92,13 +93,13 @@ func (ccr *AuthenticatorAttestationResponse) Parse() (*ParsedAttestationResponse
 	err := json.Unmarshal([]byte(ccr.UTF8ClientDataJSON), &p.CollectedClientData)
 	if err != nil {
 		log.Println("Error unmarshalling client data JSON", err)
-		return nil, ErrParsingData.WithInfo(err.Error())
+		return nil, ErrParsingData.WithInfo(err.Error()).WithCaller()
 	}
 
 	err = webauthncbor.Unmarshal(ccr.AttestationObject, &p.AttestationObject)
 	if err != nil {
 		log.Println("Error unmarshalling cbor attestation object", err)
-		return nil, ErrParsingData.WithInfo(err.Error())
+		return nil, ErrParsingData.WithInfo(err.Error()).WithCaller()
 	}
 
 	// Step 8. Perform CBOR decoding on the attestationObject field of the AuthenticatorAttestationResponse
@@ -112,7 +113,7 @@ func (ccr *AuthenticatorAttestationResponse) Parse() (*ParsedAttestationResponse
 
 	if !p.AttestationObject.AuthData.Flags.HasAttestedCredentialData() {
 		log.Println("Authenticator data does not contain attested credential data")
-		return nil, ErrAttestationFormat.WithInfo("Attestation missing attested credential data flag")
+		return nil, ErrAttestationFormat.WithInfo("Attestation missing attested credential data flag").WithCaller()
 	}
 
 	return &p, nil
@@ -160,14 +161,14 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 	// any of the following steps
 	if attestationObject.Format == "none" {
 		if len(attestationObject.AttStatement) != 0 {
-			return nil, ErrAttestationFormat.WithInfo("Attestation format none with attestation present")
+			return nil, ErrAttestationFormat.WithInfo("Attestation format none with attestation present").WithCaller()
 		}
 		return abc, nil
 	}
 
 	formatHandler, valid := attestationRegistry[attestationObject.Format]
 	if !valid {
-		return nil, ErrAttestationFormat.WithInfo(fmt.Sprintf("Attestation format %s is unsupported", attestationObject.Format))
+		return nil, ErrAttestationFormat.WithInfo(fmt.Sprintf("Attestation format %s is unsupported", attestationObject.Format)).WithCaller()
 	}
 
 	// Step 14. Verify that attStmt is a correct attestation statement, conveying a valid attestation signature, by using
@@ -175,13 +176,13 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 	// client data computed in step 7.
 	pk, attestationType, receipt, err := formatHandler(*attestationObject, clientDataHash)
 	if err != nil {
-		return nil, err.(*Error).WithInfo(attestationType)
+		return nil, err.(*errors.Error).WithInfo(attestationType).WithCaller()
 	}
 
 	if len(receipt) > 0 {
 		rec, ok := receipt[0].([]byte)
 		if !ok {
-			return nil, ErrAttestationFormat.WithInfo("Attestation receipt is not a byte array")
+			return nil, ErrAttestationFormat.WithInfo("Attestation receipt is not a byte array").WithCaller()
 		}
 		abc.Receipt = rec
 	}

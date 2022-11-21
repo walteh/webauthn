@@ -48,13 +48,13 @@ func verifyPackedFormat(att AttestationObject, clientDataHash []byte) (hex.Hash,
 
 	alg, present := att.AttStatement["alg"].(int64)
 	if !present {
-		return nil, packedAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving alg value")
+		return nil, packedAttestationKey, nil, ErrAttestationFormat.WithMessage("Error retreiving alg value")
 	}
 
 	// Get the sig value - A byte string containing the attestation signature.
 	sig, present := att.AttStatement["sig"].([]byte)
 	if !present {
-		return nil, packedAttestationKey, nil, ErrAttestationFormat.WithDetails("Error retreiving sig value")
+		return nil, packedAttestationKey, nil, ErrAttestationFormat.WithMessage("Error retreiving sig value")
 	}
 
 	// Step 2. If x5c is present, this indicates that the attestation type is not ECDAA.
@@ -85,34 +85,34 @@ func handleBasicAttestation(signature, clientDataHash, authData, aaguid []byte, 
 	for _, c := range x5c {
 		cb, cv := c.([]byte)
 		if !cv {
-			return nil, attestationType, x5c, ErrAttestation.WithDetails("Error getting certificate from x5c cert chain")
+			return nil, attestationType, x5c, ErrAttestation.WithMessage("Error getting certificate from x5c cert chain")
 		}
 		ct, err := x509.ParseCertificate(cb)
 		if err != nil {
-			return nil, attestationType, x5c, ErrAttestationFormat.WithDetails(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+			return nil, attestationType, x5c, ErrAttestationFormat.WithMessage(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
 		}
 		if ct.NotBefore.After(time.Now()) || ct.NotAfter.Before(time.Now()) {
-			return nil, attestationType, x5c, ErrAttestationFormat.WithDetails("Cert in chain not time valid")
+			return nil, attestationType, x5c, ErrAttestationFormat.WithMessage("Cert in chain not time valid")
 		}
 	}
 
 	attCertBytes, valid := x5c[0].([]byte)
 	if !valid {
-		return nil, attestationType, x5c, ErrAttestation.WithDetails("Error getting certificate from x5c cert chain")
+		return nil, attestationType, x5c, ErrAttestation.WithMessage("Error getting certificate from x5c cert chain")
 	}
 
 	signatureData := append(authData, clientDataHash...)
 
 	attCert, err := x509.ParseCertificate(attCertBytes)
 	if err != nil {
-		return nil, attestationType, x5c, ErrAttestationFormat.WithDetails(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+		return nil, attestationType, x5c, ErrAttestationFormat.WithMessage(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
 	}
 
 	coseAlg := webauthncose.COSEAlgorithmIdentifier(alg)
 	sigAlg := webauthncose.SigAlgFromCOSEAlg(coseAlg)
 	err = attCert.CheckSignature(x509.SignatureAlgorithm(sigAlg), signatureData, signature)
 	if err != nil {
-		return nil, attestationType, x5c, ErrInvalidAttestation.WithDetails(fmt.Sprintf("Signature validation error: %+v\n", err))
+		return nil, attestationType, x5c, ErrInvalidAttestation.WithMessage(fmt.Sprintf("Signature validation error: %+v\n", err))
 	}
 
 	// Step 2.2 Verify that attestnCert meets the requirements in §8.2.1 Packed attestation statement certificate requirements.
@@ -120,7 +120,7 @@ func handleBasicAttestation(signature, clientDataHash, authData, aaguid []byte, 
 
 	// Step 2.2.1 (from §8.2.1) Version MUST be set to 3 (which is indicated by an ASN.1 INTEGER with value 2).
 	if attCert.Version != 3 {
-		return nil, attestationType, x5c, ErrAttestationCertificate.WithDetails("Attestation Certificate is incorrect version")
+		return nil, attestationType, x5c, ErrAttestationCertificate.WithMessage("Attestation Certificate is incorrect version")
 	}
 
 	// Step 2.2.2 (from §8.2.1) Subject field MUST be set to:
@@ -131,14 +131,14 @@ func handleBasicAttestation(signature, clientDataHash, authData, aaguid []byte, 
 	//  TODO: Find a good, useable, country code library. For now, check stringy-ness
 	subjectString := strings.Join(attCert.Subject.Country, "")
 	if subjectString == "" {
-		return nil, attestationType, x5c, ErrAttestationCertificate.WithDetails("Attestation Certificate Country Code is invalid")
+		return nil, attestationType, x5c, ErrAttestationCertificate.WithMessage("Attestation Certificate Country Code is invalid")
 	}
 
 	// 	Subject-O
 	// 	Legal name of the Authenticator vendor (UTF8String)
 	subjectString = strings.Join(attCert.Subject.Organization, "")
 	if subjectString == "" {
-		return nil, attestationType, x5c, ErrAttestationCertificate.WithDetails("Attestation Certificate Organization is invalid")
+		return nil, attestationType, x5c, ErrAttestationCertificate.WithMessage("Attestation Certificate Organization is invalid")
 	}
 
 	// 	Subject-OU
@@ -152,7 +152,7 @@ func handleBasicAttestation(signature, clientDataHash, authData, aaguid []byte, 
 	//  A UTF8String of the vendor’s choosing
 	subjectString = attCert.Subject.CommonName
 	if subjectString == "" {
-		return nil, attestationType, x5c, ErrAttestationCertificate.WithDetails("Attestation Certificate Common Name not set")
+		return nil, attestationType, x5c, ErrAttestationCertificate.WithMessage("Attestation Certificate Common Name not set")
 	}
 	// TODO: And then what
 
@@ -165,7 +165,7 @@ func handleBasicAttestation(signature, clientDataHash, authData, aaguid []byte, 
 	for _, extension := range attCert.Extensions {
 		if extension.Id.Equal(idFido) {
 			if extension.Critical {
-				return nil, attestationType, x5c, ErrInvalidAttestation.WithDetails("Attestation certificate FIDO extension marked as critical")
+				return nil, attestationType, x5c, ErrInvalidAttestation.WithMessage("Attestation certificate FIDO extension marked as critical")
 			}
 			foundAAGUID = extension.Value
 		}
@@ -180,7 +180,7 @@ func handleBasicAttestation(signature, clientDataHash, authData, aaguid []byte, 
 		unMarshalledAAGUID := []byte{}
 		asn1.Unmarshal(foundAAGUID, &unMarshalledAAGUID)
 		if !bytes.Equal(aaguid, unMarshalledAAGUID) {
-			return nil, attestationType, x5c, ErrInvalidAttestation.WithDetails("Certificate AAGUID does not match Auth Data certificate")
+			return nil, attestationType, x5c, ErrInvalidAttestation.WithMessage("Certificate AAGUID does not match Auth Data certificate")
 		}
 	}
 	uuid, err := uuid.FromBytes(aaguid)
@@ -188,7 +188,7 @@ func handleBasicAttestation(signature, clientDataHash, authData, aaguid []byte, 
 	if meta, ok := metadata.Metadata[uuid]; ok {
 		for _, s := range meta.StatusReports {
 			if metadata.IsUndesiredAuthenticatorStatus(metadata.AuthenticatorStatus(s.Status)) {
-				return nil, attestationType, x5c, ErrInvalidAttestation.WithDetails("Authenticator with undesirable status encountered")
+				return nil, attestationType, x5c, ErrInvalidAttestation.WithMessage("Authenticator with undesirable status encountered")
 			}
 		}
 
@@ -200,18 +200,18 @@ func handleBasicAttestation(signature, clientDataHash, authData, aaguid []byte, 
 				}
 			}
 			if !hasBasicFull {
-				return nil, attestationType, x5c, ErrInvalidAttestation.WithDetails("Attestation with full attestation from authentictor that does not support full attestation")
+				return nil, attestationType, x5c, ErrInvalidAttestation.WithMessage("Attestation with full attestation from authentictor that does not support full attestation")
 			}
 		}
 	} else {
 		if metadata.Conformance {
-			return nil, attestationType, x5c, ErrInvalidAttestation.WithDetails("AAGUID not found in metadata during conformance testing")
+			return nil, attestationType, x5c, ErrInvalidAttestation.WithMessage("AAGUID not found in metadata during conformance testing")
 		}
 	}
 
 	// Step 2.2.4 The Basic Constraints extension MUST have the CA component set to false.
 	if attCert.IsCA {
-		return nil, attestationType, x5c, ErrInvalidAttestation.WithDetails("Attestation certificate's Basic Constraints marked as CA")
+		return nil, attestationType, x5c, ErrInvalidAttestation.WithMessage("Attestation certificate's Basic Constraints marked as CA")
 	}
 
 	// Note for 2.2.5 An Authority Information Access (AIA) extension with entry id-ad-ocsp and a CRL
@@ -239,7 +239,7 @@ func handleSelfAttestation(alg int64, pubKey, authData, clientDataHash, signatur
 
 	key, err := webauthncose.ParsePublicKey(pubKey)
 	if err != nil {
-		return nil, attestationType, nil, ErrAttestationFormat.WithDetails(fmt.Sprintf("Error parsing the public key: %+v\n", err))
+		return nil, attestationType, nil, ErrAttestationFormat.WithMessage(fmt.Sprintf("Error parsing the public key: %+v\n", err))
 	}
 
 	switch key.(type) {
@@ -262,12 +262,12 @@ func handleSelfAttestation(alg int64, pubKey, authData, clientDataHash, signatur
 			return nil, attestationType, nil, err
 		}
 	default:
-		return nil, attestationType, nil, ErrInvalidAttestation.WithDetails("Error verifying the public key data")
+		return nil, attestationType, nil, ErrInvalidAttestation.WithMessage("Error verifying the public key data")
 	}
 
 	valid, err := webauthncose.VerifySignature(key, verificationData, signature)
 	if !valid && err == nil {
-		return nil, attestationType, nil, ErrInvalidAttestation.WithDetails("Unabled to verify signature")
+		return nil, attestationType, nil, ErrInvalidAttestation.WithMessage("Unabled to verify signature")
 	}
 
 	return hex.BytesToHash(pubKey), attestationType, nil, err
@@ -275,7 +275,7 @@ func handleSelfAttestation(alg int64, pubKey, authData, clientDataHash, signatur
 
 func verifyKeyAlgorithm(keyAlgorithm, attestedAlgorithm int64) error {
 	if keyAlgorithm != attestedAlgorithm {
-		return ErrInvalidAttestation.WithDetails("Public key algorithm does not equal att statement algorithm")
+		return ErrInvalidAttestation.WithMessage("Public key algorithm does not equal att statement algorithm")
 	}
 	return nil
 }

@@ -89,7 +89,7 @@ func (c *CollectedClientData) Verify(storedChallenge hex.Hash, ceremony Ceremony
 
 	// Assertion Step 7. Verify that the value of C.type is the string webauthn.get.
 	if c.Type != ceremony {
-		err := ErrVerification.WithDetails("Error validating ceremony type")
+		err := ErrVerification.WithMessage("Error validating ceremony type")
 		err.WithInfo(fmt.Sprintf("Expected Value: %s\n Received: %s\n", ceremony, c.Type))
 		return err
 	}
@@ -113,7 +113,7 @@ func (c *CollectedClientData) Verify(storedChallenge hex.Hash, ceremony Ceremony
 	// log.Println(abc)
 
 	if subtle.ConstantTimeCompare(storedChallenge, challenge) != 1 {
-		err := ErrVerification.WithDetails("Error validating challenge")
+		err := ErrVerification.WithMessage("Error validating challenge")
 		return err.WithInfo(fmt.Sprintf("Expected b Value: %#v\nReceived b: %#v\n", storedChallenge, challenge))
 	}
 
@@ -121,11 +121,11 @@ func (c *CollectedClientData) Verify(storedChallenge hex.Hash, ceremony Ceremony
 	// the Relying Party's origin.
 	clientDataOrigin, err := url.Parse(c.Origin)
 	if err != nil {
-		return ErrParsingData.WithDetails("Error decoding clientData origin as URL")
+		return ErrParsingData.WithMessage("Error decoding clientData origin as URL")
 	}
 
 	if !strings.EqualFold(FullyQualifiedOrigin(clientDataOrigin), relyingPartyOrigin) {
-		err := ErrVerification.WithDetails("Error validating origin")
+		err := ErrVerification.WithMessage("Error validating origin")
 		return err.WithInfo(fmt.Sprintf("Expected Value: %s\n Received: %s\n", relyingPartyOrigin, FullyQualifiedOrigin(clientDataOrigin)))
 	}
 
@@ -135,10 +135,10 @@ func (c *CollectedClientData) Verify(storedChallenge hex.Hash, ceremony Ceremony
 	// matches the base64url encoding of the Token Binding ID for the connection.
 	if c.TokenBinding != nil {
 		if c.TokenBinding.Status == "" {
-			return ErrParsingData.WithDetails("Error decoding clientData, token binding present without status")
+			return ErrParsingData.WithMessage("Error decoding clientData, token binding present without status")
 		}
 		if c.TokenBinding.Status != Present && c.TokenBinding.Status != Supported && c.TokenBinding.Status != NotSupported {
-			return ErrParsingData.WithDetails("Error decoding clientData, token binding present with invalid status").WithInfo(fmt.Sprintf("Got: %s\n", c.TokenBinding.Status))
+			return ErrParsingData.WithMessage("Error decoding clientData, token binding present with invalid status").WithInfo(fmt.Sprintf("Got: %s\n", c.TokenBinding.Status))
 		}
 	}
 	// Not yet fully implemented by the spec, browsers, and me.

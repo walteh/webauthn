@@ -78,7 +78,7 @@ func ParseWebauthnCreation(str string) (*XNuggWebauthnCreation, error) {
 
 func ParseCredentialCreationResponse(response *http.Request) (*ParsedCredentialCreationData, error) {
 	if response == nil || response.Body == nil {
-		return nil, ErrBadRequest.WithDetails("No response given")
+		return nil, ErrBadRequest.WithMessage("No response given")
 	}
 	return ParseCredentialCreationResponseBody(response.Body)
 }
@@ -88,12 +88,12 @@ func ParseCredentialCreationResponseBody(body io.Reader) (*ParsedCredentialCreat
 
 	reader, err := io.ReadAll(body)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Unable to read response body")
+		return nil, ErrBadRequest.WithMessage("Unable to read response body")
 	}
 
 	err = json.Unmarshal(reader, &ccr)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithParent(err)
+		return nil, ErrBadRequest.WithMessage("Parse error for Registration").WithRoot(err)
 	}
 
 	return ParseCredentialCreationResponseObject(&ccr)
@@ -129,20 +129,20 @@ func ParseCredentialCreationResponseObject(ccr *CredentialCreationResponse) (*Pa
 	// }
 
 	if ccr.ID.IsZero() {
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing ID")
+		return nil, ErrBadRequest.WithMessage("Parse error for Registration").WithInfo("Missing ID")
 	}
 
 	// testB64, err := base64.RawURLEncoding.DecodeString(ccr.ID)
 	// if err != nil || !(len(testB64) > 0) {
-	// 	return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded").WithParent(err)
+	// 	return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("ID not base64.RawURLEncoded").WithRoot(err)
 	// }
 
 	if ccr.PublicKeyCredential.Credential.Type == "" {
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Missing type")
+		return nil, ErrBadRequest.WithMessage("Parse error for Registration").WithInfo("Missing type")
 	}
 
 	if ccr.PublicKeyCredential.Credential.Type != "public-key" {
-		return nil, ErrBadRequest.WithDetails("Parse error for Registration").WithInfo("Type not public-key")
+		return nil, ErrBadRequest.WithMessage("Parse error for Registration").WithInfo("Type not public-key")
 	}
 
 	var pcc ParsedCredentialCreationData
@@ -151,7 +151,7 @@ func ParseCredentialCreationResponseObject(ccr *CredentialCreationResponse) (*Pa
 
 	parsedAttestationResponse, err := ccr.AttestationResponse.Parse()
 	if err != nil {
-		return nil, ErrParsingData.WithDetails("Error parsing attestation response").WithParent(err)
+		return nil, ErrParsingData.WithMessage("Error parsing attestation response").WithRoot(err)
 	}
 
 	pcc.Response = *parsedAttestationResponse
@@ -273,7 +273,7 @@ func (ppkc ParsedPublicKeyCredential) GetAppID(authExt AuthenticationExtensions,
 	}
 
 	if enableAppID, ok = clientValue.(bool); !ok {
-		return "", ErrBadRequest.WithDetails("Client Output appid did not have the expected type")
+		return "", ErrBadRequest.WithMessage("Client Output appid did not have the expected type")
 	}
 
 	if !enableAppID {
@@ -281,11 +281,11 @@ func (ppkc ParsedPublicKeyCredential) GetAppID(authExt AuthenticationExtensions,
 	}
 
 	if value, ok = authExt["appid"]; !ok {
-		return "", ErrBadRequest.WithDetails("Session Data does not have an appid but Client Output indicates it should be set")
+		return "", ErrBadRequest.WithMessage("Session Data does not have an appid but Client Output indicates it should be set")
 	}
 
 	if appID, ok = value.(string); !ok {
-		return "", ErrBadRequest.WithDetails("Session Data appid did not have the expected type")
+		return "", ErrBadRequest.WithMessage("Session Data appid did not have the expected type")
 	}
 
 	return appID, nil

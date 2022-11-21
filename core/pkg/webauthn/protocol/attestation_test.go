@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
 	"testing"
 )
@@ -33,7 +34,7 @@ func TestAttestationVerify(t *testing.T) {
 			// Test Base Verification
 			_, err = pcc.Verify(options.Response.Challenge, hex.Hash{0, 2, 3}, false, options.Response.RelyingParty.ID, options.Response.RelyingParty.Name)
 			if err != nil {
-				t.Fatalf("Not valid: %+v (%+s)", err, err.(*Error).DevInfo)
+				t.Fatalf("Not valid: %+v (%+s)", err, err.(*errors.Error).DevInfo)
 			}
 		})
 	}

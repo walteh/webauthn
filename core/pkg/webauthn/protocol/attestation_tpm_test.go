@@ -94,12 +94,12 @@ func TestTPMAttestationVerificationFailAttStatement(t *testing.T) {
 		{
 			"TPM Negative Test AttStatement x5c not present",
 			AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0)}},
-			ErrNotImplemented.Details,
+			ErrNotImplemented.Message(),
 		},
 		{
 			"TPM Negative Test AttStatement ecdaaKeyId present",
 			AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}, "ecdaaKeyId": []byte{}}},
-			ErrNotImplemented.Details,
+			ErrNotImplemented.Message(),
 		},
 		{
 			"TPM Negative Test AttStatement sig not present",

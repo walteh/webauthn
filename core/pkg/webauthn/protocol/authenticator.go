@@ -170,7 +170,7 @@ func (flag AuthenticatorFlags) HasExtensions() bool {
 func (a *AuthenticatorData) Unmarshal(rawAuthData hex.Hash) error {
 	byt := rawAuthData.Bytes()
 	if minAuthDataLength > len(rawAuthData) {
-		err := ErrBadRequest.WithDetails("Authenticator data length too short")
+		err := ErrBadRequest.WithMessage("Authenticator data length too short")
 		info := fmt.Sprintf("Expected data greater than %d bytes. Got %d bytes\n", minAuthDataLength, len(rawAuthData))
 		return err.WithInfo(info)
 	}
@@ -190,11 +190,11 @@ func (a *AuthenticatorData) Unmarshal(rawAuthData hex.Hash) error {
 			attDataLen := len(a.AttData.AAGUID) + 2 + len(a.AttData.CredentialID) + len(a.AttData.CredentialPublicKey)
 			remaining = remaining - attDataLen
 		} else {
-			return ErrBadRequest.WithDetails("Attested credential flag set but data is missing")
+			return ErrBadRequest.WithMessage("Attested credential flag set but data is missing")
 		}
 	} else {
 		if !a.Flags.HasExtensions() && len(byt) != 37 {
-			return ErrBadRequest.WithDetails("Attested credential flag not set")
+			return ErrBadRequest.WithMessage("Attested credential flag not set")
 		}
 	}
 
@@ -203,12 +203,12 @@ func (a *AuthenticatorData) Unmarshal(rawAuthData hex.Hash) error {
 			a.ExtData = byt[len(byt)-remaining:]
 			remaining -= len(a.ExtData)
 		} else {
-			return ErrBadRequest.WithDetails("Extensions flag set but extensions data is missing")
+			return ErrBadRequest.WithMessage("Extensions flag set but extensions data is missing")
 		}
 	}
 
 	if remaining != 0 {
-		return ErrBadRequest.WithDetails("Leftover bytes decoding AuthenticatorData")
+		return ErrBadRequest.WithMessage("Leftover bytes decoding AuthenticatorData")
 	}
 
 	return nil
@@ -219,10 +219,10 @@ func (a *AuthenticatorData) unmarshalAttestedData(rawAuthData []byte) error {
 	a.AttData.AAGUID = rawAuthData[37:53]
 	idLength := binary.BigEndian.Uint16(rawAuthData[53:55])
 	if len(rawAuthData) < int(55+idLength) {
-		return ErrBadRequest.WithDetails("Authenticator attestation data length too short")
+		return ErrBadRequest.WithMessage("Authenticator attestation data length too short")
 	}
 	if idLength > maxCredentialIDLength {
-		return ErrBadRequest.WithDetails("Authenticator attestation data credential id length too long")
+		return ErrBadRequest.WithMessage("Authenticator attestation data credential id length too long")
 	}
 	a.AttData.CredentialID = rawAuthData[55 : 55+idLength]
 	a.AttData.CredentialPublicKey = unmarshalCredentialPublicKey(rawAuthData[55+idLength:])

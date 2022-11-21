@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
 )
 
@@ -42,7 +43,7 @@ func (s SavedCeremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMem
 func (s *SavedCeremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMemberM) (err error) {
 
 	if av.Value == nil {
-		return fmt.Errorf("attribute value is nil")
+		return errors.NewError(0x11).WithMessage("attribute value is nil").WithCaller()
 	}
 
 	if x, ok := av.Value["challenge_id"].(*types.AttributeValueMemberS); ok {

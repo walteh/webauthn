@@ -1,116 +1,21 @@
 package protocol
 
-import (
-	"encoding/json"
-)
-
-type Error struct {
-	// Short name for the type of error that has occurred
-	Type string `json:"type"`
-	// Additional details about the error
-	Details string `json:"error"`
-	// Information to help debug the error
-	DevInfo string `json:"debug"`
-
-	Parent string `json:"parent"`
-
-	KV map[string]interface{} `json:"data"`
-}
+import errors "nugg-webauthn/core/pkg/errors"
 
 var (
-	ErrBadRequest = &Error{
-		Type:    "invalid_request",
-		Details: "Error reading the requst data",
-	}
-	ErrChallengeMismatch = &Error{
-		Type:    "challenge_mismatch",
-		Details: "Stored challenge and received challenge do not match",
-	}
-	ErrOriginMismatch = &Error{
-		Type:    "origin_mismatch",
-		Details: "Stored origin and received origin do not match",
-	}
-	ErrParsingData = &Error{
-		Type:    "parse_error",
-		Details: "Error parsing the authenticator response",
-	}
-	ErrAuthData = &Error{
-		Type:    "auth_data",
-		Details: "Error verifying the authenticator data",
-	}
-	ErrVerification = &Error{
-		Type:    "verification_error",
-		Details: "Error validating the authenticator response",
-	}
-	ErrAttestation = &Error{
-		Type:    "attesation_error",
-		Details: "Error validating the attestation data provided",
-	}
-	ErrInvalidAttestation = &Error{
-		Type:    "invalid_attestation",
-		Details: "Invalid attestation data",
-	}
-	ErrAttestationFormat = &Error{
-		Type:    "invalid_attestation",
-		Details: "Invalid attestation format",
-	}
-	ErrAttestationCertificate = &Error{
-		Type:    "invalid_certificate",
-		Details: "Invalid attestation certificate",
-	}
-	ErrAssertionSignature = &Error{
-		Type:    "invalid_signature",
-		Details: "Assertion Signature against auth data and client hash is not valid",
-	}
-	ErrUnsupportedKey = &Error{
-		Type:    "invalid_key_type",
-		Details: "Unsupported Public Key Type",
-	}
-	ErrUnsupportedAlgorithm = &Error{
-		Type:    "unsupported_key_algorithm",
-		Details: "Unsupported public key algorithm",
-	}
-	ErrNotSpecImplemented = &Error{
-		Type:    "spec_unimplemented",
-		Details: "This field is not yet supported by the WebAuthn spec",
-	}
-	ErrNotImplemented = &Error{
-		Type:    "not_implemented",
-		Details: "This field is not yet supported by this library",
-	}
+	ErrBadRequest             = errors.NewError(0x32).WithType("invalid_request").WithMessage("Error reading the request data")
+	ErrChallengeMismatch      = errors.NewError(0x33).WithType("challenge_mismatch").WithMessage("Stored challenge and received challenge do not match")
+	ErrOriginMismatch         = errors.NewError(0x33).WithType("origin_mismatch").WithMessage("Stored origin and received origin do not match")
+	ErrParsingData            = errors.NewError(0x33).WithType("parse_error").WithMessage("Error parsing the authenticator response")
+	ErrAuthData               = errors.NewError(0x33).WithType("auth_data").WithMessage("Error verifying the authenticator data")
+	ErrVerification           = errors.NewError(0x33).WithType("verification_error").WithMessage("Error validating the authenticator response")
+	ErrAttestation            = errors.NewError(0x33).WithType("attesation_error").WithMessage("Error validating the attestation data provided")
+	ErrInvalidAttestation     = errors.NewError(0x33).WithType("invalid_attestation").WithMessage("Invalid attestation data")
+	ErrAttestationFormat      = errors.NewError(0x33).WithType("invalid_attestation").WithMessage("Invalid attestation format")
+	ErrAttestationCertificate = errors.NewError(0x33).WithType("invalid_certificate").WithMessage("Invalid attestation certificate")
+	ErrAssertionSignature     = errors.NewError(0x33).WithType("invalid_signature").WithMessage("Assertion Signature against auth data and client hash is not valid")
+	ErrUnsupportedKey         = errors.NewError(0x33).WithType("invalid_key_type").WithMessage("Unsupported Public Key Type")
+	ErrUnsupportedAlgorithm   = errors.NewError(0x33).WithType("unsupported_key_algorithm").WithMessage("Unsupported public key algorithm")
+	ErrNotSpecImplemented     = errors.NewError(0x33).WithType("spec_unimplemented").WithMessage("This field is not yet supported by the WebAuthn spec")
+	ErrNotImplemented         = errors.NewError(0x33).WithType("not_implemented").WithMessage("This field is not yet supported by this library")
 )
-
-func (err *Error) Error() string {
-	str, _ := json.Marshal(err)
-	return string(str)
-}
-
-func (passedError *Error) WithDetails(details string) *Error {
-	err := *passedError
-	err.Details = details
-	return &err
-}
-
-func (passedError *Error) WithParent(details error) *Error {
-	if details == nil {
-		return passedError
-	}
-	err := *passedError
-	err.Parent = details.Error()
-	return &err
-}
-
-func (passedError *Error) WithInfo(info string) *Error {
-	err := *passedError
-	err.DevInfo = info
-	return &err
-}
-
-func (passedError *Error) WithKV(str string, inter interface{}) *Error {
-	err := *passedError
-	if err.KV == nil {
-		err.KV = make(map[string]interface{})
-	}
-	err.KV[str] = inter
-	return &err
-}

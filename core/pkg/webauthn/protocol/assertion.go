@@ -59,7 +59,7 @@ type BetterCredentialAssertionResponse struct {
 // manageable structures
 func ParseCredentialRequestResponse(response *http.Request) (*ParsedCredentialAssertionData, error) {
 	if response == nil || response.Body == nil {
-		return nil, ErrBadRequest.WithDetails("No response given")
+		return nil, ErrBadRequest.WithMessage("No response given").WithCaller()
 	}
 	return ParseCredentialRequestResponseBody(response.Body)
 }
@@ -73,12 +73,12 @@ func ParseCredentialRequestResponseBody(body io.Reader) (*ParsedCredentialAssert
 
 	reader, err := io.ReadAll(body)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Unable to read response body")
+		return nil, ErrBadRequest.WithMessage("Unable to read response body").WithCaller()
 	}
 
 	err = json.Unmarshal([]byte(reader), &car)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Parse error for Assertion").WithParent(err)
+		return nil, ErrBadRequest.WithMessage("Parse error for Assertion").WithRoot(err).WithCaller()
 	}
 
 	return ParseCredentialAssertionResponse(car)
@@ -93,7 +93,7 @@ func ParseCredentialAssertionResponsePayload(body hex.Hash) (*BetterCredentialAs
 	var car BetterCredentialAssertionResponse
 	err := json.Unmarshal(body.Bytes(), &car)
 	if err != nil {
-		return nil, ErrBadRequest.WithDetails("Parse error for Assertion").WithParent(err)
+		return nil, ErrBadRequest.WithMessage("Parse error for Assertion").WithRoot(err).WithCaller()
 	}
 
 	return &car, nil
@@ -147,15 +147,15 @@ func DecodeCredentialAssertionResponse(car *BetterCredentialAssertionResponse) *
 func ParseCredentialAssertionResponse(car CredentialAssertionResponse) (*ParsedCredentialAssertionData, error) {
 
 	if car.ID.IsZero() {
-		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with ID missing")
+		return nil, ErrBadRequest.WithMessage("CredentialAssertionResponse with ID missing").WithCaller()
 	}
 
 	// _, err := base64.RawURLEncoding.DecodeString(car.ID)
 	// if err != nil {
-	// 	return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with ID not base64url encoded").WithParent(err)
+	// 	return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with ID not base64url encoded").WithRoot(err)
 	// }
 	if car.Type != "public-key" {
-		return nil, ErrBadRequest.WithDetails("CredentialAssertionResponse with bad type")
+		return nil, ErrBadRequest.WithMessage("CredentialAssertionResponse with bad type").WithCaller()
 	}
 	var par ParsedCredentialAssertionData
 	par.ID, par.RawID, par.Type, par.ClientExtensionResults = car.ID, car.RawID, car.Type, car.ClientExtensionResults
@@ -173,7 +173,7 @@ func ParseCredentialAssertionResponse(car CredentialAssertionResponse) (*ParsedC
 
 	err = par.Response.AuthenticatorData.Unmarshal(car.AssertionResponse.AuthenticatorData)
 	if err != nil {
-		return nil, ErrParsingData.WithDetails("Error unmarshalling auth data").WithParent(err)
+		return nil, ErrParsingData.WithMessage("Error unmarshalling auth data").WithRoot(err).WithCaller()
 	}
 	return &par, nil
 }
@@ -196,7 +196,7 @@ func (p *ParsedCredentialAssertionData) Verify(storedChallenge hex.Hash, relying
 
 	appID, err := p.GetAppID(extensions, attestationType)
 	if err != nil {
-		return ErrParsingData.WithDetails("Error getting appID").WithParent(err)
+		return ErrParsingData.WithMessage("Error getting appID").WithRoot(err).WithCaller()
 	}
 
 	// Handle steps 7 through 10 of assertion by verifying stored data against the Collected Client Data
@@ -235,14 +235,14 @@ func (p *ParsedCredentialAssertionData) Verify(storedChallenge hex.Hash, relying
 	}
 
 	if err != nil {
-		return ErrAssertionSignature.WithDetails(fmt.Sprintf("Error parsing the assertion public key: %+v", err))
+		return ErrAssertionSignature.WithMessage(fmt.Sprintf("Error parsing the assertion public key: %+v", err)).WithCaller()
 	}
 
 	valid, err := webauthncose.VerifySignature(key, sigData.Bytes(), p.Response.Signature.Bytes())
 	if !valid || err != nil {
 		log.Println("valid", valid, "err", err)
-		return ErrAssertionSignature.WithDetails("Error validating the assertion signature").
-			WithParent(err).
+		return ErrAssertionSignature.WithMessage("Error validating the assertion signature").WithCaller().
+			WithRoot(err).
 			WithKV("valid", valid).
 			WithKV("key", key).
 			WithKV("signature", p.Response.Signature).

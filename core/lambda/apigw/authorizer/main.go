@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"log"
 	"nugg-webauthn/core/pkg/applepublickey"
 	"nugg-webauthn/core/pkg/cognito"
@@ -58,6 +58,7 @@ func main() {
 }
 
 func (h *Handler) Error(err error, message string) (Output, error) {
+
 	return Output{
 		IsAuthorized: false,
 		Context:      map[string]interface{}{"error": err.Error(), "message": message},
@@ -83,7 +84,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	}
 
 	if !tkn.Valid {
-		return h.Error(errors.New("Unathorized"), "Invalid token")
+		return h.Error(fmt.Errorf("Unathorized"), "Invalid token")
 	}
 
 	sub, err := tkn.GetUniqueID()
