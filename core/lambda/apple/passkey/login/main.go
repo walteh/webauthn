@@ -175,6 +175,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
 	defer close(chaner)
 	stale := false
+	defer func() { stale = true }()
 	var chanerr error
 
 	go func() {
@@ -197,6 +198,8 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 			}
 		}
 	}()
+
+	pp.Println(parsedResponse)
 
 	// Handle steps 4 through 16
 	validError := parsedResponse.Verify(cerem.ChallengeID, env.RPID(), env.RPOrigin(), "none", false, cred.PublicKey, nil)

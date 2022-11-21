@@ -2,6 +2,8 @@ package protocol
 
 import (
 	"crypto/subtle"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"nugg-auth/core/pkg/hex"
@@ -23,6 +25,26 @@ type CollectedClientData struct {
 	TokenBinding *TokenBinding `json:"tokenBinding,omitempty"`
 	// Chromium (Chrome) returns a hint sometimes about how to handle clientDataJSON in a safe manner
 	Hint string `json:"new_keys_may_be_added_here,omitempty"`
+}
+
+// custom unmarshal to handle converting challenge from base64 to hex
+func (c *CollectedClientData) UnmarshalJSON(data []byte) error {
+	type Alias CollectedClientData
+	aux := &struct {
+		Challenge string `json:"challenge"`
+		*Alias
+	}{
+		Alias: (*Alias)(c),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	challenge, err := base64.RawURLEncoding.DecodeString(aux.Challenge)
+	if err != nil {
+		return err
+	}
+	c.Challenge = hex.Hash(challenge)
+	return nil
 }
 
 type CeremonyType string

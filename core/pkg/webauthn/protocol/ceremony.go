@@ -2,11 +2,10 @@ package protocol
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/k0kubun/pp"
 
 	"nugg-auth/core/pkg/hex"
 )
@@ -40,18 +39,20 @@ func (s SavedCeremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMem
 // 	UnmarshalDynamoDBAttributeValue(types.AttributeValue) error
 // }
 
-func (s *SavedCeremony) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
+func (s *SavedCeremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMemberM) (err error) {
+	s.ChallengeID = hex.HexToHash(av.Value["challenge_id"].(*types.AttributeValueMemberS).Value)
+	s.SessionID = hex.HexToHash(av.Value["session_id"].(*types.AttributeValueMemberS).Value)
+	s.CredentialID = hex.HexToHash(av.Value["credential_id"].(*types.AttributeValueMemberS).Value)
+	s.CeremonyType = CeremonyType(av.Value["ceremony_type"].(*types.AttributeValueMemberS).Value)
 
-	pp.Println(m)
-
-	// plain unmarshal
-	err = attributevalue.UnmarshalMap(m.Value, &s)
-	if err != nil {
+	if s.CreatedAt, err = strconv.ParseUint(av.Value["created_at"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+		return err
+	}
+	if s.Ttl, err = strconv.ParseUint(av.Value["ttl"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
 		return err
 	}
 
 	return nil
-
 }
 
 func NewCeremony(credentialID hex.Hash, sessionId hex.Hash, ceremonyType CeremonyType) *SavedCeremony {

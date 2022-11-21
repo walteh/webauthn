@@ -98,6 +98,8 @@ func ParseCredentialAssertionResponsePayload(body hex.Hash) (*BetterCredentialAs
 		return nil, ErrBadRequest.WithDetails("Parse error for Assertion").WithParent(err)
 	}
 
+	pp.Println("car", car)
+
 	return &car, nil
 }
 
@@ -123,9 +125,9 @@ func DecodeCredentialAssertionResponse(car *BetterCredentialAssertionResponse) *
 		PublicKeyCredential: PublicKeyCredential{
 			Credential: Credential{
 				Type: car.Type,
-				ID:   car.CredentialID,
+				ID:   car.CredentialID.Bytes(),
 			},
-			RawID: car.CredentialID,
+			RawID: car.CredentialID.Bytes(),
 			ClientExtensionResults: map[string]interface{}{
 				"appid": true,
 			},
@@ -198,7 +200,7 @@ func (p *ParsedCredentialAssertionData) Verify(storedChallenge hex.Hash, relying
 
 	appID, err := p.GetAppID(extensions, attestationType)
 	if err != nil {
-		return err
+		return ErrParsingData.WithDetails("Error getting appID").WithParent(err)
 	}
 
 	// Handle steps 7 through 10 of assertion by verifying stored data against the Collected Client Data
@@ -240,10 +242,16 @@ func (p *ParsedCredentialAssertionData) Verify(storedChallenge hex.Hash, relying
 		return ErrAssertionSignature.WithDetails(fmt.Sprintf("Error parsing the assertion public key: %+v", err))
 	}
 
-	valid, err := webauthncose.VerifySignature(key, sigData, p.Response.Signature)
+	valid, err := webauthncose.VerifySignature(key, sigData.Bytes(), p.Response.Signature.Bytes())
 	if !valid || err != nil {
 		log.Println("valid", valid, "err", err)
-		return ErrAssertionSignature.WithDetails(fmt.Sprintf("Error validating the assertion signature: %+v\n", err))
+		return ErrAssertionSignature.WithDetails("Error validating the assertion signature").
+			WithParent(err).
+			WithKV("valid", valid).
+			WithKV("key", key).
+			WithKV("signature", p.Response.Signature).
+			WithKV("sigData", sigData).
+			WithKV("appID", appID)
 	}
 
 	return nil

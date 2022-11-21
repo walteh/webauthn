@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"hash"
+	"log"
 	"math/big"
 
 	"golang.org/x/crypto/ed25519"
@@ -94,6 +95,7 @@ func (k *EC2PublicKeyData) Verify(data []byte, sig []byte) (bool, error) {
 	h.Write(data)
 	_, err := asn1.Unmarshal(sig, e)
 	if err != nil {
+		log.Println(err)
 		return false, ErrSigNotProvidedOrInvalid
 	}
 	return ecdsa.Verify(pubkey, h.Sum(nil), e.R, e.S), nil

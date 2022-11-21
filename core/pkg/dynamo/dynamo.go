@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/k0kubun/pp"
 )
 
 type Client struct {
@@ -131,6 +132,7 @@ func (c *Client) TransactGet(ctx context.Context, items ...Gettable) error {
 	}
 
 	for i := range items {
+		pp.Println(res.Responses[i])
 		err = items[i].UnmarshalDynamoDBAttributeValue(&types.AttributeValueMemberM{Value: res.Responses[i].Item})
 		if err != nil {
 			return err

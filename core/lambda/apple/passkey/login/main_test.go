@@ -41,7 +41,7 @@ func DummyHandler(t *testing.T) *Handler {
 						Value: "0x",
 					},
 					"aaguid": &types.AttributeValueMemberS{
-						Value: "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+						Value: "0x",
 					},
 					"created_at": &types.AttributeValueMemberN{
 						Value: "1669001824",
@@ -117,11 +117,11 @@ func DummyHandler(t *testing.T) *Handler {
 
 var arg = fmt.Sprintf(
 	`{"rawAuthenticatorData":"%s","signature":"%s","userID":"%s","rawClientDataJSON":"%s","credentialID":"%s","credentialType":"public-key"}`,
-	hex.MustBase64ToHash("qbmr9/xGsTVktJ1c+FvL83H5y2MODWs1S8YLUeBl2kgdAAAAAA==").Hex(),
-	hex.MustBase64ToHash("MEUCIA8DhDsdF8XcwD6T9X0R1C68oeFw+gNgy1lHMYGxi/WHAiEA6+JXpbLdY39d6fK9oDRDpLtDAv7DplSl7p+Nm/NiFJc=").Hex(),
-	hex.MustBase64ToHash("hOCe588daJZuGA6PeJTczQ==").Hex(),
-	fmt.Sprintf(`{\"type\":\"webauthn.get\",\"challenge\":\"%s\",\"origin\":\"https://nugg.xyz\"}`, hex.MustBase64ToHash("4S4RWs9FUrJWi1XpPL05OQ").Hex()),
-	hex.MustBase64ToHash("cFPtCQAM+v3W4dmNkpeW+cB8Rms=").Hex(),
+	hex.MustBase64ToHash("qbmr9_xGsTVktJ1c-FvL83H5y2MODWs1S8YLUeBl2kgdAAAAAA").Hex(),
+	hex.MustBase64ToHash("MEUCIA8DhDsdF8XcwD6T9X0R1C68oeFw-gNgy1lHMYGxi_WHAiEA6-JXpbLdY39d6fK9oDRDpLtDAv7DplSl7p-Nm_NiFJc").Hex(),
+	hex.MustBase64ToHash("hOCe588daJZuGA6PeJTczQ").Hex(),
+	`{\"type\":\"webauthn.get\",\"challenge\":\"4S4RWs9FUrJWi1XpPL05OQ\",\"origin\":\"https://nugg.xyz\"}`,
+	hex.MustBase64ToHash("cFPtCQAM-v3W4dmNkpeW-cB8Rms").Hex(),
 )
 
 func TestHandler_Invoke(t *testing.T) {

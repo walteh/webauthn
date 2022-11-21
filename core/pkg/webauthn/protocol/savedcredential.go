@@ -1,7 +1,6 @@
 package protocol
 
 import (
-	"encoding/base64"
 	"fmt"
 	"nugg-auth/core/pkg/hex"
 	"strconv"
@@ -59,7 +58,7 @@ func (s SavedCredential) MarshalDynamoDBAttributeValue() (*types.AttributeValueM
 	av.Value["public_key"] = &types.AttributeValueMemberS{Value: s.PublicKey.Hex()}
 	av.Value["attestation_type"] = &types.AttributeValueMemberS{Value: s.AttestationType}
 	av.Value["receipt"] = &types.AttributeValueMemberS{Value: s.Receipt.Hex()}
-	av.Value["aaguid"] = &types.AttributeValueMemberS{Value: s.AAGUID.Utf8()}
+	av.Value["aaguid"] = &types.AttributeValueMemberS{Value: s.AAGUID.Hex()}
 	av.Value["sign_count"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.SignCount)}
 	av.Value["clone_warning"] = &types.AttributeValueMemberBOOL{Value: s.CloneWarning}
 	av.Value["created_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.CreatedAt)}
@@ -69,10 +68,6 @@ func (s SavedCredential) MarshalDynamoDBAttributeValue() (*types.AttributeValueM
 }
 
 func (s *SavedCredential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
-
-	if s.RawID, err = base64.RawURLEncoding.DecodeString(m.Value["credential_id"].(*types.AttributeValueMemberS).Value); err != nil {
-		return err
-	}
 
 	s.RawID = hex.HexToHash(m.Value["credential_id"].(*types.AttributeValueMemberS).Value)
 	s.Type = CredentialType(m.Value["credential_type"].(*types.AttributeValueMemberS).Value)

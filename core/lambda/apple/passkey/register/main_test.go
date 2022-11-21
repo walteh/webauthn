@@ -22,10 +22,10 @@ func DummyHandler(t *testing.T) *Handler {
 		Put: &types.Put{
 			Item: map[string]types.AttributeValue{
 				"challenge_id": &types.AttributeValueMemberS{
-					Value: "0x84e09ee7cf1d68966e180e8f7894dccdb6a4b3d6ec2769acc239853008b7649a",
+					Value: "0xa55af63d41bf95eea575ef70c5e2261c",
 				},
 				"session_id": &types.AttributeValueMemberS{
-					Value: "0x84e09ee7cf1d68966e180e8f7894dccdb6a4b3d6ec2769acc239853008b7649a",
+					Value: "0xa55af63d41bf95eea575ef70c5e2261c",
 				},
 				"credential_id": &types.AttributeValueMemberS{
 					Value: "0x",
@@ -36,7 +36,7 @@ func DummyHandler(t *testing.T) *Handler {
 				"created_at": &types.AttributeValueMemberN{
 					Value: "1668984054",
 				},
-				"ttl": &types.AttributeValueMemberS{
+				"ttl": &types.AttributeValueMemberN{
 					Value: "1668984354",
 				},
 			},
@@ -66,14 +66,14 @@ func TestHandler_Invoke(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "test",
+			name: "A",
 			args: Input{
 				Headers: map[string]string{
 					"Content-Type":                  "application/json",
 					"x-nugg-hex-attestation-object": "0xa363666d74646e6f6e656761747453746d74a06861757468446174615898a9b9abf7fc46b13564b49d5cf85bcbf371f9cb630e0d6b354bc60b51e065da485d000000000000000000000000000000000000000000147053ed09000cfafdd6e1d98d929796f9c07c466ba501020326200121582030dfb831ebb382bcbd45ac6cb1745222b7d81ad8d44ab33e20d2bda632b5692a225820f6496d03d357717d7669a7af490c8706fef052c0819a02bdca4b92bd42459a00",
 					"x-nugg-hex-credential-id":      "0x7053ed09000cfafdd6e1d98d929796f9c07c466b",
-					"x-nugg-utf-client-data-json":   `{"challenge":"0xa55af63d41bf95eea575ef70c5e2261c","origin":"https://nugg.xyz","type":"webauthn.create"}`,
-					"x-nugg-webauthn-creation":      "eyJyYXdDbGllbnREYXRhSlNPTiI6ImV5SmphR0ZzYkdWdVoyVWlPaUp3Vm5JeVVGVkhYMnhsTm14a1pUbDNlR1ZKYlVoQklpd2liM0pwWjJsdUlqb2lhSFIwY0hNNkx5OXVkV2RuTG5oNWVpSXNJblI1Y0dVaU9pSjNaV0poZFhSb2JpNWpjbVZoZEdVaWZRPT0iLCJyYXdBdHRlc3RhdGlvbk9iamVjdCI6Im8yTm1iWFJrYm05dVpXZGhkSFJUZEcxMG9HaGhkWFJvUkdGMFlWaVlxYm1yOS94R3NUVmt0SjFjK0Z2TDgzSDV5Mk1PRFdzMVM4WUxVZUJsMmtoZEFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFGSEJUN1FrQURQcjkxdUhaalpLWGx2bkFmRVpycFFFQ0F5WWdBU0ZZSUREZnVESHJzNEs4dlVXc2JMRjBVaUszMkJyWTFFcXpQaURTdmFZeXRXa3FJbGdnOWtsdEE5TlhjWDEyYWFldlNReUhCdjd3VXNDQm1nSzl5a3VTdlVKRm1nQT0iLCJjcmVkZW50aWFsSWQiOiJjRlB0Q1FBTSt2M1c0ZG1Oa3BlVytjQjhSbXM9In0=",
+					"x-nugg-utf-client-data-json":   `{"challenge":"pVr2PUG_le6lde9wxeImHA","origin":"https://nugg.xyz","type":"webauthn.create"}`,
+					// "x-nugg-webauthn-creation":      "eyJyYXdDbGllbnREYXRhSlNPTiI6ImV5SmphR0ZzYkdWdVoyVWlPaUp3Vm5JeVVGVkhYMnhsTm14a1pUbDNlR1ZKYlVoQklpd2liM0pwWjJsdUlqb2lhSFIwY0hNNkx5OXVkV2RuTG5oNWVpSXNJblI1Y0dVaU9pSjNaV0poZFhSb2JpNWpjbVZoZEdVaWZRPT0iLCJyYXdBdHRlc3RhdGlvbk9iamVjdCI6Im8yTm1iWFJrYm05dVpXZGhkSFJUZEcxMG9HaGhkWFJvUkdGMFlWaVlxYm1yOS94R3NUVmt0SjFjK0Z2TDgzSDV5Mk1PRFdzMVM4WUxVZUJsMmtoZEFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFGSEJUN1FrQURQcjkxdUhaalpLWGx2bkFmRVpycFFFQ0F5WWdBU0ZZSUREZnVESHJzNEs4dlVXc2JMRjBVaUszMkJyWTFFcXpQaURTdmFZeXRXa3FJbGdnOWtsdEE5TlhjWDEyYWFldlNReUhCdjd3VXNDQm1nSzl5a3VTdlVKRm1nQT0iLCJjcmVkZW50aWFsSWQiOiJjRlB0Q1FBTSt2M1c0ZG1Oa3BlVytjQjhSbXM9In0=",
 				},
 			},
 			want: Output{

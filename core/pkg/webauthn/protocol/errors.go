@@ -92,6 +92,9 @@ func (passedError *Error) WithDetails(details string) *Error {
 }
 
 func (passedError *Error) WithParent(details error) *Error {
+	if details == nil {
+		return passedError
+	}
 	err := *passedError
 	err.Parent = details.Error()
 	return &err

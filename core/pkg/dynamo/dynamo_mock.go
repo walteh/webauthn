@@ -6,6 +6,7 @@ import (
 	"nugg-auth/core/pkg/hex"
 	"nugg-auth/core/pkg/webauthn/protocol"
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -41,7 +42,7 @@ func (cli *MockClient) MockCreateTable(t *testing.T, name string, pk string) str
 	})
 
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 
 	return name
@@ -58,6 +59,19 @@ func (cli *MockClient) MockDeleteTable(t *testing.T, name string) {
 	}
 }
 
+func AttachLocalDynamoServer(t *testing.T) {
+	cmd := exec.Command("docker", "run", "-d", "-p", "8777:8000", "amazon/dynamodb-local")
+	err := cmd.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		log.Println("teardown - server")
+
+		cmd.Process.Kill()
+	})
+}
+
 func NewMockClient(t *testing.T) *Client {
 	os.Setenv("AWS_ACCESS_KEY_ID", "fake")
 	os.Setenv("AWS_SECRET_ACCESS_KEY", "fake")
@@ -68,8 +82,10 @@ func NewMockClient(t *testing.T) *Client {
 		t.Fatal(err)
 	}
 
+	AttachLocalDynamoServer(t)
+
 	cli := dynamodb.NewFromConfig(conf, func(o *dynamodb.Options) {
-		o.EndpointResolver = dynamodb.EndpointResolverFromURL("http://localhost:8000")
+		o.EndpointResolver = dynamodb.EndpointResolverFromURL("http://localhost:8777")
 	})
 
 	mocked := MockClient{
@@ -77,7 +93,7 @@ func NewMockClient(t *testing.T) *Client {
 	}
 
 	t.Cleanup(func() {
-		log.Println("teardown")
+		log.Println("teardown - tables")
 		mocked.MockDeleteTable(t, "credential-table")
 		mocked.MockDeleteTable(t, "user-table")
 		mocked.MockDeleteTable(t, "ceremony-table")
