@@ -7,12 +7,11 @@ import (
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/hex"
+	"nugg-auth/core/pkg/invocation"
 	"nugg-auth/core/pkg/webauthn/protocol"
 
 	"os"
-	"time"
 
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -29,87 +28,24 @@ type Handler struct {
 	Id      string
 	Dynamo  *dynamo.Client
 	Config  config.Config
-	Logger  zerolog.Logger
+	logger  zerolog.Logger
 	Cognito cognito.Client
 	Ctx     context.Context
 	counter int
 }
 
-func init() {
-	zerolog.TimeFieldFormat = time.StampMicro
+func (h Handler) ID() string {
+	return h.Id
 }
 
-type Invocation struct {
-	zerolog.Logger
-	Start  time.Time
-	Ctx    context.Context
-	cancel context.CancelFunc
+func (h *Handler) IncrementCounter() int {
+	h.counter += 1
+	return h.counter
 }
 
-func (h *Handler) NewInvocation(ctx context.Context, logger zerolog.Logger) *Invocation {
-	ctx, cnl := context.WithCancel(ctx)
-
-	h.counter++
-	return &Invocation{
-		cancel: cnl,
-		Ctx:    ctx,
-		Logger: h.Logger.With().Int("counter", h.counter).Str("handler", h.Id).Logger(),
-		Start:  time.Now(),
-	}
+func (h Handler) Logger() zerolog.Logger {
+	return h.logger
 }
-
-func (h *Invocation) Error(err error, code int, message string) (Output, error) {
-	h.Logger.Error().Err(err).
-		Int("status_code", code).
-		Str("body", "").
-		CallerSkipFrame(1).
-		TimeDiff("duration", time.Now(), h.Start).
-		Msg(message)
-
-	h.cancel()
-
-	return Output{
-		StatusCode: code,
-	}, nil
-}
-
-func (h *Invocation) Success(code int, headers map[string]string, message string) (Output, error) {
-
-	output := Output{
-		StatusCode: code,
-		Headers:    headers,
-	}
-
-	if message != "" && code != 204 {
-		output.Body = message
-	}
-
-	r := zerolog.Dict()
-	for k, v := range output.Headers {
-		r = r.Str(k, v)
-	}
-
-	if message == "" {
-		message = "empty"
-	}
-
-	if code == 204 && headers["Content-Length"] == "" {
-		output.Headers["Content-Length"] = "0"
-	}
-
-	h.Logger.Info().
-		Int("status_code", code).
-		Str("body", output.Body).
-		Dict("headers", r).
-		CallerSkipFrame(1).
-		TimeDiff("duration", time.Now(), h.Start).
-		Msg(message)
-
-	h.cancel()
-
-	return output, nil
-}
-
 func main() {
 
 	ctx := context.Background()
@@ -127,7 +63,7 @@ func main() {
 		Dynamo:  dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
 		Config:  cfg,
 		Cognito: cognito.NewClient(cfg, env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
-		Logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
+		logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
 		counter: 0,
 	}
 
@@ -136,7 +72,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
-	inv := h.NewInvocation(ctx, h.Logger)
+	inv := invocation.NewInvocation(ctx, h, input)
 
 	assertion := hex.HexToHash(input.Headers["x-nugg-hex-assertion"])
 
@@ -164,8 +100,6 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	if err != nil {
 		return inv.Error(err, 500, "failed to send transact get")
 	}
-
-	pp.Println(cred, cerem)
 
 	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
 		log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
@@ -198,8 +132,6 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 			}
 		}
 	}()
-
-	pp.Println(parsedResponse)
 
 	// Handle steps 4 through 16
 	validError := parsedResponse.Verify(cerem.ChallengeID, env.RPID(), env.RPOrigin(), "none", false, cred.PublicKey, nil)

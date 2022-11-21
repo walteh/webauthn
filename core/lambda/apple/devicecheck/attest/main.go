@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 )
@@ -165,8 +164,6 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	if err != nil {
 		return inv.Error(err, 500, err.Error())
 	}
-
-	pp.Println(putter)
 
 	return inv.Success(204, map[string]string{}, "")
 

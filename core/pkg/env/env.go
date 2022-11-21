@@ -6,11 +6,14 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/rs/zerolog"
 )
 
 func init() {
+	zerolog.TimeFieldFormat = time.StampMicro
 	log.SetFlags(log.LstdFlags | log.Lshortfile | log.LUTC | log.Lmicroseconds)
 }
 

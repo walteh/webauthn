@@ -5,13 +5,12 @@ import (
 	"nugg-auth/core/pkg/dynamo"
 	"nugg-auth/core/pkg/env"
 	"nugg-auth/core/pkg/hex"
+	"nugg-auth/core/pkg/invocation"
 	"nugg-auth/core/pkg/webauthn/protocol"
 
 	"context"
 	"os"
-	"time"
 
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 
@@ -30,80 +29,22 @@ type Handler struct {
 	Ctx     context.Context
 	Dynamo  *dynamo.Client
 	Config  config.Config
-	Logger  zerolog.Logger
+	logger  zerolog.Logger
 	Cognito cognito.Client
 	counter int
 }
 
-func init() {
-	zerolog.TimeFieldFormat = time.StampMicro
+func (h Handler) ID() string {
+	return h.Id
 }
 
-type Invocation struct {
-	zerolog.Logger
-	Start  time.Time
-	Ctx    context.Context
-	cancel context.CancelFunc
+func (h *Handler) IncrementCounter() int {
+	h.counter += 1
+	return h.counter
 }
 
-func (h *Handler) NewInvocation(ctx context.Context, logger zerolog.Logger) *Invocation {
-	ctx, cnl := context.WithCancel(ctx)
-
-	h.counter++
-	return &Invocation{
-		cancel: cnl,
-		Ctx:    ctx,
-		Logger: h.Logger.With().Int("counter", h.counter).Str("handler", h.Id).Logger(),
-		Start:  time.Now(),
-	}
-}
-
-func (h *Invocation) Error(err error, code int, message string) (Output, error) {
-	h.Logger.Error().Err(err).
-		Int("status_code", code).
-		Str("body", "").
-		CallerSkipFrame(1).
-		TimeDiff("duration", time.Now(), h.Start).
-		Msg(message)
-
-	return Output{
-		StatusCode: code,
-	}, nil
-}
-
-func (h *Invocation) Success(code int, headers map[string]string, message string) (Output, error) {
-
-	output := Output{
-		StatusCode: code,
-		Headers:    headers,
-	}
-
-	if message != "" && code != 204 {
-		output.Body = message
-	}
-
-	r := zerolog.Dict()
-	for k, v := range output.Headers {
-		r = r.Str(k, v)
-	}
-
-	if message == "" {
-		message = "empty"
-	}
-
-	if code == 204 && headers["Content-Length"] == "" {
-		output.Headers["Content-Length"] = "0"
-	}
-
-	h.Logger.Info().
-		Int("status_code", code).
-		Str("body", output.Body).
-		Dict("headers", r).
-		CallerSkipFrame(1).
-		TimeDiff("duration", time.Now(), h.Start).
-		Msg(message)
-
-	return output, nil
+func (h Handler) Logger() zerolog.Logger {
+	return h.logger
 }
 
 func main() {
@@ -121,7 +62,7 @@ func main() {
 		Dynamo:  dynamo.NewClient(cfg, env.DynamoUsersTableName(), env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
 		Config:  cfg,
 		Cognito: cognito.NewClient(cfg, env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
-		Logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
+		logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
 		counter: 0,
 	}
 
@@ -130,10 +71,8 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
-	inv := h.NewInvocation(ctx, h.Logger)
-	// RawAttestationObject hex.Hash `json:"rawAttestationObject"`
-	// RawClientData        string   `json:"rawClientDataJSON"`
-	// CredentialID         hex.Hash `json:"credentialId"`
+	inv := invocation.NewInvocation(ctx, h, payload)
+
 	attestation := hex.HexToHash(payload.Headers["x-nugg-hex-attestation-object"])
 	clientData := payload.Headers["x-nugg-utf-client-data-json"]
 	credentialID := hex.HexToHash(payload.Headers["x-nugg-hex-credential-id"])
@@ -209,8 +148,6 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	if result == nil {
 		return inv.Error(chanerr, 500, "failed to get dev creds")
 	}
-
-	pp.Println(credput, ceremput)
 
 	return inv.Success(204, map[string]string{"x-nugg-access-token": *result.Token}, "")
 }

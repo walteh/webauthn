@@ -50,7 +50,7 @@ func DummyHandler(t *testing.T) *Handler {
 		Dynamo:  dynamoClient,
 		Config:  nil,
 		Cognito: cognito.NewMockClient(),
-		Logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
+		logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 		counter: 0,
 	}
 }
@@ -126,14 +126,12 @@ func TestHandler_Invoke(t *testing.T) {
 			if c.Item == nil {
 				t.Error("item is nil")
 			}
+			if Handler.counter != len(tests) {
+				t.Errorf("Handler.Invoke() counter = %v, want 1", Handler.counter)
+			}
 
 		})
+
 	}
 
-	t.Run("count check", func(t *testing.T) {
-		if Handler.counter != len(tests) {
-			t.Errorf("Handler.Invoke() counter = %v, want 1", Handler.counter)
-		}
-
-	})
 }

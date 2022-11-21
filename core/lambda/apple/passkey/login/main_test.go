@@ -110,7 +110,7 @@ func DummyHandler(t *testing.T) *Handler {
 		Dynamo:  dynamoClient,
 		Config:  nil,
 		Cognito: cognito.NewMockClient(),
-		Logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
+		logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 		counter: 0,
 	}
 }

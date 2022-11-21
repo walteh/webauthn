@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"nugg-auth/core/pkg/hex"
-
-	"github.com/k0kubun/pp"
 )
 
 // The basic credential type that is inherited by WebAuthn's
@@ -92,10 +90,6 @@ func ParseCredentialCreationResponseBody(body io.Reader) (*ParsedCredentialCreat
 	if err != nil {
 		return nil, ErrBadRequest.WithDetails("Unable to read response body")
 	}
-
-	pp.Println(string(reader))
-
-	pp.Println(ccr)
 
 	err = json.Unmarshal(reader, &ccr)
 	if err != nil {

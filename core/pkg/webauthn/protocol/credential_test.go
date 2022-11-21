@@ -20,7 +20,6 @@ var byteAttObject = hex.MustBase64ToHash("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YV
 var abc = "{\"challenge\":\"0x5bc1b3154f291a386845b5ab2c395a9807eaff2e12d42646d55ba87912c046b1\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}"
 
 func TestParseCredentialCreationResponse(t *testing.T) {
-	pp.Println(byteAttObject.Hex())
 
 	reqBody := ioutil.NopCloser(bytes.NewReader([]byte(testCredentialRequestBody)))
 	httpReq := &http.Request{Body: reqBody}
