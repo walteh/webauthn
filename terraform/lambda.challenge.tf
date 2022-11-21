@@ -1,36 +1,36 @@
-resource "null_resource" "apple_passkey_init" {
+resource "null_resource" "challenge" {
   triggers = { src_hash = "${data.archive_file.core.output_sha}" }
   provisioner "local-exec" {
     environment = {
-      dir = local.apple_passkey_init_dir
-      tag = "${aws_ecr_repository.core.repository_url}:${local.apple_passkey_init_tag}"
+      dir = local.challenge_dir
+      tag = "${aws_ecr_repository.core.repository_url}:${local.challenge_tag}"
     }
     command = local.lambda_docker_deploy_command
   }
 }
 
-data "aws_ecr_image" "apple_passkey_init" {
-  depends_on      = [null_resource.apple_passkey_init]
+data "aws_ecr_image" "challenge" {
+  depends_on      = [null_resource.challenge]
   repository_name = aws_ecr_repository.core.name
-  image_tag       = local.apple_passkey_init_tag
+  image_tag       = local.challenge_tag
 }
 
 
-resource "aws_lambda_function" "apple_passkey_init" {
+resource "aws_lambda_function" "challenge" {
   depends_on = [
     aws_ecr_repository.core,
-    data.aws_ecr_image.apple_passkey_init
+    data.aws_ecr_image.challenge
   ]
 
-  function_name    = "${local.app_stack}-apple-passkey-init"
-  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.apple_passkey_init_tag}"
-  role             = aws_iam_role.apple_passkey_init.arn
+  function_name    = "${local.app_stack}-challenge"
+  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.challenge_tag}"
+  role             = aws_iam_role.challenge.arn
   memory_size      = 128
   timeout          = 120
   package_type     = "Image"
   publish          = true
   architectures    = ["arm64"]
-  source_code_hash = trimprefix(data.aws_ecr_image.apple_passkey_init.image_digest, "sha256:")
+  source_code_hash = trimprefix(data.aws_ecr_image.challenge.image_digest, "sha256:")
 
   environment {
     variables = {
@@ -50,12 +50,12 @@ resource "aws_lambda_function" "apple_passkey_init" {
 
 
 
-resource "aws_iam_role" "apple_passkey_init" {
-  name               = "${local.app_stack}-apple-passkey-init-ExecutionRole"
+resource "aws_iam_role" "challenge" {
+  name               = "${local.app_stack}-challenge-ExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   inline_policy {
-    name   = "${local.app_stack}-apple-passkey-init-ExecutionRolePolicy"
-    policy = data.aws_iam_policy_document.apple_passkey_init_lambda_inline.json
+    name   = "${local.app_stack}-challenge-ExecutionRolePolicy"
+    policy = data.aws_iam_policy_document.challenge_lambda_inline.json
   }
 
   managed_policy_arns = [
@@ -65,7 +65,7 @@ resource "aws_iam_role" "apple_passkey_init" {
 }
 
 
-data "aws_iam_policy_document" "apple_passkey_init_lambda_inline" {
+data "aws_iam_policy_document" "challenge_lambda_inline" {
   statement {
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue"]
@@ -85,25 +85,25 @@ data "aws_iam_policy_document" "apple_passkey_init_lambda_inline" {
 		API Gateway
 ////////////////////////*/
 
-resource "aws_apigatewayv2_route" "apple_passkey_init" {
+resource "aws_apigatewayv2_route" "challenge" {
   api_id             = aws_apigatewayv2_api.auth.id
-  route_key          = "POST /apple/passkey/init"
+  route_key          = "POST /challenge"
   authorization_type = "NONE"
-  target             = "integrations/${aws_apigatewayv2_integration.apple_passkey_init_lambda.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.challenge_lambda.id}"
 }
 
-resource "aws_lambda_permission" "apple_passkey_init" {
-  statement_id  = "${local.app_stack}-apple-passkey-init-AllowExecutionFromApiGatewayRoute"
+resource "aws_lambda_permission" "challenge" {
+  statement_id  = "${local.app_stack}-challenge-AllowExecutionFromApiGatewayRoute"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.apple_passkey_init.function_name
+  function_name = aws_lambda_function.challenge.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/init"
+  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/challenge"
 }
 
-resource "aws_apigatewayv2_integration" "apple_passkey_init_lambda" {
+resource "aws_apigatewayv2_integration" "challenge_lambda" {
   api_id                 = aws_apigatewayv2_api.auth.id
   integration_type       = "AWS_PROXY"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.apple_passkey_init.invoke_arn
+  integration_uri        = aws_lambda_function.challenge.invoke_arn
   payload_format_version = "2.0"
 }

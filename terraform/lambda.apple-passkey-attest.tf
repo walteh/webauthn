@@ -1,36 +1,36 @@
-resource "null_resource" "apple_passkey_login" {
+resource "null_resource" "apple_passkey_attest" {
   triggers = { src_hash = "${data.archive_file.core.output_sha}" }
   provisioner "local-exec" {
     environment = {
-      dir = local.apple_passkey_login_dir
-      tag = "${aws_ecr_repository.core.repository_url}:${local.apple_passkey_login_tag}"
+      dir = local.apple_passkey_attest_dir
+      tag = "${aws_ecr_repository.core.repository_url}:${local.apple_passkey_attest_tag}"
     }
     command = local.lambda_docker_deploy_command
   }
 }
 
-data "aws_ecr_image" "apple_passkey_login" {
-  depends_on      = [null_resource.apple_passkey_login]
+data "aws_ecr_image" "apple_passkey_attest" {
+  depends_on      = [null_resource.apple_passkey_attest]
   repository_name = aws_ecr_repository.core.name
-  image_tag       = local.apple_passkey_login_tag
+  image_tag       = local.apple_passkey_attest_tag
 }
 
 
-resource "aws_lambda_function" "apple_passkey_login" {
+resource "aws_lambda_function" "apple_passkey_attest" {
   depends_on = [
     aws_ecr_repository.core,
-    data.aws_ecr_image.apple_passkey_login
+    data.aws_ecr_image.apple_passkey_attest
   ]
 
-  function_name    = "${local.app_stack}-apple-passkey-login"
-  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.apple_passkey_login_tag}"
-  role             = aws_iam_role.apple_passkey_login.arn
+  function_name    = "${local.app_stack}-apple-passkey-attest"
+  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.apple_passkey_attest_tag}"
+  role             = aws_iam_role.apple_passkey_attest.arn
   memory_size      = 128
   timeout          = 120
   package_type     = "Image"
   publish          = true
   architectures    = ["arm64"]
-  source_code_hash = trimprefix(data.aws_ecr_image.apple_passkey_login.image_digest, "sha256:")
+  source_code_hash = trimprefix(data.aws_ecr_image.apple_passkey_attest.image_digest, "sha256:")
 
   environment {
     variables = {
@@ -51,12 +51,12 @@ resource "aws_lambda_function" "apple_passkey_login" {
 
 
 
-resource "aws_iam_role" "apple_passkey_login" {
-  name               = "${local.app_stack}-apple-passkey-login-ExecutionRole"
+resource "aws_iam_role" "apple_passkey_attest" {
+  name               = "${local.app_stack}-apple-passkey-attest-ExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   inline_policy {
-    name   = "${local.app_stack}-apple-passkey-login-ExecutionRolePolicy"
-    policy = data.aws_iam_policy_document.apple_passkey_login_lambda_inline.json
+    name   = "${local.app_stack}-apple-passkey-attest-ExecutionRolePolicy"
+    policy = data.aws_iam_policy_document.apple_passkey_attest_lambda_inline.json
   }
 
   managed_policy_arns = [
@@ -66,7 +66,7 @@ resource "aws_iam_role" "apple_passkey_login" {
 }
 
 
-data "aws_iam_policy_document" "apple_passkey_login_lambda_inline" {
+data "aws_iam_policy_document" "apple_passkey_attest_lambda_inline" {
   /* statement {
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue"]
@@ -92,26 +92,26 @@ data "aws_iam_policy_document" "apple_passkey_login_lambda_inline" {
 		API Gateway
 ////////////////////////*/
 
-resource "aws_apigatewayv2_route" "apple_passkey_login" {
+resource "aws_apigatewayv2_route" "apple_passkey_attest" {
   api_id             = aws_apigatewayv2_api.auth.id
-  route_key          = "POST /apple/passkey/login"
+  route_key          = "POST /apple/passkey/attest"
   authorization_type = "NONE"
-  target             = "integrations/${aws_apigatewayv2_integration.apple_passkey_login_lambda.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.apple_passkey_attest_lambda.id}"
 }
 
-resource "aws_lambda_permission" "apple_passkey_login" {
-  statement_id  = "${local.app_stack}-apple-passkey-login-AllowExecutionFromApiGatewayRoute"
+resource "aws_lambda_permission" "apple_passkey_attest" {
+  statement_id  = "${local.app_stack}-apple-passkey-attest-AllowExecutionFromApiGatewayRoute"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.apple_passkey_login.function_name
+  function_name = aws_lambda_function.apple_passkey_attest.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/login"
+  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/attest"
 }
 
-resource "aws_apigatewayv2_integration" "apple_passkey_login_lambda" {
+resource "aws_apigatewayv2_integration" "apple_passkey_attest_lambda" {
   api_id                 = aws_apigatewayv2_api.auth.id
   integration_type       = "AWS_PROXY"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.apple_passkey_login.invoke_arn
+  integration_uri        = aws_lambda_function.apple_passkey_attest.invoke_arn
   payload_format_version = "2.0"
 }
 

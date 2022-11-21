@@ -5,9 +5,10 @@ locals {
 }
 
 locals {
-  app                 = "auth"
-  env                 = terraform.workspace
-  app_stack           = "${local.env}-${local.app}"
+  app       = "auth"
+  env       = terraform.workspace
+  app_stack = "${local.env}-${local.app}"
+
   external_app_domain = "${local.app}.${local.env}.api.${local.rs_mesh_route53_zone}"
   internal_app_domain = "${local.app}.${local.rs_mesh_namespace}"
 
@@ -24,19 +25,17 @@ locals {
 locals {
   latest = "latest"
 
-  appsync_dir                = "lambda/appsync-authorizer"
-  apigw_dir                  = "lambda/apigw-authorizer"
-  complete_dir               = "lambda/complete"
-  apple_passkey_register_dir = "lambda/apple/passkey/register"
-  apple_passkey_init_dir     = "lambda/apple/passkey/init"
-  apple_passkey_login_dir    = "lambda/apple/passkey/login"
+  appsync_dir              = "lambda/appsync-authorizer"
+  apigw_dir                = "lambda/apigw-authorizer"
+  apple_passkey_attest_dir = "lambda/apple/passkey/attest"
+  challenge_dir            = "lambda/challenge"
+  apple_passkey_assert_dir = "lambda/apple/passkey/assert"
 
-  complete_tag               = replace("${local.complete_dir}/${local.latest}", "/", "_")
-  apigw_tag                  = replace("${local.apigw_dir}/${local.latest}", "/", "_")
-  appsync_tag                = replace("${local.appsync_dir}/${local.latest}", "/", "_")
-  apple_passkey_register_tag = replace("${local.apple_passkey_register_dir}/${local.latest}", "/", "_")
-  apple_passkey_init_tag     = replace("${local.apple_passkey_init_dir}/${local.latest}", "/", "_")
-  apple_passkey_login_tag    = replace("${local.apple_passkey_login_dir}/${local.latest}", "/", "_")
+  apigw_tag                = replace("${local.apigw_dir}/${local.latest}", "/", "_")
+  appsync_tag              = replace("${local.appsync_dir}/${local.latest}", "/", "_")
+  apple_passkey_attest_tag = replace("${local.apple_passkey_attest_dir}/${local.latest}", "/", "_")
+  challenge_tag            = replace("${local.challenge_dir}/${local.latest}", "/", "_")
+  apple_passkey_assert_tag = replace("${local.apple_passkey_assert_dir}/${local.latest}", "/", "_")
 
   primary = "primary"
 

@@ -39,9 +39,9 @@ resource "aws_apigatewayv2_api_mapping" "auth" {
 
 resource "aws_apigatewayv2_deployment" "default" {
   depends_on = [
-    aws_apigatewayv2_route.apple_passkey_register,
-    aws_apigatewayv2_route.apple_passkey_init,
-    aws_apigatewayv2_route.apple_passkey_login,
+    aws_apigatewayv2_route.apple_passkey_attest,
+    aws_apigatewayv2_route.challenge,
+    aws_apigatewayv2_route.apple_passkey_assert,
   ]
   api_id = aws_apigatewayv2_api.auth.id
   lifecycle {
