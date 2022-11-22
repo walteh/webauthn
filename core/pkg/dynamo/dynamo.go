@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"nugg-webauthn/core/pkg/webauthn/protocol"
+	protocol "nugg-webauthn/core/pkg/webauthn"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"

@@ -10,6 +10,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+// type CredentialType string
+
+// const (
+// 	WebAuthnCredentialType     = CredentialType("webauthn")
+// 	ApplePassKeyCredentialType = CredentialType("apple-passkey")
+// )
+
 type SavedCredential struct {
 	// A probabilistically-unique byte sequence identifying a public key credential source and its authentication assertions.
 	RawID hex.Hash `dynamodbav:"id" json:"raw_credential_id"`

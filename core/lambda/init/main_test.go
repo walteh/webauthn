@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/webauthn/protocol"
+	protocol "nugg-webauthn/core/pkg/webauthn"
 	"reflect"
 	"testing"
 

@@ -1,13 +1,14 @@
-package protocol
+package attestation_providers
 
 import (
+	protocol "nugg-webauthn/core/pkg/webauthn"
 	"reflect"
 	"testing"
 )
 
 func Test_verifyPackedFormat(t *testing.T) {
 	type args struct {
-		att            AttestationObject
+		att            protocol.AttestationObject
 		clientDataHash []byte
 	}
 	tests := []struct {

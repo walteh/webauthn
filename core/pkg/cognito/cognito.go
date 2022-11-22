@@ -83,18 +83,3 @@ func (c *DefaultClient) GetDevCreds(ctx context.Context, nuggId hex.Hash) (*cogn
 
 	return resp, nil
 }
-
-// validate a users open id token
-
-// func (c *Client) ValidateToken(ctx context.Context, token string) (*cognitoidentity.ValidateIdentityInput, error) {
-
-// 	resp, err := c.GetCredentialsForIdentity()(ctx, &cognitoidentity.ValidateIdentityInput{
-// 		Token: aws.String(token),
-// 	})
-
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return resp, nil
-// }

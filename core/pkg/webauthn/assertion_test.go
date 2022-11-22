@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncbor"
+	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
 	"reflect"
 	"testing"
 )

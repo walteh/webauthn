@@ -4,7 +4,7 @@ import (
 	"nugg-webauthn/core/pkg/dynamo"
 	"nugg-webauthn/core/pkg/env"
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/protocol"
+	protocol "nugg-webauthn/core/pkg/webauthn"
 
 	"context"
 	"os"

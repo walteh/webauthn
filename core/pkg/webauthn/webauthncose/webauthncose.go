@@ -15,8 +15,8 @@ import (
 
 	"golang.org/x/crypto/ed25519"
 
-	"nugg-webauthn/core/pkg/webauthn/protocol/googletpm"
-	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncbor"
+	"nugg-webauthn/core/pkg/webauthn/googletpm"
+	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
 )
 
 // PublicKeyData The public key portion of a Relying Party-specific credential key pair, generated

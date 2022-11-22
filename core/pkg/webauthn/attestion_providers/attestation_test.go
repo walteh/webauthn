@@ -1,4 +1,4 @@
-package protocol
+package attestation_providers
 
 import (
 	"crypto/sha256"
@@ -6,21 +6,22 @@ import (
 	"fmt"
 	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
+	protocol "nugg-webauthn/core/pkg/webauthn"
 	"testing"
 )
 
 func TestAttestationVerify(t *testing.T) {
 	for i := range testAttestationOptions {
 		t.Run(fmt.Sprintf("Running test %d", i), func(t *testing.T) {
-			options := CredentialCreation{}
+			options := protocol.CredentialCreation{}
 			if err := json.Unmarshal([]byte(testAttestationOptions[i]), &options); err != nil {
 				t.Fatal(err)
 			}
-			ccr := CredentialCreationResponse{}
+			ccr := protocol.CredentialCreationResponse{}
 			if err := json.Unmarshal([]byte(testAttestationResponses[i]), &ccr); err != nil {
 				t.Fatal(err)
 			}
-			var pcc ParsedCredentialCreationData
+			var pcc protocol.ParsedCredentialCreationData
 			pcc.ID, pcc.RawID, pcc.Type = ccr.ID, ccr.RawID, ccr.Type
 			pcc.Raw = ccr
 
@@ -34,26 +35,18 @@ func TestAttestationVerify(t *testing.T) {
 			// Test Base Verification
 			_, err = pcc.Verify(options.Response.Challenge, hex.Hash{0, 2, 3}, false, options.Response.RelyingParty.ID, options.Response.RelyingParty.Name)
 			if err != nil {
-				t.Fatalf("Not valid: %+v (%+s)", err, err.(*errors.Error).DevInfo)
+				t.Fatalf("Not valid: %+v (%+s)", err, err.(*errors.Error).DevInfo())
 			}
 		})
 	}
 }
 
-func attestationTestUnpackRequest(t *testing.T, request string) CredentialCreation {
-	options := CredentialCreation{}
-	if err := json.Unmarshal([]byte(request), &options); err != nil {
-		t.Fatal(err)
-	}
-	return options
-}
-
-func attestationTestUnpackResponse(t *testing.T, response string) ParsedCredentialCreationData {
-	ccr := CredentialCreationResponse{}
+func attestationTestUnpackResponse(t *testing.T, response string) protocol.ParsedCredentialCreationData {
+	ccr := protocol.CredentialCreationResponse{}
 	if err := json.Unmarshal([]byte(response), &ccr); err != nil {
 		t.Fatal(err)
 	}
-	var pcc ParsedCredentialCreationData
+	var pcc protocol.ParsedCredentialCreationData
 	pcc.ID, pcc.RawID, pcc.Type = ccr.ID, ccr.RawID, ccr.Type
 	pcc.Raw = ccr
 

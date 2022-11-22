@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncose"
+	"nugg-webauthn/core/pkg/webauthn/webauthncose"
 )
 
 // The raw response returned to us from an authenticator when we request a

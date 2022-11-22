@@ -2,7 +2,7 @@ package webauthncose
 
 import (
 	"crypto/rand"
-	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncbor"
+	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
 	"testing"
 
 	"golang.org/x/crypto/ed25519"

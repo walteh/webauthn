@@ -2,7 +2,7 @@ package protocol
 
 import (
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncose"
+	"nugg-webauthn/core/pkg/webauthn/webauthncose"
 )
 
 type CredentialCreation struct {

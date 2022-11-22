@@ -1,4 +1,4 @@
-package protocol
+package attestation_providers
 
 import (
 	"crypto/sha256"
@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/protocol/googletpm"
+	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/googletpm"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -73,52 +74,52 @@ var testAttestationTPMResponses = []string{
 func TestTPMAttestationVerificationFailAttStatement(t *testing.T) {
 	tests := []struct {
 		name    string
-		att     AttestationObject
+		att     protocol.AttestationObject
 		wantErr string
 	}{
 		{
 			"TPM Negative Test AttStatement Missing Ver",
-			AttestationObject{},
+			protocol.AttestationObject{},
 			"Error retreiving ver value",
 		},
 		{
 			"TPM Negative Test AttStatement Ver not 2.0",
-			AttestationObject{AttStatement: map[string]interface{}{"ver": "foo.bar"}},
+			protocol.AttestationObject{AttStatement: map[string]interface{}{"ver": "foo.bar"}},
 			"WebAuthn only supports TPM 2.0 currently",
 		},
 		{
 			"TPM Negative Test AttStatement Alg not present",
-			AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0"}},
+			protocol.AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0"}},
 			"Error retreiving alg value",
 		},
 		{
 			"TPM Negative Test AttStatement x5c not present",
-			AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0)}},
-			ErrNotImplemented.Message(),
+			protocol.AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0)}},
+			protocol.ErrNotImplemented.Message(),
 		},
 		{
 			"TPM Negative Test AttStatement ecdaaKeyId present",
-			AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}, "ecdaaKeyId": []byte{}}},
-			ErrNotImplemented.Message(),
+			protocol.AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}, "ecdaaKeyId": []byte{}}},
+			protocol.ErrNotImplemented.Message(),
 		},
 		{
 			"TPM Negative Test AttStatement sig not present",
-			AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}}},
+			protocol.AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}}},
 			"Error retreiving sig value",
 		},
 		{
 			"TPM Negative Test AttStatement certInfo not present",
-			AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}, "sig": []byte{}}},
+			protocol.AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}, "sig": []byte{}}},
 			"Error retreiving certInfo value",
 		},
 		{
 			"TPM Negative Test AttStatement pubArea not present",
-			AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}, "sig": []byte{}, "certInfo": []byte{}}},
+			protocol.AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}, "sig": []byte{}, "certInfo": []byte{}}},
 			"Error retreiving pubArea value",
 		},
 		{
 			"TPM Negative Test pubArea not TPMT_PUBLIC",
-			AttestationObject{AttStatement: defaultAttStatement},
+			protocol.AttestationObject{AttStatement: defaultAttStatement},
 			"Unable to decode TPMT_PUBLIC in attestation statement",
 		},
 	}
@@ -147,7 +148,7 @@ func TestTPMAttestationVerificationFailPubArea(t *testing.T) {
 		}
 
 		//attStmt["pubArea"], _ = tt.public.Encode()
-		att := AttestationObject{
+		att := protocol.AttestationObject{
 			AttStatement: attStmt,
 		}
 		_, attestationKey, _, err := verifyTPMFormat(att, nil)
@@ -162,7 +163,7 @@ func TestTPMAttestationVerificationFailPubArea(t *testing.T) {
 func TestTPMAttestationVerificationFailCertInfo(t *testing.T) {
 	tests := []struct {
 		name           string
-		att            AttestationObject
+		att            protocol.AttestationObject
 		clientDataHash [32]byte
 		wantErr        string
 	}{}
@@ -179,7 +180,7 @@ func TestTPMAttestationVerificationFailCertInfo(t *testing.T) {
 func TestTPMAttestationVerificationFailX5c(t *testing.T) {
 	tests := []struct {
 		name           string
-		att            AttestationObject
+		att            protocol.AttestationObject
 		clientDataHash [32]byte
 		wantErr        string
 	}{}

@@ -1,16 +1,17 @@
-package protocol
+package attestation_providers
 
 import (
 	"crypto/sha256"
 	"fmt"
 	"nugg-webauthn/core/pkg/hex"
+	protocol "nugg-webauthn/core/pkg/webauthn"
 	"reflect"
 	"testing"
 )
 
 func Test_verifySafetyNetFormat(t *testing.T) {
 	type args struct {
-		att            AttestationObject
+		att            protocol.AttestationObject
 		clientDataHash []byte
 	}
 	successAttResponse := attestationTestUnpackResponse(t, safetyNetTestResponse["success"]).Response.AttestationObject

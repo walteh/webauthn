@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncbor"
+	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
 
 	"github.com/k0kubun/pp"
 )

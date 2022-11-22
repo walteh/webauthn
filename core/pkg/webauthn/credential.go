@@ -2,7 +2,6 @@ package protocol
 
 import (
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -56,25 +55,25 @@ type ParsedCredentialCreationData struct {
 	Raw      CredentialCreationResponse
 }
 
-type XNuggWebauthnCreation struct {
-	RawAttestationObject hex.Hash `json:"rawAttestationObject"`
-	RawClientData        string   `json:"rawClientDataJSON"`
-	CredentialID         hex.Hash `json:"credentialId"`
-}
+// type XNuggWebauthnCreation struct {
+// 	RawAttestationObject hex.Hash `json:"rawAttestationObject"`
+// 	RawClientData        string   `json:"rawClientDataJSON"`
+// 	CredentialID         hex.Hash `json:"credentialId"`
+// }
 
-func ParseWebauthnCreation(str string) (*XNuggWebauthnCreation, error) {
-	dec, err := base64.StdEncoding.DecodeString(str)
-	if err != nil {
-		return nil, err
-	}
+// func ParseWebauthnCreation(str string) (*XNuggWebauthnCreation, error) {
+// 	dec, err := base64.StdEncoding.DecodeString(str)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	var x XNuggWebauthnCreation
-	err = json.Unmarshal(dec, &x)
-	if err != nil {
-		return nil, err
-	}
-	return &x, nil
-}
+// 	var x XNuggWebauthnCreation
+// 	err = json.Unmarshal(dec, &x)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &x, nil
+// }
 
 func ParseCredentialCreationResponse(response *http.Request) (*ParsedCredentialCreationData, error) {
 	if response == nil || response.Body == nil {

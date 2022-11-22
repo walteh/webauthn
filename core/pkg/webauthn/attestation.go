@@ -7,7 +7,7 @@ import (
 	"log"
 	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/protocol/webauthncbor"
+	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
 )
 
 // From §5.2.1 (https://www.w3.org/TR/webauthn/#authenticatorattestationresponse)
