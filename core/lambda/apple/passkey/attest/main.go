@@ -71,7 +71,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
-	inv := invocation.NewInvocation(ctx, h, payload)
+	inv, ctx := invocation.NewInvocation(ctx, h, payload)
 
 	attestation := hex.HexToHash(payload.Headers["x-nugg-hex-attestation-object"])
 	clientData := payload.Headers["x-nugg-utf-client-data-json"]
@@ -105,7 +105,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
 	go func() {
 		go func() {
-			<-inv.Ctx.Done()
+			<-ctx.Done()
 			if !stale {
 				chaner <- nil
 			}

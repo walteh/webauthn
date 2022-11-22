@@ -15,11 +15,10 @@ type Output = events.APIGatewayV2HTTPResponse
 type Invocation struct {
 	zerolog.Logger
 	Start  time.Time
-	Ctx    context.Context
 	cancel context.CancelFunc
 }
 
-func NewInvocation(ctx context.Context, handler Handler, input Input) *Invocation {
+func NewInvocation(ctx context.Context, handler Handler, input Input) (*Invocation, context.Context) {
 	ctx, cnl := context.WithCancel(ctx)
 
 	logg := handler.Logger().With().
@@ -33,10 +32,9 @@ func NewInvocation(ctx context.Context, handler Handler, input Input) *Invocatio
 
 	return &Invocation{
 		cancel: cnl,
-		Ctx:    ctx,
 		Logger: logg,
 		Start:  time.Now(),
-	}
+	}, ctx
 }
 
 func (h *Invocation) Error(err error, code int, message string) (Output, error) {

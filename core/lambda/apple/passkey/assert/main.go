@@ -72,7 +72,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
-	inv := invocation.NewInvocation(ctx, h, input)
+	inv, ctx := invocation.NewInvocation(ctx, h, input)
 
 	assertion := hex.HexToHash(input.Headers["x-nugg-hex-assertion"])
 
@@ -96,7 +96,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	cerem := protocol.NewUnsafeGettableCeremony(parsedResponse.Response.CollectedClientData.Challenge)
 
-	err = h.Dynamo.TransactGet(inv.Ctx, cred, cerem)
+	err = h.Dynamo.TransactGet(ctx, cred, cerem)
 	if err != nil {
 		return inv.Error(err, 500, "failed to send transact get")
 	}
@@ -114,7 +114,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	go func() {
 		go func() {
-			<-inv.Ctx.Done()
+			<-ctx.Done()
 			if !stale {
 				chaner <- nil
 			}

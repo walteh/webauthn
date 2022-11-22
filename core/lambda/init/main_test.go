@@ -18,7 +18,7 @@ func DummyHandler(t *testing.T) *Handler {
 		Ctx:     context.Background(),
 		Dynamo:  dynamoClient,
 		Config:  nil,
-		Logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
+		logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 		counter: 0,
 	}
 }

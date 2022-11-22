@@ -66,7 +66,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
-	inv := invocation.NewInvocation(ctx, h, input)
+	inv, ctx := invocation.NewInvocation(ctx, h, input)
 
 	attestation := hex.HexToHash(input.Headers["x-nugg-hex-attestation"])
 	clientData := input.Headers["x-nugg-utf-client-data-json"]
@@ -102,7 +102,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(err, 500, err.Error())
 	}
 
-	err = h.Dynamo.TransactWrite(inv.Ctx, types.TransactWriteItem{Put: putter})
+	err = h.Dynamo.TransactWrite(ctx, types.TransactWriteItem{Put: putter})
 	if err != nil {
 		return inv.Error(err, 500, err.Error())
 	}

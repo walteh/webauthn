@@ -31,19 +31,3 @@ func CreateChallenge() (hex.Hash, error) {
 
 	return x, nil
 }
-
-// func (c Challenge) String() string {
-// 	return hex.Encode(c)
-// }
-
-// // UnmarshalJSON base64 decodes a URL-encoded value, storing the result in the
-// // provided byte slice.
-// func (dest *Challenge) UnmarshalJSON(data []byte) error {
-// 	return (*URLEncodedBase64)(dest).UnmarshalJSON(data)
-// }
-
-// // MarshalJSON base64 encodes a non URL-encoded value, storing the result in the
-// // provided byte slice.
-// func (data Challenge) MarshalJSON() ([]byte, error) {
-// 	return URLEncodedBase64(data).MarshalJSON()
-// }
