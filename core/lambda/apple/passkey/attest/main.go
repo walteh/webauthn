@@ -149,5 +149,5 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(chanerr, 500, "failed to get dev creds")
 	}
 
-	return inv.Success(204, map[string]string{"x-nugg-access-token": *result.Token}, "")
+	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": *result.Token}, "")
 }

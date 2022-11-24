@@ -52,9 +52,9 @@ func (h *Invocation) Error(err error, code int, message string) (Output, error) 
 	event.
 		Err(err).
 		Str("body", "").
-		CallerSkipFrame(2).
+		CallerSkipFrame(1).
 		TimeDiff("duration", time.Now(), h.Start).
-		Msg("returning error")
+		Msg("returning error: " + message)
 
 	go h.cancel()
 

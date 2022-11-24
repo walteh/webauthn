@@ -79,8 +79,8 @@ func TestHandler_Invoke(t *testing.T) {
 			want: Output{
 				StatusCode: 204,
 				Headers: map[string]string{
-					"Content-Length":      "0",
-					"x-nugg-access-token": "OpenIdToken",
+					"Content-Length":          "0",
+					"x-nugg-utf-access-token": "OpenIdToken",
 				},
 			},
 			wantErr: false,

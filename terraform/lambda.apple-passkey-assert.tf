@@ -1,36 +1,36 @@
-resource "null_resource" "apple_devicecheck_assert" {
+resource "null_resource" "apple_passkey_assert" {
   triggers = { src_hash = "${data.archive_file.core.output_sha}" }
   provisioner "local-exec" {
     environment = {
-      dir = local.apple_devicecheck_assert_dir
-      tag = "${aws_ecr_repository.core.repository_url}:${local.apple_devicecheck_assert_tag}"
+      dir = local.apple_passkey_assert_dir
+      tag = "${aws_ecr_repository.core.repository_url}:${local.apple_passkey_assert_tag}"
     }
     command = local.lambda_docker_deploy_command
   }
 }
 
-data "aws_ecr_image" "apple_devicecheck_assert" {
-  depends_on      = [null_resource.apple_devicecheck_assert]
+data "aws_ecr_image" "apple_passkey_assert" {
+  depends_on      = [null_resource.apple_passkey_assert]
   repository_name = aws_ecr_repository.core.name
-  image_tag       = local.apple_devicecheck_assert_tag
+  image_tag       = local.apple_passkey_assert_tag
 }
 
 
-resource "aws_lambda_function" "apple_devicecheck_assert" {
+resource "aws_lambda_function" "apple_passkey_assert" {
   depends_on = [
     aws_ecr_repository.core,
-    data.aws_ecr_image.apple_devicecheck_assert
+    data.aws_ecr_image.apple_passkey_assert
   ]
 
-  function_name    = "${local.app_stack}-apple-devicecheck-assert"
-  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.apple_devicecheck_assert_tag}"
-  role             = aws_iam_role.apple_devicecheck_assert.arn
+  function_name    = "${local.app_stack}-apple-passkey-assert"
+  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.apple_passkey_assert_tag}"
+  role             = aws_iam_role.apple_passkey_assert.arn
   memory_size      = 128
   timeout          = 120
   package_type     = "Image"
   publish          = true
   architectures    = ["arm64"]
-  source_code_hash = trimprefix(data.aws_ecr_image.apple_devicecheck_assert.image_digest, "sha256:")
+  source_code_hash = trimprefix(data.aws_ecr_image.apple_passkey_assert.image_digest, "sha256:")
 
   environment {
     variables = {
@@ -51,12 +51,12 @@ resource "aws_lambda_function" "apple_devicecheck_assert" {
 
 
 
-resource "aws_iam_role" "apple_devicecheck_assert" {
-  name               = "${local.app_stack}-apple-devicecheck-assert-ExecutionRole"
+resource "aws_iam_role" "apple_passkey_assert" {
+  name               = "${local.app_stack}-apple-passkey-assert-ExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   inline_policy {
-    name   = "${local.app_stack}-apple-devicecheck-assert-ExecutionRolePolicy"
-    policy = data.aws_iam_policy_document.apple_devicecheck_assert_lambda_inline.json
+    name   = "${local.app_stack}-apple-passkey-assert-ExecutionRolePolicy"
+    policy = data.aws_iam_policy_document.apple_passkey_assert_lambda_inline.json
   }
 
   managed_policy_arns = [
@@ -66,12 +66,12 @@ resource "aws_iam_role" "apple_devicecheck_assert" {
 }
 
 
-data "aws_iam_policy_document" "apple_devicecheck_assert_lambda_inline" {
-  /* statement {
+data "aws_iam_policy_document" "apple_passkey_assert_lambda_inline" {
+  statement {
     effect    = "Allow"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.apple_signinwithapple_privatekey.arn]
-  } */
+    actions   = ["cognito-identity:GetOpenIdTokenForDeveloperIdentity"]
+    resources = [aws_cognito_identity_pool.main.arn]
+  }
 
   statement {
     effect    = "Allow"
@@ -84,25 +84,25 @@ data "aws_iam_policy_document" "apple_devicecheck_assert_lambda_inline" {
 		API Gateway
 ////////////////////////*/
 
-resource "aws_apigatewayv2_route" "apple_devicecheck_assert" {
+resource "aws_apigatewayv2_route" "apple_passkey_assert" {
   api_id             = aws_apigatewayv2_api.auth.id
-  route_key          = "POST /apple/devicecheck/assert"
+  route_key          = "POST /apple/passkey/assert"
   authorization_type = "NONE"
-  target             = "integrations/${aws_apigatewayv2_integration.apple_devicecheck_assert_lambda.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.apple_passkey_assert_lambda.id}"
 }
 
-resource "aws_lambda_permission" "apple_devicecheck_assert" {
-  statement_id  = "${local.app_stack}-apple-devicecheck-assert-AllowExecutionFromApiGatewayRoute"
+resource "aws_lambda_permission" "apple_passkey_assert" {
+  statement_id  = "${local.app_stack}-apple-passkey-assert-AllowExecutionFromApiGatewayRoute"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.apple_devicecheck_assert.function_name
+  function_name = aws_lambda_function.apple_passkey_assert.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/assert"
 }
 
-resource "aws_apigatewayv2_integration" "apple_devicecheck_assert_lambda" {
+resource "aws_apigatewayv2_integration" "apple_passkey_assert_lambda" {
   api_id                 = aws_apigatewayv2_api.auth.id
   integration_type       = "AWS_PROXY"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.apple_devicecheck_assert.invoke_arn
+  integration_uri        = aws_lambda_function.apple_passkey_assert.invoke_arn
   payload_format_version = "2.0"
 }

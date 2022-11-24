@@ -74,18 +74,29 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	inv, ctx := invocation.NewInvocation(ctx, h, input)
 
-	assertion := hex.HexToHash(input.Headers["x-nugg-hex-assertion"])
+	authenticatorData := hex.HexToHash(input.Headers["x-nugg-hex-authenticator-data"])
+	credentialId := hex.HexToHash(input.Headers["x-nugg-hex-credential-id"])
+	signature := hex.HexToHash(input.Headers["x-nugg-hex-signature"])
+	userId := hex.HexToHash(input.Headers["x-nugg-hex-user-id"])
 
-	if assertion.IsZero() {
-		return inv.Error(nil, 400, "invalid assertion")
+	clientDataJson := input.Headers["x-nugg-utf-client-data-json"]
+	credentialType := input.Headers["x-nugg-utf-credential-type"]
+
+	// make sure all the above values exist one by one in the headers
+	if len(authenticatorData) == 0 || len(credentialId) == 0 || len(signature) == 0 || len(userId) == 0 || len(clientDataJson) == 0 || len(credentialType) == 0 {
+		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	args, err := protocol.ParseCredentialAssertionResponsePayload(assertion)
-	if err != nil {
-		return inv.Error(nil, 400, "unable to decode headers")
+	abc := &protocol.BetterCredentialAssertionResponse{
+		CredentialID:         credentialId,
+		Signature:            signature,
+		UserID:               userId,
+		RawClientDataJSON:    clientDataJson,
+		RawAuthenticatorData: authenticatorData,
+		Type:                 credentialType,
 	}
 
-	r1 := protocol.DecodeCredentialAssertionResponse(args)
+	r1 := protocol.DecodeCredentialAssertionResponse(abc)
 
 	parsedResponse, err := protocol.ParseCredentialAssertionResponse(*r1)
 	if err != nil {
@@ -157,6 +168,6 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	}
 
 	return inv.Success(204, map[string]string{
-		"x-nugg-access-token": *result.Token,
+		"x-nugg-utf-access-token": *result.Token,
 	}, "")
 }
