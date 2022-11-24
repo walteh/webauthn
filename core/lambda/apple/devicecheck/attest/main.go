@@ -3,9 +3,11 @@ package main
 import (
 	"nugg-webauthn/core/pkg/dynamo"
 	"nugg-webauthn/core/pkg/env"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/invocation"
 	protocol "nugg-webauthn/core/pkg/webauthn"
+	attestation_providers "nugg-webauthn/core/pkg/webauthn/providers"
 
 	"context"
 	"os"
@@ -68,15 +70,16 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	inv, ctx := invocation.NewInvocation(ctx, h, input)
 
-	attestation := hex.HexToHash(input.Headers["x-nugg-hex-attestation"])
-	clientData := input.Headers["x-nugg-utf-client-data-json"]
-	payload := hex.HexToHash(input.Headers["x-nugg-hex-payload"])
+	attestation := hex.HexToHash(input.Body)
+	attestationKey := hex.HexToHash(input.Headers["x-nugg-hex-attestation-key"])
+	clientDataJson := input.Headers["x-nugg-utf-client-data-json"]
+	sessionId := hex.HexToHash(input.Headers["x-nugg-hex-session-id"])
 
-	if attestation.IsZero() || clientData == "" {
+	if attestation.IsZero() || clientDataJson == "" {
 		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	p, err := protocol.FormatAttestationInput(clientData, attestation).Parse()
+	p, err := protocol.FormatAttestationInput(clientDataJson, attestation).Parse()
 	if err != nil {
 		return inv.Error(err, 400, err.Error())
 	}
@@ -85,16 +88,39 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	err = h.Dynamo.TransactGet(ctx, cer)
 	if err != nil {
-		return inv.Error(err, 400, err.Error())
+		return inv.Error(err, 401, err.Error())
 	}
 
 	if !cer.ChallengeID.Equals(p.CollectedClientData.Challenge) {
-		return inv.Error(nil, 400, "invalid credential id")
+		return inv.Error(nil, 401, "invalid credential id")
 	}
 
-	pk, err := p.AttestationObject.Verify("4497QJSAD3.xyz.nugg.app", payload.Sha256(), false, false)
+	if p.CollectedClientData.Origin != "https://nugg.xyz" {
+		return inv.Error(nil, 401, "invalid origin")
+	}
+
+	if p.CollectedClientData.Type != protocol.CreateCeremony || cer.CeremonyType != protocol.CreateCeremony {
+		return inv.Error(nil, 401, "invalid ceremony type")
+	}
+
+	if !cer.SessionID.Equals(sessionId) {
+		return inv.Error(nil, 401, "invalid session id")
+	}
+
+	provider := attestation_providers.NewAppAttest()
+
+	pk, err := p.AttestationObject.Verify(provider, "4497QJSAD3.xyz.nugg.app", hex.Hash([]byte(clientDataJson)).Sha256(), false, false)
 	if err != nil {
-		return inv.Error(err, 400, err.Error())
+		return inv.Error(err, 401, err.Error())
+	}
+
+	if !attestationKey.Equals(pk.RawID) {
+
+		err := errors.NewError(0x93).WithCaller().
+			WithKV("attestationKey", attestationKey.Hex()).
+			WithKV("pk.RawID", pk.RawID.Hex())
+
+		return inv.Error(err, 401, "invalid public key")
 	}
 
 	putter, err := dynamo.MakePut(h.Dynamo.MustCredentialTableName(), pk)

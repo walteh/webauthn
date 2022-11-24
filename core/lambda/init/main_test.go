@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 )
 
@@ -68,6 +69,20 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "C",
+			args: Input{
+				Headers: map[string]string{
+					"Content-Type":             "application/json",
+					"x-nugg-hex-session-id":    "0xff33ff",
+					"x-nugg-utf-ceremony-type": "webauthn.not-webauthn",
+				},
+			},
+			want: Output{
+				StatusCode: 400,
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -82,6 +97,8 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
+				pp.Println(got)
+				pp.Println(tt.want)
 				t.Errorf("Handler.Invoke() = %v, want %v", got, tt.want)
 			}
 		})

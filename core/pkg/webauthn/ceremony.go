@@ -28,7 +28,7 @@ func (s SavedCeremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMem
 	av := types.AttributeValueMemberM{}
 	av.Value = make(map[string]types.AttributeValue)
 	av.Value["challenge_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()}
-	av.Value["session_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()}
+	av.Value["session_id"] = &types.AttributeValueMemberS{Value: s.SessionID.Hex()}
 	av.Value["credential_id"] = &types.AttributeValueMemberS{Value: s.CredentialID.Hex()}
 	av.Value["ceremony_type"] = &types.AttributeValueMemberS{Value: string(s.CeremonyType)}
 	av.Value["created_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.CreatedAt)}

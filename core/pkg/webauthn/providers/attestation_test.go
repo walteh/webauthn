@@ -33,7 +33,7 @@ func TestAttestationVerify(t *testing.T) {
 			pcc.Response = *parsedAttestationResponse
 
 			// Test Base Verification
-			_, err = pcc.Verify(options.Response.Challenge, hex.Hash{0, 2, 3}, false, options.Response.RelyingParty.ID, options.Response.RelyingParty.Name)
+			_, err = pcc.Verify(protocol.NewNoneAttestationProvider(), options.Response.Challenge, hex.Hash{0, 2, 3}, false, options.Response.RelyingParty.ID, options.Response.RelyingParty.Name)
 			if err != nil {
 				t.Fatalf("Not valid: %+v (%+s)", err, err.(*errors.Error).DevInfo())
 			}
@@ -68,7 +68,7 @@ func TestPackedAttestationVerification(t *testing.T) {
 		// Unpack args
 		clientDataHash := sha256.Sum256([]byte(pcc.Raw.AttestationResponse.UTF8ClientDataJSON))
 
-		_, _, _, err := verifyPackedFormat(pcc.Response.AttestationObject, clientDataHash[:])
+		_, _, _, err := globalPacked.Handler(pcc.Response.AttestationObject, clientDataHash[:])
 		if err != nil {
 			t.Fatalf("Not valid: %+v", err)
 		}

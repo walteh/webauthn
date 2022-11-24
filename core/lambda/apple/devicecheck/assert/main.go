@@ -150,7 +150,9 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(nil, 400, "invalid credential id")
 	}
 
-	pk, err := p.AttestationObject.Verify("4497QJSAD3.xyz.nugg.app", payload.Sha256(), false, false)
+	provider := protocol.NewNoneAttestationProvider()
+
+	pk, err := p.AttestationObject.Verify(provider, "4497QJSAD3.xyz.nugg.app", payload.Sha256(), false, false)
 	if err != nil {
 		return inv.Error(err, 400, err.Error())
 	}

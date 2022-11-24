@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+var globalPacked = PackedAttestationProvider{}
+
 func Test_verifyPackedFormat(t *testing.T) {
 	type args struct {
 		att            protocol.AttestationObject
@@ -27,7 +29,7 @@ func Test_verifyPackedFormat(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, got, got1, err := verifyPackedFormat(tt.args.att, tt.args.clientDataHash)
+			_, got, got1, err := globalPacked.Handler(tt.args.att, tt.args.clientDataHash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("verifyPackedFormat() error = %v, wantErr %v", err, tt.wantErr)
 				return

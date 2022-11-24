@@ -160,7 +160,7 @@ func ParseCredentialCreationResponseObject(ccr *CredentialCreationResponse) (*Pa
 
 // Verifies the Client and Attestation data as laid out by §7.1. Registering a new credential
 // https://www.w3.org/TR/webauthn/#registering-a-new-credential
-func (pcc *ParsedCredentialCreationData) Verify(storedChallenge hex.Hash, sessionId hex.Hash, verifyUser bool, relyingPartyID, relyingPartyOrigin string) (*SavedCredential, error) {
+func (pcc *ParsedCredentialCreationData) Verify(provider AttestationProvider, storedChallenge hex.Hash, sessionId hex.Hash, verifyUser bool, relyingPartyID, relyingPartyOrigin string) (*SavedCredential, error) {
 
 	// Handles steps 3 through 6 - Verifying the Client Data against the Relying Party's stored data
 	verifyError := pcc.Response.CollectedClientData.Verify(storedChallenge, CreateCeremony, relyingPartyOrigin)
@@ -177,7 +177,7 @@ func (pcc *ParsedCredentialCreationData) Verify(storedChallenge hex.Hash, sessio
 
 	// We do the above step while parsing and decoding the CredentialCreationResponse
 	// Handle steps 9 through 14 - This verifies the attestaion object and
-	pk, verifyError := pcc.Response.AttestationObject.Verify(relyingPartyID, clientDataHash[:], verifyUser, true)
+	pk, verifyError := pcc.Response.AttestationObject.Verify(provider, relyingPartyID, clientDataHash[:], verifyUser, true)
 	if verifyError != nil {
 		return nil, verifyError
 	}

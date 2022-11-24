@@ -70,13 +70,26 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	inv, ctx := invocation.NewInvocation(ctx, h, payload)
 
 	sessionId := hex.HexToHash(payload.Headers["x-nugg-hex-session-id"])
+	ceremonyType := payload.Headers["x-nugg-utf-ceremony-type"]
 	credentialId := hex.HexToHash(payload.Headers["x-nugg-hex-credential-id"])
 
 	if sessionId.IsZero() {
 		return inv.Error(nil, 400, "missing x-nugg-hex-sessionId header")
 	}
 
-	cha := protocol.NewCeremony(credentialId, sessionId, protocol.CreateCeremony)
+	if ceremonyType == "" {
+		ceremonyType = string(protocol.AssertCeremony)
+	}
+
+	switch ceremonyType {
+	case string(protocol.AssertCeremony):
+	case string(protocol.CreateCeremony):
+		break
+	default:
+		return inv.Error(nil, 400, "invalid x-nugg-utf-ceremony-type header")
+	}
+
+	cha := protocol.NewCeremony(credentialId, sessionId, protocol.CeremonyType(ceremonyType))
 
 	cer, err := dynamo.MakePut(h.Dynamo.MustCeremonyTableName(), cha)
 	if err != nil {

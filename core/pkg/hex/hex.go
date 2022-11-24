@@ -23,6 +23,10 @@ func (h Hash) Equals(other Hash) bool {
 	return h.Cmp(other) == 0
 }
 
+func (h Hash) RawURLBase64() string {
+	return base64.RawURLEncoding.EncodeToString(h)
+}
+
 // BytesToHash sets b to hash.
 // If b is larger than len(h), b will be cropped from the left.
 func BytesToHash(b []byte) Hash {

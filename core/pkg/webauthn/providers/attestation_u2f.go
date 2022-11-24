@@ -12,17 +12,21 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/webauthncose"
 )
 
-var u2fAttestationKey = "fido-u2f"
+type U2FAttestationProvider struct{}
 
-func init() {
-	protocol.RegisterAttestationFormat(u2fAttestationKey, verifyU2FFormat)
+func NewU2FAttestationProvider() *U2FAttestationProvider {
+	return &U2FAttestationProvider{}
+}
+
+func (me *U2FAttestationProvider) ID() string {
+	return "fido-u2f"
 }
 
 // verifyU2FFormat - Follows verification steps set out by https://www.w3.org/TR/webauthn/#fido-u2f-attestation
-func verifyU2FFormat(att protocol.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
+func (me *U2FAttestationProvider) Handler(att protocol.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
 
 	if !bytes.Equal(att.AuthData.AttData.AAGUID, []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}) {
-		return nil, u2fAttestationKey, nil, protocol.ErrUnsupportedAlgorithm.WithMessage("U2F attestation format AAGUID not set to 0x00")
+		return nil, "", nil, protocol.ErrUnsupportedAlgorithm.WithMessage("U2F attestation format AAGUID not set to 0x00")
 	}
 	// Signing procedure step - If the credential public key of the given credential is not of
 	// algorithm -7 ("ES256"), stop and return an error.
@@ -30,7 +34,7 @@ func verifyU2FFormat(att protocol.AttestationObject, clientDataHash []byte) (hex
 	webauthncbor.Unmarshal(att.AuthData.AttData.CredentialPublicKey, &key)
 
 	if webauthncose.COSEAlgorithmIdentifier(key.PublicKeyData.Algorithm) != webauthncose.AlgES256 {
-		return nil, u2fAttestationKey, nil, protocol.ErrUnsupportedAlgorithm.WithMessage("Non-ES256 Public Key algorithm used")
+		return nil, "", nil, protocol.ErrUnsupportedAlgorithm.WithMessage("Non-ES256 Public Key algorithm used")
 	}
 
 	// U2F Step 1. Verify that attStmt is valid CBOR conforming to the syntax defined above
@@ -45,7 +49,7 @@ func verifyU2FFormat(att protocol.AttestationObject, clientDataHash []byte) (hex
 	// Check for "x5c" which is a single element array containing the attestation certificate in X.509 format.
 	x5c, present := att.AttStatement["x5c"].([]interface{})
 	if !present {
-		return nil, u2fAttestationKey, nil, protocol.ErrAttestationFormat.WithMessage("Missing properly formatted x5c data")
+		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Missing properly formatted x5c data")
 	}
 
 	// Check for "sig" which is The attestation signature. The signature was calculated over the (raw) U2F
@@ -53,7 +57,7 @@ func verifyU2FFormat(att protocol.AttestationObject, clientDataHash []byte) (hex
 	// received by the client from the authenticator.
 	signature, present := att.AttStatement["sig"].([]byte)
 	if !present {
-		return nil, u2fAttestationKey, nil, protocol.ErrAttestationFormat.WithMessage("Missing sig data")
+		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Missing sig data")
 	}
 
 	// U2F Step 2. (1) Check that x5c has exactly one element and let attCert be that element. (2) Let certificate public
@@ -62,7 +66,7 @@ func verifyU2FFormat(att protocol.AttestationObject, clientDataHash []byte) (hex
 
 	// Step 2.1
 	if len(x5c) > 1 {
-		return nil, u2fAttestationKey, nil, protocol.ErrAttestationFormat.WithMessage("Received more than one element in x5c values")
+		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Received more than one element in x5c values")
 	}
 
 	// Note: Packed Attestation, FIDO U2F Attestation, and Assertion Signatures support ASN.1,but it is recommended
@@ -74,17 +78,17 @@ func verifyU2FFormat(att protocol.AttestationObject, clientDataHash []byte) (hex
 	// Step 2.2
 	asn1Bytes, decoded := x5c[0].([]byte)
 	if !decoded {
-		return nil, u2fAttestationKey, nil, protocol.ErrAttestationFormat.WithMessage("Error decoding ASN.1 data from x5c")
+		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Error decoding ASN.1 data from x5c")
 	}
 
 	attCert, err := x509.ParseCertificate(asn1Bytes)
 	if err != nil {
-		return nil, u2fAttestationKey, nil, protocol.ErrAttestationFormat.WithMessage("Error parsing certificate from ASN.1 data into certificate")
+		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Error parsing certificate from ASN.1 data into certificate")
 	}
 
 	// Step 2.3
 	if attCert.PublicKeyAlgorithm != x509.ECDSA && attCert.PublicKey.(*ecdsa.PublicKey).Curve != elliptic.P256() {
-		return nil, u2fAttestationKey, nil, protocol.ErrAttestationFormat.WithMessage("Attestation certificate is in invalid format")
+		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Attestation certificate is in invalid format")
 	}
 
 	// Step 3. Extract the claimed rpIdHash from authenticatorData, and the claimed credentialId and credentialPublicKey
@@ -109,7 +113,7 @@ func verifyU2FFormat(att protocol.AttestationObject, clientDataHash []byte) (hex
 	// return an appropriate error.
 
 	if len(key.XCoord) > 32 || len(key.YCoord) > 32 {
-		return nil, u2fAttestationKey, nil, protocol.ErrAttestation.WithMessage("X or Y Coordinate for key is invalid length")
+		return nil, "", nil, protocol.ErrAttestation.WithMessage("X or Y Coordinate for key is invalid length")
 	}
 
 	// Let publicKeyU2F be the concatenation 0x04 || x || y.
@@ -129,7 +133,7 @@ func verifyU2FFormat(att protocol.AttestationObject, clientDataHash []byte) (hex
 	// Step 6. Verify the sig using verificationData and certificate public key per SEC1[https://www.w3.org/TR/webauthn/#biblio-sec1].
 	sigErr := attCert.CheckSignature(x509.ECDSAWithSHA256, verificationData.Bytes(), signature)
 	if sigErr != nil {
-		return nil, u2fAttestationKey, nil, sigErr
+		return nil, "", nil, sigErr
 	}
 
 	// Step 7. If successful, return attestation type Basic with the attestation trust path set to x5c.

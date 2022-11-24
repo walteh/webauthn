@@ -112,7 +112,7 @@ func (err *Error) Error() string {
 	// format the error as a pretty string
 	// for logging and debugging
 	// var str string
-	str := fmt.Sprintf("%s - %s - %s - %s - %s", err.Code(), err.Type(), err.Caller(), err.Message(), err.DevInfo())
+	str := fmt.Sprintf("%s - %s - %s - %s - %s - %s", err.Code(), err.Type(), err.Caller(), err.Message(), err.DevInfo(), err.KV())
 
 	// // add the root error if it exists
 	// if err.Root != nil {
@@ -145,8 +145,7 @@ func (passedError *Error) WithType(t string) *Error {
 	return err
 }
 
-func (passedError *Error) WithKV(str string, inter interface{}) *Error {
-	err := passedError.Copy()
+func (err *Error) WithKV(str string, inter interface{}) *Error {
 	if err.KV_ == nil {
 		err.KV_ = make(map[string]interface{})
 	}

@@ -65,24 +65,29 @@ type AttestationObject struct {
 	AttStatement map[string]interface{} `json:"attStmt,omitempty"`
 }
 
-func FormatAttestationInput(clientData string, attestation hex.Hash) *AuthenticatorAttestationResponse {
+func FormatAttestationInput(clientDataJson string, attestation hex.Hash) *AuthenticatorAttestationResponse {
 	return &AuthenticatorAttestationResponse{
 		AuthenticatorResponse: AuthenticatorResponse{
-			UTF8ClientDataJSON: (clientData),
+			UTF8ClientDataJSON: clientDataJson,
 		},
 		AttestationObject: attestation,
 	}
 }
 
-type attestationFormatValidationHandler func(AttestationObject, []byte) (hex.Hash, string, []interface{}, error)
-
-var attestationRegistry = make(map[string]attestationFormatValidationHandler)
-
-// Using one of the locally registered attestation formats, handle validating the attestation
-// data provided by the authenticator (and in some cases its manufacturer)
-func RegisterAttestationFormat(format string, handler attestationFormatValidationHandler) {
-	attestationRegistry[format] = handler
+type AttestationProvider interface {
+	Attest(AttestationObject, []byte) (hex.Hash, string, []interface{}, error)
+	ID() string
 }
+
+// type attestationFormatValidationHandler
+
+// var attestationRegistry = make(map[string]attestationFormatValidationHandler)
+
+// // Using one of the locally registered attestation formats, handle validating the attestation
+// // data provided by the authenticator (and in some cases its manufacturer)
+// func RegisterAttestationFormat(format string, handler attestationFormatValidationHandler) {
+// 	attestationRegistry[format] = handler
+// }
 
 // Parse the values returned in the authenticator response and perform attestation verification
 // Step 8. This returns a fully decoded struct with the data put into a format that can be
@@ -120,7 +125,7 @@ func (ccr *AuthenticatorAttestationResponse) Parse() (*ParsedAttestationResponse
 }
 
 // Verify - Perform Steps 9 through 14 of registration verification, delegating Steps
-func (attestationObject *AttestationObject) Verify(relyingPartyID string, clientDataHash []byte, verificationRequired bool, requireUserPresence bool) (*SavedCredential, error) {
+func (attestationObject *AttestationObject) Verify(provider AttestationProvider, relyingPartyID string, clientDataHash []byte, verificationRequired bool, requireUserPresence bool) (*SavedCredential, error) {
 	// Steps 9 through 12 are verified against the auth data.
 	// These steps are identical to 11 through 14 for assertion
 	// so we handle them with AuthData
@@ -166,15 +171,15 @@ func (attestationObject *AttestationObject) Verify(relyingPartyID string, client
 		return abc, nil
 	}
 
-	formatHandler, valid := attestationRegistry[attestationObject.Format]
-	if !valid {
-		return nil, ErrAttestationFormat.WithInfo(fmt.Sprintf("Attestation format %s is unsupported", attestationObject.Format)).WithCaller()
-	}
+	// formatHandler, valid := attestationRegistry[attestationObject.Format]
+	// if !valid {
+	// 	return nil, ErrAttestationFormat.WithInfo(fmt.Sprintf("Attestation format %s is unsupported", attestationObject.Format)).WithCaller()
+	// }
 
 	// Step 14. Verify that attStmt is a correct attestation statement, conveying a valid attestation signature, by using
 	// the attestation statement format fmt’s verification procedure given attStmt, authData and the hash of the serialized
 	// client data computed in step 7.
-	pk, attestationType, receipt, err := formatHandler(*attestationObject, clientDataHash)
+	pk, attestationType, receipt, err := provider.Attest(*attestationObject, clientDataHash)
 	if err != nil {
 		return nil, err.(*errors.Error).WithInfo(attestationType).WithCaller()
 	}

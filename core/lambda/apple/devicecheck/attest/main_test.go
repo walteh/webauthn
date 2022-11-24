@@ -38,10 +38,11 @@ func TestHandler_Invoke(t *testing.T) {
 			name: "A",
 			args: Input{
 				Headers: map[string]string{
-					"x-nugg-hex-attestation":      hex.MustBase64ToHash(abc).Hex(),
 					"x-nugg-utf-client-data-json": ("{\"challenge\":\"YWJj\",\"origin\":\"https://nugg.xyz\",\"type\":\"webauthn.attest\"}"),
-					"x-nugg-hex-payload":          hex.MustBase64ToHash("abc").Hex(),
+					"x-nugg-hex-session-id":       "0xff33ff",
+					"x-nugg-hex-attestation-key":  "0x7053ed09000cfafdd6e1d98d929796f9c07c466b",
 				},
+				Body: hex.MustBase64ToHash(abc).Hex(),
 			},
 			want: Output{
 				StatusCode: 204,

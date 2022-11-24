@@ -17,12 +17,6 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/webauthncose"
 )
 
-var packedAttestationKey = "packed"
-
-func init() {
-	protocol.RegisterAttestationFormat(packedAttestationKey, verifyPackedFormat)
-}
-
 // From §8.2. https://www.w3.org/TR/webauthn/#packed-attestation
 // The packed attestation statement looks like:
 //
@@ -40,7 +34,18 @@ func init() {
 //	 	alg: COSEAlgorithmIdentifier
 //	 	sig: bytes,
 //	 }
-func verifyPackedFormat(att protocol.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
+
+type PackedAttestationProvider struct{}
+
+func NewPackedAttestationProvider() *PackedAttestationProvider {
+	return &PackedAttestationProvider{}
+}
+
+func (me *PackedAttestationProvider) ID() string {
+	return "packed"
+}
+
+func (me *PackedAttestationProvider) Handler(att protocol.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
 	// Step 1. Verify that attStmt is valid CBOR conforming to the syntax defined
 	// above and perform CBOR decoding on it to extract the contained fields.
 
@@ -49,13 +54,13 @@ func verifyPackedFormat(att protocol.AttestationObject, clientDataHash []byte) (
 
 	alg, present := att.AttStatement["alg"].(int64)
 	if !present {
-		return nil, packedAttestationKey, nil, protocol.ErrAttestationFormat.WithMessage("Error retreiving alg value")
+		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Error retreiving alg value")
 	}
 
 	// Get the sig value - A byte string containing the attestation signature.
 	sig, present := att.AttStatement["sig"].([]byte)
 	if !present {
-		return nil, packedAttestationKey, nil, protocol.ErrAttestationFormat.WithMessage("Error retreiving sig value")
+		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Error retreiving sig value")
 	}
 
 	// Step 2. If x5c is present, this indicates that the attestation type is not ECDAA.

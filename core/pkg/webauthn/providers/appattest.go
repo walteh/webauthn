@@ -12,12 +12,6 @@ import (
 	protocol "nugg-webauthn/core/pkg/webauthn"
 )
 
-var appleAppattestAttestationKey = "apple-appattest"
-
-func init() {
-	protocol.RegisterAttestationFormat(appleAppattestAttestationKey, verifyAppleAppattestKeyFormat)
-}
-
 // From §8.8. https://www.w3.org/TR/webauthn-2/#sctn-apple-anonymous-attestation
 // The apple attestation statement looks like:
 // $$attStmtType //= (
@@ -30,6 +24,16 @@ func init() {
 //	appleStmtFormat = {
 //			x5c: [ credCert: bytes, * (caCert: bytes) ]
 //	  }
+
+type AppAttest struct{}
+
+func NewAppAttest() *AppAttest {
+	return &AppAttest{}
+}
+
+func (me *AppAttest) ID() string {
+	return "apple-appattest"
+}
 
 const APPLE_ROOT_CERT = `-----BEGIN CERTIFICATE-----
 MIICITCCAaegAwIBAgIQC/O+DvHN0uD7jG5yH2IXmDAKBggqhkjOPQQDAzBSMSYw
@@ -46,7 +50,7 @@ CgYIKoZIzj0EAwMDaAAwZQIwQgFGnByvsiVbpTKwSga0kP0e8EeDS4+sQmTvb7vn
 oyFraWVIyd/dganmrduC1bmTBGwD
 -----END CERTIFICATE-----`
 
-func verifyAppleAppattestKeyFormat(att protocol.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
+func (me *AppAttest) Attest(att protocol.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
 
 	// 7. Verify that the authenticator data’s counter field equals 0.
 	if att.AuthData.Counter != 0 {
