@@ -183,6 +183,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		VerifyUser:          false,
 		CredentialPublicKey: cred.PublicKey,
 		Extensions:          extensions.ClientInputs{},
+		DataSignedByClient:  append(body, cerem.ChallengeID...),
 	})
 	if validError != nil {
 		return inv.Error(validError, 400, "failed to verify assertion")

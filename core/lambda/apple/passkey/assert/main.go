@@ -162,6 +162,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		VerifyUser:          false,
 		CredentialPublicKey: cred.PublicKey,
 		Extensions:          extensions.ClientInputs{},
+		DataSignedByClient:  hex.Hash([]byte(abc.RawClientDataJSON)),
 	})
 
 	if validError != nil {

@@ -77,12 +77,16 @@ func VerifyAssertionInput(args types.VerifyAssertionInputArgs) error {
 	}
 
 	// Step 15. Let hash be the result of computing a hash over the cData using SHA-256.
-	clientDataHash := sha256.Sum256([]byte(args.Input.RawClientDataJSON))
+	// clientDataHash := sha256.Sum256(args.DataSignedByClient.Bytes())
+
+	// combo := append(args.DataSignedByClient, args.StoredChallenge...)
+
+	onemore := sha256.Sum256(args.DataSignedByClient)
 
 	// Step 16. Using the credential public key looked up in step 3, verify that sig is
 	// a valid signature over the binary concatenation of authData and hash.
 
-	sigData := append(args.Input.RawAuthenticatorData, clientDataHash[:]...)
+	sigData := append(args.Input.RawAuthenticatorData, onemore[:]...)
 
 	if appID == "" {
 		key, err = webauthncose.ParsePublicKey(args.CredentialPublicKey)

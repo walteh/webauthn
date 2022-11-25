@@ -16,6 +16,7 @@ type VerifyAssertionInputArgs struct {
 	LastSignCount       uint64
 	RelyingPartyID      string
 	RelyingPartyOrigin  string
+	DataSignedByClient  hex.Hash
 }
 
 type AssertionInput struct {
