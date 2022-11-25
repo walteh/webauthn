@@ -116,7 +116,7 @@ func (me CredentialIdentifier) Verify() error {
 	return nil
 }
 
-type CredentialAttestationType = string
+type CredentialAttestationType string
 
 const (
 	NotFidoAttestationType CredentialAttestationType = "none"

@@ -11,6 +11,7 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/assertion"
 	"nugg-webauthn/core/pkg/webauthn/clientdata"
 	"nugg-webauthn/core/pkg/webauthn/extensions"
+	"nugg-webauthn/core/pkg/webauthn/providers"
 	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"os"
@@ -91,12 +92,11 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	}
 
 	abc := types.AssertionInput{
-		CredentialID:         credentialId,
-		Signature:            signature,
-		UserID:               userId,
-		RawClientDataJSON:    clientDataJson,
-		RawAuthenticatorData: authenticatorData,
-		Type:                 credentialType,
+		CredentialID:      credentialId,
+		AssertionObject:   signature,
+		UserID:            userId,
+		RawClientDataJSON: clientDataJson,
+		// Type:              credentialType,
 	}
 
 	cd, err := clientdata.ParseClientData(abc.RawClientDataJSON)
@@ -154,15 +154,18 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	// Handle steps 4 through 16
 	validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
-		Input:               abc,
-		StoredChallenge:     cerem.ChallengeID,
-		RelyingPartyID:      env.RPID(),
-		RelyingPartyOrigin:  env.RPOrigin(),
-		AttestationType:     "none",
-		VerifyUser:          false,
-		CredentialPublicKey: cred.PublicKey,
-		Extensions:          extensions.ClientInputs{},
-		DataSignedByClient:  hex.Hash([]byte(abc.RawClientDataJSON)),
+		Input:                          abc,
+		StoredChallenge:                cerem.ChallengeID,
+		RelyingPartyID:                 env.RPID(),
+		RelyingPartyOrigin:             env.RPOrigin(),
+		CredentialAttestationType:      types.NotFidoAttestationType,
+		AttestationProvider:            providers.NewNoneAttestationProvider(),
+		AAGUID:                         cred.AAGUID,
+		VerifyUser:                     false,
+		CredentialPublicKey:            cred.PublicKey,
+		Extensions:                     extensions.ClientInputs{},
+		DataSignedByClient:             hex.Hash([]byte(abc.RawClientDataJSON)),
+		UseSavedAttestedCredentialData: false,
 	})
 
 	if validError != nil {

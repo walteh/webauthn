@@ -7,25 +7,34 @@ import (
 )
 
 type VerifyAssertionInputArgs struct {
-	Input               AssertionInput
-	StoredChallenge     hex.Hash
-	AttestationType     CredentialAttestationType
-	VerifyUser          bool
-	CredentialPublicKey hex.Hash
-	Extensions          extensions.ClientInputs
-	LastSignCount       uint64
-	RelyingPartyID      string
-	RelyingPartyOrigin  string
-	DataSignedByClient  hex.Hash
+	Input                          AssertionInput
+	StoredChallenge                hex.Hash
+	CredentialAttestationType      CredentialAttestationType
+	AttestationProvider            AttestationProvider
+	VerifyUser                     bool
+	AAGUID                         hex.Hash
+	CredentialPublicKey            hex.Hash
+	Extensions                     extensions.ClientInputs
+	LastSignCount                  uint64
+	RelyingPartyID                 string
+	RelyingPartyOrigin             string
+	DataSignedByClient             hex.Hash
+	UseSavedAttestedCredentialData bool
+}
+
+type AssertionObject struct {
+	// AuthenticatorData    AuthenticatorData
+	RawAuthenticatorData hex.Hash
+	Signature            hex.Hash
 }
 
 type AssertionInput struct {
-	UserID               hex.Hash `json:"userID"`
-	CredentialID         hex.Hash `json:"credentialID"`
-	RawClientDataJSON    string   `json:"rawClientDataJSON"`
-	RawAuthenticatorData hex.Hash `json:"rawAuthenticatorData"`
-	Signature            hex.Hash `json:"signature"`
-	Type                 string   `json:"credentialType"`
+	UserID            hex.Hash `json:"userID"`
+	CredentialID      hex.Hash `json:"credentialID"`
+	RawClientDataJSON string   `json:"rawClientDataJSON"`
+	// RawAuthenticatorData hex.Hash `json:"rawAuthenticatorData"`
+	AssertionObject hex.Hash `json:"signature"`
+	// Type            string   `json:"credentialType"`
 }
 
 type DataAssertion struct {

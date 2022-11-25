@@ -10,6 +10,8 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/types"
 	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
+
+	"github.com/k0kubun/pp"
 )
 
 const (
@@ -25,7 +27,11 @@ const (
 // devices with limited capabilities and low power requirements, with much simpler software stacks than the client platform.
 // The authenticator data structure is a byte array of 37 bytes or more, and is laid out in this table:
 // https://www.w3.org/TR/webauthn/#table-authData
+
 func ParseAuthenticatorData(rawAuthData hex.Hash) (a types.AuthenticatorData, err error) {
+	return ParseAuthenticatorDataSavedAttestedCredential(rawAuthData, false)
+}
+func ParseAuthenticatorDataSavedAttestedCredential(rawAuthData hex.Hash, savedAttestedCredentials bool) (a types.AuthenticatorData, err error) {
 	a = types.AuthenticatorData{}
 	byt := rawAuthData.Bytes()
 	if minAuthDataLength > len(rawAuthData) {
@@ -49,7 +55,7 @@ func ParseAuthenticatorData(rawAuthData hex.Hash) (a types.AuthenticatorData, er
 			a.AttData = att
 			attDataLen := len(a.AttData.AAGUID) + 2 + len(a.AttData.CredentialID) + len(a.AttData.CredentialPublicKey)
 			remaining = remaining - attDataLen
-		} else {
+		} else if !savedAttestedCredentials {
 			return a, errors.ErrBadRequest.WithMessage("Attested credential flag set but data is missing")
 		}
 	} else {
@@ -125,10 +131,18 @@ func VerifyAuenticatorData(args types.VerifyAuenticatorDataArgs) error {
 		appIDHash = sha256.Sum256([]byte(args.AppId))
 	}
 
-	data, err := ParseAuthenticatorData(args.Data)
+	hasAttestationCredsSaved := !args.OptionalAttestedCredentialData.CredentialPublicKey.IsZero()
+
+	data, err := ParseAuthenticatorDataSavedAttestedCredential(args.Data, hasAttestationCredsSaved)
 	if err != nil {
 		return err
 	}
+
+	if hasAttestationCredsSaved && data.AttData.CredentialPublicKey.IsZero() {
+		data.AttData = args.OptionalAttestedCredentialData
+	}
+
+	pp.Println(data)
 
 	// Registration Step 9 & Assertion Step 11
 	// Verify that the RP ID hash in authData is indeed the SHA-256

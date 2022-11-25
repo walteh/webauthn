@@ -5,18 +5,20 @@ import (
 	"nugg-webauthn/core/pkg/dynamo"
 	"nugg-webauthn/core/pkg/env"
 	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/invocation"
 	"nugg-webauthn/core/pkg/webauthn/assertion"
 	"nugg-webauthn/core/pkg/webauthn/clientdata"
 	"nugg-webauthn/core/pkg/webauthn/extensions"
+	"nugg-webauthn/core/pkg/webauthn/providers"
 	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"context"
 	"os"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 )
@@ -29,79 +31,21 @@ type Handler struct {
 	Ctx     context.Context
 	Dynamo  *dynamo.Client
 	Config  config.Config
-	Logger  zerolog.Logger
+	logger  zerolog.Logger
 	counter int
 }
 
-func init() {
-	zerolog.TimeFieldFormat = time.StampMicro
+func (h Handler) ID() string {
+	return h.Id
 }
 
-type Invocation struct {
-	zerolog.Logger
-	Start  time.Time
-	Ctx    context.Context
-	cancel context.CancelFunc
+func (h *Handler) IncrementCounter() int {
+	h.counter += 1
+	return h.counter
 }
 
-func (h *Handler) NewInvocation(ctx context.Context, logger zerolog.Logger) *Invocation {
-	ctx, cnl := context.WithCancel(ctx)
-
-	h.counter++
-	return &Invocation{
-		cancel: cnl,
-		Ctx:    ctx,
-		Logger: h.Logger.With().Int("counter", h.counter).Str("handler", h.Id).Logger(),
-		Start:  time.Now(),
-	}
-}
-
-func (h *Invocation) Error(err error, code int, message string) (Output, error) {
-	h.Logger.Error().Err(err).
-		Int("status_code", code).
-		Str("body", "").
-		CallerSkipFrame(1).
-		TimeDiff("duration", time.Now(), h.Start).
-		Msg(message)
-
-	return Output{
-		StatusCode: code,
-	}, nil
-}
-
-func (h *Invocation) Success(code int, headers map[string]string, message string) (Output, error) {
-
-	output := Output{
-		StatusCode: code,
-		Headers:    headers,
-	}
-
-	if message != "" && code != 204 {
-		output.Body = message
-	}
-
-	r := zerolog.Dict()
-	for k, v := range output.Headers {
-		r = r.Str(k, v)
-	}
-
-	if message == "" {
-		message = "empty"
-	}
-
-	if code == 204 && headers["Content-Length"] == "" {
-		output.Headers["Content-Length"] = "0"
-	}
-
-	h.Logger.Info().
-		Int("status_code", code).
-		Str("body", output.Body).
-		Dict("headers", r).
-		CallerSkipFrame(1).
-		TimeDiff("duration", time.Now(), h.Start).
-		Msg(message)
-
-	return output, nil
+func (h Handler) Logger() zerolog.Logger {
+	return h.logger
 }
 
 func main() {
@@ -118,7 +62,7 @@ func main() {
 		Ctx:     ctx,
 		Dynamo:  dynamo.NewClient(cfg, "", env.DynamoCeremoniesTableName(), env.DynamoCredentialsTableName()),
 		Config:  cfg,
-		Logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
+		logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
 		counter: 0,
 	}
 
@@ -127,31 +71,34 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
-	inv := h.NewInvocation(ctx, h.Logger)
+	inv, ctx := invocation.NewInvocation(ctx, h, input)
 
 	assert := hex.HexToHash(input.Headers["x-nugg-hex-request-assertion"])
 
-	body := hex.HexToHash(input.Body)
+	var body hex.Hash
+	var err error
 
-	if assert.IsZero() || body.IsZero() {
+	if input.IsBase64Encoded {
+		body, err = hex.Base64ToHash(input.Body)
+		if err != nil {
+			return inv.Error(err, 400, "failed to parse assertion")
+		}
+	} else {
+		body = hex.HexToHash(input.Body)
+	}
+
+	if assert.IsZero() || len(body) == 0 {
 		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	parsed, err := assertion.ParseAssertionResponse(assert)
+	pp.Println("assertion", string(assert))
+
+	parsed, err := assertion.ParseFidoAssertionInput(assert)
 	if err != nil {
 		return inv.Error(err, 400, "failed to parse assertion")
 	}
 
-	payload := types.AssertionInput{
-		UserID:               parsed.SessionID,
-		CredentialID:         parsed.CredentialID,
-		RawClientDataJSON:    parsed.UTF8ClientDataJSON,
-		RawAuthenticatorData: nil,
-		Signature:            parsed.AssertionObject,
-		Type:                 types.NotFidoAttestationType,
-	}
-
-	cd, err := clientdata.ParseClientData(parsed.UTF8ClientDataJSON)
+	cd, err := clientdata.ParseClientData(parsed.RawClientDataJSON)
 	if err != nil {
 		return inv.Error(err, 400, "failed to parse client data")
 	}
@@ -173,17 +120,26 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(nil, 400, "invalid challenge id")
 	}
 
+	attestationProvider := providers.NewAppAttestSandbox()
+
+	if attestationProvider.ID() != cred.AttestationType {
+		return inv.Error(nil, 400, "invalid attestation provider")
+	}
+
 	// Handle steps 4 through 16
 	validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
-		Input:               payload,
-		StoredChallenge:     cerem.ChallengeID,
-		RelyingPartyID:      "4497QJSAD3.xyz.nugg.app",
-		RelyingPartyOrigin:  env.RPOrigin(),
-		AttestationType:     "none",
-		VerifyUser:          false,
-		CredentialPublicKey: cred.PublicKey,
-		Extensions:          extensions.ClientInputs{},
-		DataSignedByClient:  append(body, cerem.ChallengeID...),
+		Input:                          parsed,
+		StoredChallenge:                cerem.ChallengeID,
+		RelyingPartyID:                 "4497QJSAD3.xyz.nugg.app",
+		RelyingPartyOrigin:             env.RPOrigin(),
+		AAGUID:                         cred.AAGUID,
+		CredentialAttestationType:      types.FidoAttestationType,
+		AttestationProvider:            attestationProvider,
+		VerifyUser:                     false,
+		CredentialPublicKey:            cred.PublicKey,
+		Extensions:                     extensions.ClientInputs{},
+		DataSignedByClient:             append(body, cerem.ChallengeID...),
+		UseSavedAttestedCredentialData: true,
 	})
 	if validError != nil {
 		return inv.Error(validError, 400, "failed to verify assertion")
@@ -194,7 +150,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(err, 500, "failed to create apple pass key")
 	}
 
-	err = h.Dynamo.TransactWrite(inv.Ctx, *credentialUpdate)
+	err = h.Dynamo.TransactWrite(ctx, *credentialUpdate)
 	if err != nil {
 		return inv.Error(err, 500, err.Error())
 	}

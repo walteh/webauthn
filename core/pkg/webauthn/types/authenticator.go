@@ -5,12 +5,14 @@ import (
 )
 
 type VerifyAuenticatorDataArgs struct {
-	Data                    hex.Hash
-	AppId                   string
-	RelyingPartyID          string
-	RequireUserVerification bool
-	RequireUserPresence     bool
-	LastSignCount           uint64
+	Data                           hex.Hash
+	AppId                          string
+	RelyingPartyID                 string
+	RequireUserVerification        bool
+	RequireUserPresence            bool
+	LastSignCount                  uint64
+	OptionalAttestedCredentialData AttestedCredentialData
+	UseSavedAttestedCredentialData bool
 }
 
 // Authenticators respond to Relying Party requests by returning an object derived from the

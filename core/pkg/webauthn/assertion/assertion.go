@@ -1,6 +1,8 @@
 package assertion
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -11,6 +13,8 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/types"
 	"nugg-webauthn/core/pkg/webauthn/webauthncose"
+
+	"github.com/ugorji/go/codec"
 )
 
 // Follow the remaining steps outlined in §7.2 Verifying an authentication assertion
@@ -25,9 +29,14 @@ func VerifyAssertionInput(args types.VerifyAssertionInputArgs) error {
 		err error
 	)
 
+	asserter, err := ParseAssertionObject(args.Input.AssertionObject)
+	if err != nil {
+		return err
+	}
+
 	credId := types.NewDefaultCredentialIdentifier(args.Input.CredentialID)
 
-	appID, err := credId.GetAppID(args.Extensions, args.AttestationType)
+	appID, err := credId.GetAppID(args.Extensions, args.CredentialAttestationType)
 	if err != nil {
 		return errors.ErrParsingData.WithMessage("Error getting appID").WithRoot(err).WithCaller()
 	}
@@ -65,12 +74,18 @@ func VerifyAssertionInput(args types.VerifyAssertionInputArgs) error {
 	// Handle steps 11 through 14, verifying the authenticator data.
 	// validError = authdata.Verify(rpIDHash[:], appIDHash[:], args.VerifyUser, true, args.LastSignCount)
 	validError = authdata.VerifyAuenticatorData(types.VerifyAuenticatorDataArgs{
-		Data:                    args.Input.RawAuthenticatorData,
+		Data:                    asserter.RawAuthenticatorData,
 		AppId:                   appID,
 		RelyingPartyID:          args.RelyingPartyID,
 		RequireUserVerification: args.VerifyUser,
-		RequireUserPresence:     true,
+		RequireUserPresence:     false,
 		LastSignCount:           args.LastSignCount,
+		OptionalAttestedCredentialData: types.AttestedCredentialData{
+			CredentialID:        args.Input.CredentialID,
+			AAGUID:              args.AAGUID,
+			CredentialPublicKey: args.CredentialPublicKey,
+		},
+		UseSavedAttestedCredentialData: args.UseSavedAttestedCredentialData,
 	})
 	if validError != nil {
 		return validError
@@ -86,40 +101,60 @@ func VerifyAssertionInput(args types.VerifyAssertionInputArgs) error {
 	// Step 16. Using the credential public key looked up in step 3, verify that sig is
 	// a valid signature over the binary concatenation of authData and hash.
 
-	sigData := append(args.Input.RawAuthenticatorData, onemore[:]...)
+	sigData := append(asserter.RawAuthenticatorData, onemore[:]...)
 
-	if appID == "" {
-		key, err = webauthncose.ParsePublicKey(args.CredentialPublicKey)
+	if args.AttestationProvider.ID() == "apple-appattest" {
+		// Apple's App Attest uses a different signature format
+		// https://developer.apple.com/documentation/devicecheck/accessing_and_modifying_per-device_keys
+
+		// The signature is a DER-encoded ECDSA signature with the following structure:
+		// SEQUENCE {
+		//   r INTEGER,
+		//   s INTEGER
+		// }
+
+		// key, err = webauthncose.ParseFIDOPublicKey(args.CredentialPublicKey)
+		nonce := sha256.Sum256(sigData)
+
+		// 3. Use the public key that you stored from the attestation object to verify that the assertion’s signature is valid for nonce.
+		x, y := elliptic.Unmarshal(elliptic.P256(), args.CredentialPublicKey)
+		if x == nil {
+			return errors.ErrParsingData.WithCaller().WithMessage("Failed to parse the public key")
+		}
+
+		pubkey := &ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}
+		nonceHash := sha256.Sum256(nonce[:])
+
+		valid := ecdsa.VerifyASN1(pubkey, nonceHash[:], asserter.Signature)
+		if !valid {
+			return errors.ErrAssertionSignature.WithCaller().WithMessage("Error validating the assertion signature.\n")
+		}
 	} else {
-		key, err = webauthncose.ParseFIDOPublicKey(args.CredentialPublicKey)
-	}
+		if appID == "" {
+			key, err = webauthncose.ParsePublicKey(args.CredentialPublicKey)
+		} else {
+			key, err = webauthncose.ParseFIDOPublicKey(args.CredentialPublicKey)
+		}
 
-	if err != nil {
-		return errors.ErrAssertionSignature.WithMessage(fmt.Sprintf("Error parsing the assertion public key: %+v", err)).WithCaller()
-	}
+		if err != nil {
+			return errors.ErrAssertionSignature.WithRoot(err).WithMessage(fmt.Sprintf("Error parsing the assertion public key: %+v", err)).WithCaller()
+		}
 
-	valid, err := webauthncose.VerifySignature(key, sigData.Bytes(), args.Input.Signature.Bytes())
-	if !valid || err != nil {
-		log.Println("valid", valid, "err", err)
-		return errors.ErrAssertionSignature.WithMessage("Error validating the assertion signature").WithCaller().
-			WithRoot(err).
-			WithKV("valid", valid).
-			WithKV("key", key).
-			WithKV("signature", args.Input.Signature.Hex()).
-			WithKV("sigData", sigData).
-			WithKV("appID", appID)
+		valid, err := webauthncose.VerifySignature(key, sigData[:], asserter.Signature)
+		if !valid || err != nil {
+			log.Println("valid", valid, "err", err)
+			return errors.ErrAssertionSignature.WithMessage("Error validating the assertion signature").WithCaller().
+				WithRoot(err).
+				WithKV("valid", valid).
+				WithKV("key", key).
+				WithKV("signature", asserter.Signature.Hex()).
+				WithKV("sigData", sigData.Hex()).
+				WithKV("appID", appID)
+		}
 	}
 
 	return nil
 }
-
-// {
-// 	"challenge_id":"\(challenge.hexEncodedString())",
-// 	"assertion_object":"\(assertion.hexEncodedString())",
-// 	"session_id":"\(sessionID.hexEncodedString())",
-// 	"provider":"apple"
-//  "credential_id":"\(credentialID.hexEncodedString())"
-// }
 
 type AssertionResponse struct {
 	UTF8ClientDataJSON string   `json:"client_data_json"`
@@ -129,11 +164,63 @@ type AssertionResponse struct {
 	CredentialID       hex.Hash `json:"credential_id"`
 }
 
-func ParseAssertionResponse(response []byte) (*AssertionResponse, error) {
-	var ar AssertionResponse
-	err := json.Unmarshal(response, &ar)
+func ParseNotFidoAssertionInput(response []byte) (types.AssertionInput, error) {
+	return ParseAssertionInput(response, types.NotFidoAttestationType)
+}
+
+func ParseFidoAssertionInput(response []byte) (types.AssertionInput, error) {
+	return ParseAssertionInput(response, types.FidoAttestationType)
+}
+
+func ParseAssertionInput(response []byte, attestationType types.CredentialAttestationType) (types.AssertionInput, error) {
+	var parsed AssertionResponse
+	err := json.Unmarshal(response, &parsed)
 	if err != nil {
-		return nil, errors.ErrParsingData.WithMessage("Error parsing assertion response").WithRoot(err).WithCaller()
+		return types.AssertionInput{}, errors.ErrParsingData.WithMessage("Error parsing assertion response").WithRoot(err).WithCaller()
 	}
-	return &ar, nil
+
+	abc := types.AssertionInput{
+		UserID:            parsed.SessionID,
+		CredentialID:      parsed.CredentialID,
+		RawClientDataJSON: parsed.UTF8ClientDataJSON,
+		// RawAuthenticatorData: nil,
+		AssertionObject: parsed.AssertionObject,
+		// Type:            attestationType,
+	}
+
+	return abc, nil
+}
+
+func ParseAssertionObject(input hex.Hash) (types.AssertionObject, error) {
+	b := types.AssertionObject{}
+
+	var a struct {
+		// AuthenticatorData    AuthenticatorData
+		RawAuthenticatorData []byte `json:"authenticatorData"`
+		Signature            []byte `json:"signature"`
+	}
+
+	cborHandler := codec.CborHandle{}
+
+	// Decode the attestation data with unmarshalled auth data
+	err := codec.NewDecoderBytes(input, &cborHandler).Decode(&a)
+	if err != nil {
+		return b, errors.ErrParsingData.WithInfo(err.Error())
+	}
+
+	b.RawAuthenticatorData = a.RawAuthenticatorData
+	b.Signature = a.Signature
+
+	// ad, err := authdata.ParseAuthenticatorData(a.RawAuthenticatorData)
+	// if err != nil {
+	// 	return a, fmt.Errorf("error decoding auth data: %v", err)
+	// }
+
+	// a.AuthenticatorData = ad
+
+	// if err := json.Unmarshal(aar.RawClientData, &aar.ClientDataJSON); err != nil {
+	// 	return nil, fmt.Errorf("error decoding client data: %v", err)
+	// }
+
+	return b, nil
 }
