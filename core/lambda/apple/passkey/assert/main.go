@@ -8,7 +8,10 @@ import (
 	"nugg-webauthn/core/pkg/env"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/invocation"
-	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/assertion"
+	"nugg-webauthn/core/pkg/webauthn/clientdata"
+	"nugg-webauthn/core/pkg/webauthn/extensions"
+	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"os"
 
@@ -87,7 +90,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	abc := &protocol.BetterCredentialAssertionResponse{
+	abc := types.AssertionInput{
 		CredentialID:         credentialId,
 		Signature:            signature,
 		UserID:               userId,
@@ -96,16 +99,21 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		Type:                 credentialType,
 	}
 
-	r1 := protocol.DecodeCredentialAssertionResponse(abc)
-
-	parsedResponse, err := protocol.ParseCredentialAssertionResponse(*r1)
+	cd, err := clientdata.ParseClientData(abc.RawClientDataJSON)
 	if err != nil {
-		return inv.Error(err, 400, "failed to parse attestation")
+		return inv.Error(err, 400, "failed to parse client data")
 	}
 
-	cred := protocol.NewUnsafeGettableCredential(parsedResponse.RawID)
+	// r1 := protocol.DecodeCredentialAssertionResponse(abc)
 
-	cerem := protocol.NewUnsafeGettableCeremony(parsedResponse.Response.CollectedClientData.Challenge)
+	// parsedResponse, err := assertio(*r1)
+	// if err != nil {
+	// 	return inv.Error(err, 400, "failed to parse attestation")
+	// }
+
+	cred := types.NewUnsafeGettableCredential(abc.CredentialID)
+
+	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
 
 	err = h.Dynamo.TransactGet(ctx, cred, cerem)
 	if err != nil {
@@ -145,12 +153,22 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	}()
 
 	// Handle steps 4 through 16
-	validError := parsedResponse.Verify(cerem.ChallengeID, env.RPID(), env.RPOrigin(), "none", false, cred.PublicKey, nil)
+	validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
+		Input:               abc,
+		StoredChallenge:     cerem.ChallengeID,
+		RelyingPartyID:      env.RPID(),
+		RelyingPartyOrigin:  env.RPOrigin(),
+		AttestationType:     "none",
+		VerifyUser:          false,
+		CredentialPublicKey: cred.PublicKey,
+		Extensions:          extensions.ClientInputs{},
+	})
+
 	if validError != nil {
 		return inv.Error(validError, 400, "failed to verify assertion")
 	}
 
-	credentialUpdate, err := cred.Update(h.Dynamo.MustCredentialTableName(), parsedResponse.Response.AuthenticatorData.Counter)
+	credentialUpdate, err := cred.UpdateIncreasingCounter(h.Dynamo.MustCredentialTableName())
 	if err != nil {
 		return inv.Error(err, 500, "failed to create apple pass key")
 	}

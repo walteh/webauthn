@@ -6,7 +6,7 @@ import (
 	"nugg-webauthn/core/pkg/env"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/invocation"
-	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"os"
 
@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type Input = events.APIGatewayV2HTTPRequest
@@ -78,25 +78,25 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	}
 
 	if ceremonyType == "" {
-		ceremonyType = string(protocol.AssertCeremony)
+		ceremonyType = string(types.AssertCeremony)
 	}
 
 	switch ceremonyType {
-	case string(protocol.AssertCeremony):
-	case string(protocol.CreateCeremony):
+	case string(types.AssertCeremony):
+	case string(types.CreateCeremony):
 		break
 	default:
 		return inv.Error(nil, 400, "invalid x-nugg-utf-ceremony-type header")
 	}
 
-	cha := protocol.NewCeremony(credentialId, sessionId, protocol.CeremonyType(ceremonyType))
+	cha := types.NewCeremony(credentialId, sessionId, types.CeremonyType(ceremonyType))
 
 	cer, err := dynamo.MakePut(h.Dynamo.MustCeremonyTableName(), cha)
 	if err != nil {
 		return inv.Error(err, 500, "failed to create ceremony")
 	}
 
-	err = h.Dynamo.TransactWrite(ctx, types.TransactWriteItem{Put: cer})
+	err = h.Dynamo.TransactWrite(ctx, dtypes.TransactWriteItem{Put: cer})
 	if err != nil {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}

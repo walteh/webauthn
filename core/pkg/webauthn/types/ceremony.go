@@ -1,4 +1,4 @@
-package protocol
+package types
 
 import (
 	"fmt"
@@ -9,9 +9,10 @@ import (
 
 	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/challenge"
 )
 
-type SavedCeremony struct {
+type Ceremony struct {
 	ChallengeID  hex.Hash     `dynamodbav:"challenge_id" json:"challenge_id"`
 	SessionID    hex.Hash     `dynamodbav:"session_id" json:"session_id"`
 	CredentialID hex.Hash     `dynamodbav:"credential_id,omitempty" json:"credential_id,omitempty"`
@@ -24,7 +25,7 @@ type SavedCeremony struct {
 // 	MarshalDynamoDBAttributeValue() (types.AttributeValue, error)
 // }
 
-func (s SavedCeremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error) {
+func (s Ceremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error) {
 	av := types.AttributeValueMemberM{}
 	av.Value = make(map[string]types.AttributeValue)
 	av.Value["challenge_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()}
@@ -40,10 +41,10 @@ func (s SavedCeremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMem
 // 	UnmarshalDynamoDBAttributeValue(types.AttributeValue) error
 // }
 
-func (s *SavedCeremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMemberM) (err error) {
+func (s *Ceremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMemberM) (err error) {
 
 	if av.Value == nil {
-		return errors.NewError(0x11).WithMessage("attribute value is nil").WithCaller()
+		return errors.NewError(0x11).WithMessage("attribute value is nil - prob the id was not found in dynamo").WithCaller()
 	}
 
 	if x, ok := av.Value["challenge_id"].(*types.AttributeValueMemberS); ok {
@@ -82,14 +83,14 @@ func (s *SavedCeremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValue
 	return nil
 }
 
-func NewCeremony(credentialID hex.Hash, sessionId hex.Hash, ceremonyType CeremonyType) *SavedCeremony {
+func NewCeremony(credentialID hex.Hash, sessionId hex.Hash, ceremonyType CeremonyType) *Ceremony {
 
-	chal, err := CreateChallenge()
+	chal, err := challenge.CreateChallenge()
 	if err != nil {
 		panic(err)
 	}
 
-	cer := &SavedCeremony{
+	cer := &Ceremony{
 		CredentialID: credentialID,
 		SessionID:    sessionId,
 		ChallengeID:  chal,
@@ -105,7 +106,7 @@ func Now() uint64 {
 	return uint64(time.Now().Unix())
 }
 
-func (s SavedCeremony) Get() *types.Get {
+func (s Ceremony) Get() *types.Get {
 	return &types.Get{
 		Key: map[string]types.AttributeValue{
 			"challenge_id": &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()},
@@ -113,13 +114,13 @@ func (s SavedCeremony) Get() *types.Get {
 	}
 }
 
-func NewUnsafeGettableCeremony(id hex.Hash) *SavedCeremony {
-	return &SavedCeremony{
+func NewUnsafeGettableCeremony(id hex.Hash) *Ceremony {
+	return &Ceremony{
 		ChallengeID: id,
 	}
 }
 
-func (s SavedCeremony) Put() (*types.Put, error) {
+func (s Ceremony) Put() (*types.Put, error) {
 
 	av, err := s.MarshalDynamoDBAttributeValue()
 	if err != nil {

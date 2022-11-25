@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
 )
 
@@ -14,11 +15,41 @@ var abc = "o2NmbXRvYXBwbGUtYXBwYXR0ZXN0Z2F0dFN0bXSiY3g1Y4JZAuAwggLcMIICYqADAgECA
 
 func DummyHandler(t *testing.T) *Handler {
 
+	dynamoClient := dynamo.NewMockClient(t)
+
+	dynamoClient.TransactWrite(context.TODO(), types.TransactWriteItem{
+		ConditionCheck: (*types.ConditionCheck)(nil),
+		Delete:         (*types.Delete)(nil),
+		Put: &types.Put{
+			Item: map[string]types.AttributeValue{
+				"challenge_id": &types.AttributeValueMemberS{
+					Value: "0xa55af63d41bf95eea575ef70c5e2261c",
+				},
+				"session_id": &types.AttributeValueMemberS{
+					Value: "0xa55af63d41bf95eea575ef70c5e2261c",
+				},
+				"credential_id": &types.AttributeValueMemberS{
+					Value: "0x",
+				},
+				"ceremony_type": &types.AttributeValueMemberS{
+					Value: "webauthn.create",
+				},
+				"created_at": &types.AttributeValueMemberN{
+					Value: "1668984054",
+				},
+				"ttl": &types.AttributeValueMemberN{
+					Value: "1668984354",
+				},
+			},
+			TableName: &dynamoClient.CeremonyTableName,
+		},
+	})
+
 	return &Handler{
 		Id:     "test",
 		Ctx:    context.Background(),
 		Config: nil,
-		Dynamo: dynamo.NewMockClient(t),
+		Dynamo: dynamoClient,
 		logger: zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 	}
 
@@ -38,8 +69,8 @@ func TestHandler_Invoke(t *testing.T) {
 			name: "A",
 			args: Input{
 				Headers: map[string]string{
-					"x-nugg-utf-client-data-json": ("{\"challenge\":\"YWJj\",\"origin\":\"https://nugg.xyz\",\"type\":\"webauthn.attest\"}"),
-					"x-nugg-hex-session-id":       "0xff33ff",
+					"x-nugg-utf-client-data-json": `{"challenge":"pVr2PUG_le6lde9wxeImHA","origin":"https://nugg.xyz","type":"webauthn.create"}`,
+					"x-nugg-hex-session-id":       "0xa55af63d41bf95eea575ef70c5e2261c",
 					"x-nugg-hex-attestation-key":  "0x7053ed09000cfafdd6e1d98d929796f9c07c466b",
 				},
 				Body: hex.MustBase64ToHash(abc).Hex(),

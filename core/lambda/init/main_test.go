@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"nugg-webauthn/core/pkg/dynamo"
-	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/challenge"
 	"reflect"
 	"testing"
 
@@ -26,7 +26,7 @@ func DummyHandler(t *testing.T) *Handler {
 
 func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 
-	expected := protocol.MockSetRander(t, "xsTWpSak5HWm")
+	expected := challenge.MockSetRander(t, "xsTWpSak5HWm")
 
 	tests := []struct {
 		name    string
@@ -87,7 +87,7 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			expected = protocol.MockSetRander(t, "xsTWpSak5HWm")
+			expected = challenge.MockSetRander(t, "xsTWpSak5HWm")
 
 			Handler := DummyHandler(t)
 

@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"nugg-webauthn/core/pkg/hex"
 
 	"github.com/ugorji/go/codec"
 )
@@ -17,8 +18,8 @@ type ClientData struct {
 
 type AuthenticatorAssertionResponse struct {
 	ClientDataJSON ClientData
-	RawClientData  URLEncodedBase64 `json:"clientData"`
-	Assertion      URLEncodedBase64 `json:"assertion"`
+	RawClientData  hex.Hash `json:"clientData"`
+	Assertion      hex.Hash `json:"assertion"`
 }
 
 type Assertion struct {
@@ -26,6 +27,15 @@ type Assertion struct {
 	RawAuthenticatorData []byte `json:"authenticatorData"`
 	Signature            []byte `json:"signature"`
 }
+
+// func Transform(input types.DataAssertion) (*AuthenticatorAssertionResponse, error) {
+
+// 	a := AuthenticatorAssertionResponse{
+// 		RawClientData: input.Body,
+// 		Assertion:input.AssertionObject,
+// 		ClientDataJSON: ,
+// 	}
+// }
 
 func (aar *AuthenticatorAssertionResponse) Verify(storedChallenge string, relyingPartyID string, previousCounter uint32, publicKey []byte) (uint32, error) {
 	a, err := aar.parse()

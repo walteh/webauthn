@@ -1,4 +1,4 @@
-package attestation_providers
+package providers
 
 import (
 	"bytes"
@@ -7,7 +7,8 @@ import (
 	"fmt"
 
 	"nugg-webauthn/core/pkg/hex"
-	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/errors"
+	"nugg-webauthn/core/pkg/webauthn/types"
 	"nugg-webauthn/core/pkg/webauthn/webauthncose"
 )
 
@@ -36,7 +37,7 @@ func (me *AndroidKey) ID() string {
 //			sig: bytes,
 //			x5c: [ credCert: bytes, * (caCert: bytes) ]
 //	  }
-func (me *AndroidKey) Attest(att protocol.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
+func (me *AndroidKey) Attest(att types.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
 	// Given the verification procedure inputs attStmt, authenticatorData and clientDataHash, the verification procedure is as follows:
 	// §8.4.1. Verify that attStmt is valid CBOR conforming to the syntax defined above and perform CBOR decoding on it to extract
 	// the contained fields.
@@ -45,51 +46,51 @@ func (me *AndroidKey) Attest(att protocol.AttestationObject, clientDataHash []by
 	// used to generate the attestation signature.
 	alg, present := att.AttStatement["alg"].(int64)
 	if !present {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Error retreiving alg value")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Error retreiving alg value")
 	}
 
 	// Get the sig value - A byte string containing the attestation signature.
 	sig, present := att.AttStatement["sig"].([]byte)
 	if !present {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Error retreiving sig value")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Error retreiving sig value")
 	}
 
 	// If x5c is not present, return an error
 	x5c, x509present := att.AttStatement["x5c"].([]interface{})
 	if !x509present {
 		// Handle Basic Attestation steps for the x509 Certificate
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Error retreiving x5c value")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Error retreiving x5c value")
 	}
 
 	// §8.4.2. Verify that sig is a valid signature over the concatenation of authenticatorData and clientDataHash
 	// using the public key in the first certificate in x5c with the algorithm specified in alg.
 	attCertBytes, valid := x5c[0].([]byte)
 	if !valid {
-		return nil, "", nil, protocol.ErrAttestation.WithMessage("Error getting certificate from x5c cert chain")
+		return nil, "", nil, errors.ErrAttestation.WithMessage("Error getting certificate from x5c cert chain")
 	}
 
 	signatureData := append(att.RawAuthData, clientDataHash...)
 
 	attCert, err := x509.ParseCertificate(attCertBytes)
 	if err != nil {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
 	}
 
 	coseAlg := webauthncose.COSEAlgorithmIdentifier(alg)
 	sigAlg := webauthncose.SigAlgFromCOSEAlg(coseAlg)
 	err = attCert.CheckSignature(x509.SignatureAlgorithm(sigAlg), signatureData, sig)
 	if err != nil {
-		return nil, "", nil, protocol.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Signature validation error: %+v\n", err))
+		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Signature validation error: %+v\n", err))
 	}
 	// Verify that the public key in the first certificate in x5c matches the credentialPublicKey in the attestedCredentialData in authenticatorData.
 	pubKey, err := webauthncose.ParsePublicKey(att.AuthData.AttData.CredentialPublicKey)
 	if err != nil {
-		return nil, "", nil, protocol.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error parsing public key: %+v\n", err))
+		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error parsing public key: %+v\n", err))
 	}
 	e := pubKey.(webauthncose.EC2PublicKeyData)
 	valid, err = e.Verify(signatureData, sig)
 	if err != nil || !valid {
-		return nil, "", nil, protocol.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error parsing public key: %+v\n", err))
+		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error parsing public key: %+v\n", err))
 	}
 	// §8.4.3. Verify that the attestationChallenge field in the attestation certificate extension data is identical to clientDataHash.
 	// attCert.Extensions
@@ -100,31 +101,31 @@ func (me *AndroidKey) Attest(att protocol.AttestationObject, clientDataHash []by
 		}
 	}
 	if len(attExtBytes) == 0 {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Attestation certificate extensions missing 1.3.6.1.4.1.11129.2.1.17")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Attestation certificate extensions missing 1.3.6.1.4.1.11129.2.1.17")
 	}
 	// As noted in §8.4.1 (https://w3c.github.io/webauthn/#key-attstn-cert-requirements) the Android Key Attestation attestation certificate's
 	// android key attestation certificate extension data is identified by the OID "1.3.6.1.4.1.11129.2.1.17".
 	decoded := keyDescription{}
 	_, err = asn1.Unmarshal([]byte(attExtBytes), &decoded)
 	if err != nil {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Unable to parse Android key attestation certificate extensions")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Unable to parse Android key attestation certificate extensions")
 	}
 	// Verify that the attestationChallenge field in the attestation certificate extension data is identical to clientDataHash.
 	if 0 != bytes.Compare(decoded.AttestationChallenge, clientDataHash) {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Attestation challenge not equal to clientDataHash")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Attestation challenge not equal to clientDataHash")
 	}
 	// The AuthorizationList.allApplications field is not present on either authorization list (softwareEnforced nor teeEnforced), since PublicKeyCredential MUST be scoped to the RP ID.
 	if nil != decoded.SoftwareEnforced.AllApplications || nil != decoded.TeeEnforced.AllApplications {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Attestation certificate extensions contains all applications field")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Attestation certificate extensions contains all applications field")
 	}
 	// For the following, use only the teeEnforced authorization list if the RP wants to accept only keys from a trusted execution environment, otherwise use the union of teeEnforced and softwareEnforced.
 	// The value in the AuthorizationList.origin field is equal to KM_ORIGIN_GENERATED.  (which == 0)
 	if KM_ORIGIN_GENERATED != decoded.SoftwareEnforced.Origin || KM_ORIGIN_GENERATED != decoded.TeeEnforced.Origin {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Attestation certificate extensions contains authorization list with origin not equal KM_ORIGIN_GENERATED")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Attestation certificate extensions contains authorization list with origin not equal KM_ORIGIN_GENERATED")
 	}
 	// The value in the AuthorizationList.purpose field is equal to KM_PURPOSE_SIGN.  (which == 2)
 	if !contains(decoded.SoftwareEnforced.Purpose, KM_PURPOSE_SIGN) && !contains(decoded.TeeEnforced.Purpose, KM_PURPOSE_SIGN) {
-		return nil, "", nil, protocol.ErrAttestationFormat.WithMessage("Attestation certificate extensions contains authorization list with purpose not equal KM_PURPOSE_SIGN")
+		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Attestation certificate extensions contains authorization list with purpose not equal KM_PURPOSE_SIGN")
 	}
 	return att.AuthData.AttData.CredentialPublicKey, "", x5c, err
 }

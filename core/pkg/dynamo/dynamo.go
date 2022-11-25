@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type Client struct {
@@ -29,11 +29,11 @@ func NewClient(config aws.Config, userTableName string, ceremonyTableName string
 }
 
 type Puttable interface {
-	MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error)
-	Put() (*types.Put, error)
+	MarshalDynamoDBAttributeValue() (*dtypes.AttributeValueMemberM, error)
+	Put() (*dtypes.Put, error)
 }
 
-func MakePut(table *string, d Puttable) (*types.Put, error) {
+func MakePut(table *string, d Puttable) (*dtypes.Put, error) {
 	put, err := d.Put()
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func FindInOnePerTableGetResult[I interface{}](result []*GetOutput, tableName *s
 	return nil, ErrCeremonyNotFound
 }
 
-func (c *Client) TransactWrite(ctx context.Context, items ...types.TransactWriteItem) error {
+func (c *Client) TransactWrite(ctx context.Context, items ...dtypes.TransactWriteItem) error {
 	_, err := c.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
 		TransactItems: items,
 	})
@@ -72,22 +72,22 @@ func (c *Client) TransactWrite(ctx context.Context, items ...types.TransactWrite
 }
 
 type GetOutput struct {
-	Item    map[string]types.AttributeValue
-	Request types.TransactGetItem
+	Item    map[string]dtypes.AttributeValue
+	Request dtypes.TransactGetItem
 }
 
 type Gettable interface {
-	UnmarshalDynamoDBAttributeValue(*types.AttributeValueMemberM) error
-	Get() *types.Get
+	UnmarshalDynamoDBAttributeValue(*dtypes.AttributeValueMemberM) error
+	Get() *dtypes.Get
 }
 
-func (c *Client) BuildPut(d Puttable) (*types.Put, error) {
+func (c *Client) BuildPut(d Puttable) (*dtypes.Put, error) {
 	switch d.(type) {
-	case *protocol.SavedCeremony:
+	case *types.Ceremony:
 		return MakePut(c.MustCeremonyTableName(), d)
-	// case protocol.SavedUser:
+	// case types.Cser:
 	// 	return MakePut(c.MustUserTableName(), d)
-	case *protocol.SavedCredential:
+	case *types.Credential:
 		return MakePut(c.MustCredentialTableName(), d)
 	default:
 		return nil, fmt.Errorf("unknown type %T", d)
@@ -96,15 +96,15 @@ func (c *Client) BuildPut(d Puttable) (*types.Put, error) {
 
 func (c *Client) TransactGet(ctx context.Context, items ...Gettable) error {
 
-	var itms []types.TransactGetItem
+	var itms []dtypes.TransactGetItem
 	for _, item := range items {
 		var tbl *string
 		switch item.(type) {
-		case *protocol.SavedCeremony:
+		case *types.Ceremony:
 			tbl = c.MustCeremonyTableName()
-		// case protocol.UserEntity:
+		// case types.Ctity:
 		// 	tbl = c.MustUserTableName()
-		case *protocol.SavedCredential:
+		case *types.Credential:
 			tbl = c.MustCredentialTableName()
 		default:
 			return fmt.Errorf("unknown type %T", item)
@@ -113,7 +113,7 @@ func (c *Client) TransactGet(ctx context.Context, items ...Gettable) error {
 		this := item.Get()
 		this.TableName = tbl
 
-		itms = append(itms, types.TransactGetItem{
+		itms = append(itms, dtypes.TransactGetItem{
 			Get: this,
 		})
 	}
@@ -132,7 +132,7 @@ func (c *Client) TransactGet(ctx context.Context, items ...Gettable) error {
 
 	for i := range items {
 
-		err = items[i].UnmarshalDynamoDBAttributeValue(&types.AttributeValueMemberM{Value: res.Responses[i].Item})
+		err = items[i].UnmarshalDynamoDBAttributeValue(&dtypes.AttributeValueMemberM{Value: res.Responses[i].Item})
 		if err != nil {
 			return err
 		}
@@ -163,6 +163,6 @@ func (client *Client) MustCredentialTableName() *string {
 }
 
 func IsConditionalCheckFailed(err error) bool {
-	var bne *types.ConditionalCheckFailedException
+	var bne *dtypes.ConditionalCheckFailedException
 	return errors.As(err, &bne)
 }

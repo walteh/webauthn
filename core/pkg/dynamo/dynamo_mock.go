@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"nugg-webauthn/core/pkg/hex"
-	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/types"
 	"os"
 	"os/exec"
 	"testing"
@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 // Client is a mock of Client interface
@@ -23,19 +23,19 @@ type MockClient struct {
 func (cli *MockClient) MockCreateTable(t *testing.T, name string, pk string) string {
 	_, err := cli.CreateTable(context.Background(), &dynamodb.CreateTableInput{
 		TableName: aws.String(name),
-		AttributeDefinitions: []types.AttributeDefinition{
+		AttributeDefinitions: []dtypes.AttributeDefinition{
 			{
 				AttributeName: aws.String(pk),
-				AttributeType: types.ScalarAttributeTypeS,
+				AttributeType: dtypes.ScalarAttributeTypeS,
 			},
 		},
-		KeySchema: []types.KeySchemaElement{
+		KeySchema: []dtypes.KeySchemaElement{
 			{
 				AttributeName: aws.String(pk),
-				KeyType:       types.KeyTypeHash,
+				KeyType:       dtypes.KeyTypeHash,
 			},
 		},
-		ProvisionedThroughput: &types.ProvisionedThroughput{
+		ProvisionedThroughput: &dtypes.ProvisionedThroughput{
 			ReadCapacityUnits:  aws.Int64(1),
 			WriteCapacityUnits: aws.Int64(1),
 		},
@@ -107,10 +107,10 @@ func NewMockClient(t *testing.T) *Client {
 	}
 }
 
-func (dynamoClient *Client) MockSetCeremony(t *testing.T, credential hex.Hash, challenge hex.Hash, type_ protocol.CeremonyType) {
+func (dynamoClient *Client) MockSetCeremony(t *testing.T, credential hex.Hash, challenge hex.Hash, type_ types.CeremonyType) {
 	t.Helper()
 
-	cer := protocol.NewCeremony(credential, challenge, type_)
+	cer := types.NewCeremony(credential, challenge, type_)
 
 	maper, err := cer.Put()
 	if err != nil {
@@ -120,7 +120,7 @@ func (dynamoClient *Client) MockSetCeremony(t *testing.T, credential hex.Hash, c
 	maper.TableName = aws.String(dynamoClient.CeremonyTableName)
 
 	err = dynamoClient.TransactWrite(context.Background(),
-		types.TransactWriteItem{Put: maper},
+		dtypes.TransactWriteItem{Put: maper},
 	)
 	if err != nil {
 		t.Fatal(err)

@@ -1,4 +1,4 @@
-package protocol
+package challenge
 
 import (
 	"nugg-webauthn/core/pkg/hex"

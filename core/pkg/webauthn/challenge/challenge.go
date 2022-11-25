@@ -1,4 +1,4 @@
-package protocol
+package challenge
 
 import (
 	"crypto/rand"

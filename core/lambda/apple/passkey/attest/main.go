@@ -6,7 +6,10 @@ import (
 	"nugg-webauthn/core/pkg/env"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/invocation"
-	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/clientdata"
+	"nugg-webauthn/core/pkg/webauthn/credential"
+	"nugg-webauthn/core/pkg/webauthn/providers"
+	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"context"
 	"os"
@@ -18,7 +21,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type Input = events.APIGatewayV2HTTPRequest
@@ -81,21 +84,35 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-creation")
 	}
 
-	parsedResponse, err := protocol.ParseCredentialCreationResponseHeader(attestation, clientData, credentialID, "public-key")
-	if err != nil {
-		return inv.Error(err, 400, "failed to parse attestation")
+	parsedResponse := types.AttestationInput{
+		AttestationObject:  attestation,
+		UTF8ClientDataJSON: clientData,
+		CredentialID:       credentialID,
+		ClientExtensions:   nil,
 	}
 
-	cerem := protocol.NewUnsafeGettableCeremony(parsedResponse.Response.CollectedClientData.Challenge)
+	cd, err := clientdata.ParseClientData(parsedResponse.UTF8ClientDataJSON)
+	if err != nil {
+		return inv.Error(err, 400, "invalid client data")
+	}
+
+	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
 
 	err = h.Dynamo.TransactGet(ctx, cerem)
 	if err != nil {
 		return inv.Error(err, 500, "failed to get ceremony")
 	}
 
-	provider := protocol.NewNoneAttestationProvider()
+	cred, invalidErr := credential.VerifyAttestationInput(types.VerifyAttestationInputArgs{
+		Provider:           providers.NewNoneAttestationProvider(),
+		Input:              parsedResponse,
+		StoredChallenge:    cerem.ChallengeID,
+		SessionId:          cerem.SessionID,
+		VerifyUser:         false,
+		RelyingPartyID:     "nugg.xyz",
+		RelyingPartyOrigin: "https://nugg.xyz",
+	})
 
-	cred, invalidErr := parsedResponse.Verify(provider, cerem.ChallengeID, cerem.SessionID, false, "nugg.xyz", "https://nugg.xyz")
 	if invalidErr != nil {
 		return inv.Error(invalidErr, 400, "invalid attestation")
 	}
@@ -137,8 +154,8 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	}
 
 	err = h.Dynamo.TransactWrite(ctx,
-		types.TransactWriteItem{Put: credput},
-		types.TransactWriteItem{Put: ceremput},
+		dtypes.TransactWriteItem{Put: credput},
+		dtypes.TransactWriteItem{Put: ceremput},
 	)
 	if err != nil {
 		return inv.Error(err, 500, "failed to write to dynamo")

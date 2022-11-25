@@ -6,8 +6,10 @@ import (
 	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/invocation"
-	protocol "nugg-webauthn/core/pkg/webauthn"
-	attestation_providers "nugg-webauthn/core/pkg/webauthn/providers"
+	"nugg-webauthn/core/pkg/webauthn/clientdata"
+	"nugg-webauthn/core/pkg/webauthn/credential"
+	"nugg-webauthn/core/pkg/webauthn/providers"
+	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"context"
 	"os"
@@ -15,7 +17,8 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 )
@@ -79,37 +82,44 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	p, err := protocol.FormatAttestationInput(clientDataJson, attestation).Parse()
+	// p, err := credential.FormatAttestationInput(clientDataJson, attestation).Parse()
+	// if err != nil {
+	// 	return inv.Error(err, 400, err.Error())
+	// }
+
+	parsedResponse := types.AttestationInput{
+		AttestationObject:  attestation,
+		UTF8ClientDataJSON: clientDataJson,
+		CredentialID:       attestationKey,
+		ClientExtensions:   nil,
+	}
+
+	cd, err := clientdata.ParseClientData(parsedResponse.UTF8ClientDataJSON)
 	if err != nil {
 		return inv.Error(err, 400, err.Error())
 	}
 
-	cer := protocol.NewUnsafeGettableCeremony(p.CollectedClientData.Challenge)
+	cer := types.NewUnsafeGettableCeremony(cd.Challenge)
 
 	err = h.Dynamo.TransactGet(ctx, cer)
 	if err != nil {
 		return inv.Error(err, 401, err.Error())
 	}
 
-	if !cer.ChallengeID.Equals(p.CollectedClientData.Challenge) {
-		return inv.Error(nil, 401, "invalid credential id")
-	}
-
-	if p.CollectedClientData.Origin != "https://nugg.xyz" {
-		return inv.Error(nil, 401, "invalid origin")
-	}
-
-	if p.CollectedClientData.Type != protocol.CreateCeremony || cer.CeremonyType != protocol.CreateCeremony {
-		return inv.Error(nil, 401, "invalid ceremony type")
-	}
-
 	if !cer.SessionID.Equals(sessionId) {
 		return inv.Error(nil, 401, "invalid session id")
 	}
 
-	provider := attestation_providers.NewAppAttest()
+	pk, err := credential.VerifyAttestationInput(types.VerifyAttestationInputArgs{
+		Provider:           providers.NewAppAttestSandbox(),
+		Input:              parsedResponse,
+		SessionId:          sessionId,
+		StoredChallenge:    cer.ChallengeID,
+		VerifyUser:         false,
+		RelyingPartyID:     "4497QJSAD3.xyz.nugg.app",
+		RelyingPartyOrigin: "https://nugg.xyz",
+	})
 
-	pk, err := p.AttestationObject.Verify(provider, "4497QJSAD3.xyz.nugg.app", hex.Hash([]byte(clientDataJson)).Sha256(), false, false)
 	if err != nil {
 		return inv.Error(err, 401, err.Error())
 	}
@@ -128,7 +138,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(err, 500, err.Error())
 	}
 
-	err = h.Dynamo.TransactWrite(ctx, types.TransactWriteItem{Put: putter})
+	err = h.Dynamo.TransactWrite(ctx, dtypes.TransactWriteItem{Put: putter})
 	if err != nil {
 		return inv.Error(err, 500, err.Error())
 	}

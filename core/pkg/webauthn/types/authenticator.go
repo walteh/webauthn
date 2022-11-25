@@ -1,21 +1,17 @@
-package protocol
+package types
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
-
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
 )
 
-const (
-	minAuthDataLength     = 37
-	minAttestedAuthLength = 55
-
-	// https://w3c.github.io/webauthn/#attested-credential-data
-	maxCredentialIDLength = 1023
-)
+type VerifyAuenticatorDataArgs struct {
+	Data                    hex.Hash
+	AppId                   string
+	RelyingPartyID          string
+	RequireUserVerification bool
+	RequireUserPresence     bool
+	LastSignCount           uint64
+}
 
 // Authenticators respond to Relying Party requests by returning an object derived from the
 // AuthenticatorResponse interface. See §5.2. Authenticator Responses
@@ -160,132 +156,4 @@ func (flag AuthenticatorFlags) HasAttestedCredentialData() bool {
 // HasExtensions returns if the ED flag was set
 func (flag AuthenticatorFlags) HasExtensions() bool {
 	return (flag & FlagHasExtensions) == FlagHasExtensions
-}
-
-// Unmarshal will take the raw Authenticator Data and marshalls it into AuthenticatorData for further validation.
-// The authenticator data has a compact but extensible encoding. This is desired since authenticators can be
-// devices with limited capabilities and low power requirements, with much simpler software stacks than the client platform.
-// The authenticator data structure is a byte array of 37 bytes or more, and is laid out in this table:
-// https://www.w3.org/TR/webauthn/#table-authData
-func (a *AuthenticatorData) Unmarshal(rawAuthData hex.Hash) error {
-	byt := rawAuthData.Bytes()
-	if minAuthDataLength > len(rawAuthData) {
-		err := ErrBadRequest.WithMessage("Authenticator data length too short")
-		info := fmt.Sprintf("Expected data greater than %d bytes. Got %d bytes\n", minAuthDataLength, len(rawAuthData))
-		return err.WithInfo(info)
-	}
-
-	a.RPIDHash = byt[:32]
-	a.Flags = AuthenticatorFlags(byt[32])
-	a.Counter = uint64(binary.BigEndian.Uint32(byt[33:37]))
-
-	remaining := len(byt) - minAuthDataLength
-
-	if a.Flags.HasAttestedCredentialData() {
-		if len(byt) > minAttestedAuthLength {
-			validError := a.unmarshalAttestedData(byt)
-			if validError != nil {
-				return validError
-			}
-			attDataLen := len(a.AttData.AAGUID) + 2 + len(a.AttData.CredentialID) + len(a.AttData.CredentialPublicKey)
-			remaining = remaining - attDataLen
-		} else {
-			return ErrBadRequest.WithMessage("Attested credential flag set but data is missing")
-		}
-	} else {
-		if !a.Flags.HasExtensions() && len(byt) != 37 {
-			return ErrBadRequest.WithMessage("Attested credential flag not set")
-		}
-	}
-
-	if a.Flags.HasExtensions() {
-		if remaining != 0 {
-			a.ExtData = byt[len(byt)-remaining:]
-			remaining -= len(a.ExtData)
-		} else {
-			return ErrBadRequest.WithMessage("Extensions flag set but extensions data is missing")
-		}
-	}
-
-	if remaining != 0 {
-		return ErrBadRequest.WithMessage("Leftover bytes decoding AuthenticatorData")
-	}
-
-	return nil
-}
-
-// If Attestation Data is present, unmarshall that into the appropriate public key structure
-func (a *AuthenticatorData) unmarshalAttestedData(rawAuthData []byte) error {
-	a.AttData.AAGUID = rawAuthData[37:53]
-	idLength := binary.BigEndian.Uint16(rawAuthData[53:55])
-	if len(rawAuthData) < int(55+idLength) {
-		return ErrBadRequest.WithMessage("Authenticator attestation data length too short")
-	}
-	if idLength > maxCredentialIDLength {
-		return ErrBadRequest.WithMessage("Authenticator attestation data credential id length too long")
-	}
-	a.AttData.CredentialID = rawAuthData[55 : 55+idLength]
-	a.AttData.CredentialPublicKey = unmarshalCredentialPublicKey(rawAuthData[55+idLength:])
-	return nil
-}
-
-// Unmarshall the credential's Public Key into CBOR encoding
-func unmarshalCredentialPublicKey(keyBytes []byte) []byte {
-	var m interface{}
-	webauthncbor.Unmarshal(keyBytes, &m)
-	rawBytes, _ := webauthncbor.Marshal(m)
-	return rawBytes
-}
-
-// ResidentKeyRequired - Require that the key be private key resident to the client device
-func ResidentKeyRequired() *bool {
-	required := true
-	return &required
-}
-
-// ResidentKeyUnrequired - Do not require that the private key be resident to the client device.
-func ResidentKeyUnrequired() *bool {
-	required := false
-	return &required
-}
-
-// Verify on AuthenticatorData handles Steps 9 through 12 for Registration
-// and Steps 11 through 14 for Assertion.
-func (a *AuthenticatorData) Verify(rpIdHash, appIDHash []byte, userVerificationRequired bool, requireUserPresence bool) error {
-
-	// Registration Step 9 & Assertion Step 11
-	// Verify that the RP ID hash in authData is indeed the SHA-256
-	// hash of the RP ID expected by the RP.
-	if !bytes.Equal(a.RPIDHash[:], rpIdHash) && !bytes.Equal(a.RPIDHash[:], appIDHash) {
-		return ErrVerification.
-			WithInfo(fmt.Sprintf("RP Hash mismatch. Expected %x and Received %x\n", a.RPIDHash, rpIdHash)).
-			WithKV("AuthenticatorData", a)
-	}
-
-	// Registration Step 10 & Assertion Step 12
-	// Verify that the User Present bit of the flags in authData is set.
-	if requireUserPresence && !a.Flags.UserPresent() {
-		return ErrVerification.WithInfo(fmt.Sprintln("User presence flag not set by authenticator"))
-	}
-
-	// Registration Step 11 & Assertion Step 13
-	// If user verification is required for this assertion, verify that
-	// the User Verified bit of the flags in authData is set.
-	if userVerificationRequired && !a.Flags.UserVerified() {
-		return ErrVerification.WithInfo(fmt.Sprintln("User verification required but flag not set by authenticator"))
-	}
-
-	// Registration Step 12 & Assertion Step 14
-	// Verify that the values of the client extension outputs in clientExtensionResults
-	// and the authenticator extension outputs in the extensions in authData are as
-	// expected, considering the client extension input values that were given as the
-	// extensions option in the create() call. In particular, any extension identifier
-	// values in the clientExtensionResults and the extensions in authData MUST be also be
-	// present as extension identifier values in the extensions member of options, i.e., no
-	// extensions are present that were not requested. In the general case, the meaning
-	// of "are as expected" is specific to the Relying Party and which extensions are in use.
-
-	// This is not yet fully implemented by the spec or by browsers
-
-	return nil
 }

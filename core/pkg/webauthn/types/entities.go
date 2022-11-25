@@ -1,4 +1,4 @@
-package protocol
+package types
 
 // From §5.4.1 (https://www.w3.org/TR/webauthn/#dictionary-pkcredentialentity).
 // PublicKeyCredentialEntity describes a user account, or a WebAuthn Relying Party,

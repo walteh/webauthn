@@ -109,15 +109,7 @@ func (err *Error) Code() string {
 }
 
 func (err *Error) Error() string {
-	// format the error as a pretty string
-	// for logging and debugging
-	// var str string
 	str := fmt.Sprintf("%s - %s - %s - %s - %s - %s", err.Code(), err.Type(), err.Caller(), err.Message(), err.DevInfo(), err.KV())
-
-	// // add the root error if it exists
-	// if err.Root != nil {
-	// 	str = fmt.Sprintf("%s\n\t\t %s", str, err.Root.Error())
-	// }
 	return string(str)
 }
 

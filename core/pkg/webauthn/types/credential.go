@@ -1,4 +1,4 @@
-package protocol
+package types
 
 import (
 	"fmt"
@@ -13,11 +13,12 @@ import (
 // type CredentialType string
 
 // const (
-// 	WebAuthnCredentialType     = CredentialType("webauthn")
-// 	ApplePassKeyCredentialType = CredentialType("apple-passkey")
+// 	PublicKeyCredentialType CredentialType = "public-key"
+// 	// WebAuthnCredentialType                    = CredentialType("webauthn")
+// 	// ApplePassKeyCredentialType                = CredentialType("apple-passkey")
 // )
 
-type SavedCredential struct {
+type Credential struct {
 	// A probabilistically-unique byte sequence identifying a public key credential source and its authentication assertions.
 	RawID hex.Hash `dynamodbav:"id" json:"raw_credential_id"`
 
@@ -53,11 +54,11 @@ type SavedCredential struct {
 	SessionId hex.Hash `dynamodbav:"session_id" json:"session_id"`
 }
 
-func (s SavedCredential) ID() string {
+func (s Credential) ID() string {
 	return (s.RawID.Hex())
 }
 
-func (s SavedCredential) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error) {
+func (s Credential) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error) {
 	av := types.AttributeValueMemberM{}
 	av.Value = make(map[string]types.AttributeValue)
 	av.Value["credential_id"] = &types.AttributeValueMemberS{Value: s.ID()}
@@ -74,7 +75,7 @@ func (s SavedCredential) MarshalDynamoDBAttributeValue() (*types.AttributeValueM
 	return &av, nil
 }
 
-func (s *SavedCredential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
+func (s *Credential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
 
 	s.RawID = hex.HexToHash(m.Value["credential_id"].(*types.AttributeValueMemberS).Value)
 	s.Type = CredentialType(m.Value["credential_type"].(*types.AttributeValueMemberS).Value)
@@ -97,9 +98,11 @@ func (s *SavedCredential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValu
 	return err
 }
 
-func (s SavedCredential) Update(table *string, counter uint64) (*types.TransactWriteItem, error) {
-	s.updateCounter(counter)
-
+func (s Credential) UpdateIncreasingCounter(table *string) (*types.TransactWriteItem, error) {
+	err := s.updateCounter(s.SignCount + 1)
+	if err != nil {
+		return nil, err
+	}
 	s.UpdatedAt = uint64(time.Now().Unix())
 	av, err := s.MarshalDynamoDBAttributeValue()
 	if err != nil {
@@ -126,7 +129,7 @@ func (s SavedCredential) Update(table *string, counter uint64) (*types.TransactW
 		}}, nil
 }
 
-func SavedCredentialGet(table *string, id string) *types.Get {
+func CredentialGet(table *string, id string) *types.Get {
 	return &types.Get{
 		TableName: table,
 		Key: map[string]types.AttributeValue{
@@ -135,7 +138,7 @@ func SavedCredentialGet(table *string, id string) *types.Get {
 	}
 }
 
-func (a *SavedCredential) updateCounter(authDataCount uint64) error {
+func (a *Credential) updateCounter(authDataCount uint64) error {
 	if authDataCount <= a.SignCount && (authDataCount != 0 || a.SignCount != 0) {
 		a.CloneWarning = true
 		return fmt.Errorf("authDataCount %d <= a.SignCount %d", authDataCount, a.SignCount)
@@ -144,7 +147,7 @@ func (a *SavedCredential) updateCounter(authDataCount uint64) error {
 	return nil
 }
 
-func (s SavedCredential) Get() *types.Get {
+func (s Credential) Get() *types.Get {
 	return &types.Get{
 		Key: map[string]types.AttributeValue{
 			"credential_id": &types.AttributeValueMemberS{Value: s.ID()},
@@ -152,7 +155,7 @@ func (s SavedCredential) Get() *types.Get {
 	}
 }
 
-func (s SavedCredential) Put() (*types.Put, error) {
+func (s Credential) Put() (*types.Put, error) {
 
 	av, err := s.MarshalDynamoDBAttributeValue()
 	if err != nil {
@@ -168,8 +171,8 @@ func TableType() string {
 	return "credential"
 }
 
-func NewUnsafeGettableCredential(id hex.Hash) *SavedCredential {
-	return &SavedCredential{
+func NewUnsafeGettableCredential(id hex.Hash) *Credential {
+	return &Credential{
 		RawID: id,
 	}
 }

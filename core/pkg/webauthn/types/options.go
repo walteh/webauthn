@@ -1,15 +1,15 @@
-package protocol
+package types
 
 import (
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/webauthn/webauthncose"
 )
 
-type CredentialCreation struct {
+type CredentialCreationOptions struct {
 	Response PublicKeyCredentialCreationOptions `json:"publicKey"`
 }
 
-type CredentialAssertion struct {
+type CredentialAssertionOptions struct {
 	Response PublicKeyCredentialRequestOptions `json:"publicKey"`
 }
 

@@ -1,10 +1,14 @@
 package main
 
 import (
+	"log"
 	"nugg-webauthn/core/pkg/dynamo"
 	"nugg-webauthn/core/pkg/env"
 	"nugg-webauthn/core/pkg/hex"
-	protocol "nugg-webauthn/core/pkg/webauthn"
+	"nugg-webauthn/core/pkg/webauthn/assertion"
+	"nugg-webauthn/core/pkg/webauthn/clientdata"
+	"nugg-webauthn/core/pkg/webauthn/extensions"
+	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"context"
 	"os"
@@ -13,7 +17,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 )
@@ -126,43 +129,71 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	inv := h.NewInvocation(ctx, h.Logger)
 
-	attestation := hex.HexToHash(input.Headers["x-nugg-hex-attestation"])
-	clientData := input.Headers["x-nugg-utf-client-data-json"]
-	payload := hex.HexToHash(input.Headers["x-nugg-hex-payload"])
+	assert := hex.HexToHash(input.Headers["x-nugg-hex-request-assertion"])
 
-	if attestation.IsZero() || clientData == "" {
+	body := hex.HexToHash(input.Body)
+
+	if assert.IsZero() || body.IsZero() {
 		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	p, err := protocol.FormatAttestationInput(clientData, attestation).Parse()
+	parsed, err := assertion.ParseAssertionResponse(assert)
 	if err != nil {
-		return inv.Error(err, 400, err.Error())
+		return inv.Error(err, 400, "failed to parse assertion")
 	}
 
-	cer := protocol.NewUnsafeGettableCeremony(p.CollectedClientData.Challenge)
-
-	err = h.Dynamo.TransactGet(ctx, cer)
-	if err != nil {
-		return inv.Error(err, 400, err.Error())
+	payload := types.AssertionInput{
+		UserID:               parsed.SessionID,
+		CredentialID:         parsed.CredentialID,
+		RawClientDataJSON:    parsed.UTF8ClientDataJSON,
+		RawAuthenticatorData: nil,
+		Signature:            parsed.AssertionObject,
+		Type:                 types.NotFidoAttestationType,
 	}
 
-	if !cer.ChallengeID.Equals(p.CollectedClientData.Challenge) {
+	cd, err := clientdata.ParseClientData(parsed.UTF8ClientDataJSON)
+	if err != nil {
+		return inv.Error(err, 400, "failed to parse client data")
+	}
+
+	cred := types.NewUnsafeGettableCredential(parsed.CredentialID)
+	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
+
+	err = h.Dynamo.TransactGet(ctx, cred, cerem)
+	if err != nil {
+		return inv.Error(err, 500, "failed to send transact get")
+	}
+
+	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
+		log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
 		return inv.Error(nil, 400, "invalid credential id")
 	}
 
-	provider := protocol.NewNoneAttestationProvider()
-
-	pk, err := p.AttestationObject.Verify(provider, "4497QJSAD3.xyz.nugg.app", payload.Sha256(), false, false)
-	if err != nil {
-		return inv.Error(err, 400, err.Error())
+	if !cerem.ChallengeID.Equals(cd.Challenge) {
+		return inv.Error(nil, 400, "invalid challenge id")
 	}
 
-	putter, err := dynamo.MakePut(h.Dynamo.MustCredentialTableName(), pk)
-	if err != nil {
-		return inv.Error(err, 500, err.Error())
+	// Handle steps 4 through 16
+	validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
+		Input:               payload,
+		StoredChallenge:     cerem.ChallengeID,
+		RelyingPartyID:      "4497QJSAD3.xyz.nugg.app",
+		RelyingPartyOrigin:  env.RPOrigin(),
+		AttestationType:     "none",
+		VerifyUser:          false,
+		CredentialPublicKey: cred.PublicKey,
+		Extensions:          extensions.ClientInputs{},
+	})
+	if validError != nil {
+		return inv.Error(validError, 400, "failed to verify assertion")
 	}
 
-	err = h.Dynamo.TransactWrite(inv.Ctx, types.TransactWriteItem{Put: putter})
+	credentialUpdate, err := cred.UpdateIncreasingCounter(h.Dynamo.MustCredentialTableName())
+	if err != nil {
+		return inv.Error(err, 500, "failed to create apple pass key")
+	}
+
+	err = h.Dynamo.TransactWrite(inv.Ctx, *credentialUpdate)
 	if err != nil {
 		return inv.Error(err, 500, err.Error())
 	}
