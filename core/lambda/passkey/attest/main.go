@@ -73,19 +73,18 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	inv, ctx := invocation.NewInvocation(ctx, h, payload)
 
 	attestation := hex.HexToHash(payload.Headers["x-nugg-hex-attestation-object"])
-	dc := hex.HexToHash(payload.Headers["x-nugg-hex-devicecheck-assertion-object"])
+	dc := hex.HexToHash(payload.Headers["x-nugg-hex-request-assertion"])
 	clientData := payload.Headers["x-nugg-utf-client-data-json"]
 	credentialID := hex.HexToHash(payload.Headers["x-nugg-hex-credential-id"])
 
 	if attestation.IsZero() || clientData == "" || credentialID.IsZero() || dc.IsZero() {
-		return inv.Error(nil, 400, "missing header x-nugg-webauthn-creation")
+		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	res, err := devicecheck.Assert(ctx, h.Dynamo, devicecheck.DeviceCheckAssertionInput{
+	if res, err := devicecheck.Assert(ctx, h.Dynamo, devicecheck.DeviceCheckAssertionInput{
 		RawAssertionObject:   dc,
 		ClientDataToValidate: credentialID,
-	})
-	if err != nil || !res.OK {
+	}); err != nil || !res.OK {
 		return inv.Error(err, res.SuggestedStatusCode, "devicecheck assertion failed")
 	}
 

@@ -4,76 +4,78 @@ import (
 	"context"
 	"nugg-webauthn/core/pkg/cognito"
 	"nugg-webauthn/core/pkg/dynamo"
+	"nugg-webauthn/core/pkg/hex"
+	"nugg-webauthn/core/pkg/webauthn/types"
 
 	"reflect"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"
 )
 
-func DummyHandler(t *testing.T) *Handler {
-	dynamoClient := dynamo.NewMockClient(t)
+// func DummyHandler(t *testing.T) *Handler {
+// 	dynamoClient := dynamo.NewMockClient(t)
 
-	dynamoClient.TransactWrite(context.TODO(), types.TransactWriteItem{
-		ConditionCheck: (*types.ConditionCheck)(nil),
-		Delete:         (*types.Delete)(nil),
-		Put: &types.Put{
-			Item: map[string]types.AttributeValue{
-				"challenge_id": &types.AttributeValueMemberS{
-					Value: "0xa55af63d41bf95eea575ef70c5e2261c",
-				},
-				"session_id": &types.AttributeValueMemberS{
-					Value: "0xa55af63d41bf95eea575ef70c5e2261c",
-				},
-				"credential_id": &types.AttributeValueMemberS{
-					Value: "0x",
-				},
-				"ceremony_type": &types.AttributeValueMemberS{
-					Value: "webauthn.create",
-				},
-				"created_at": &types.AttributeValueMemberN{
-					Value: "1668984054",
-				},
-				"ttl": &types.AttributeValueMemberN{
-					Value: "1668984354",
-				},
-			},
-			TableName: &dynamoClient.CeremonyTableName,
-		},
-	})
+// 	dynamoClient.TransactWrite(context.TODO(), types.TransactWriteItem{
+// 		ConditionCheck: (*types.ConditionCheck)(nil),
+// 		Delete:         (*types.Delete)(nil),
+// 		Put: &types.Put{
+// 			Item: map[string]types.AttributeValue{
+// 				"challenge_id": &types.AttributeValueMemberS{
+// 					Value: "0xa55af63d41bf95eea575ef70c5e2261c",
+// 				},
+// 				"session_id": &types.AttributeValueMemberS{
+// 					Value: "0xa55af63d41bf95eea575ef70c5e2261c",
+// 				},
+// 				"credential_id": &types.AttributeValueMemberS{
+// 					Value: "0x",
+// 				},
+// 				"ceremony_type": &types.AttributeValueMemberS{
+// 					Value: "webauthn.create",
+// 				},
+// 				"created_at": &types.AttributeValueMemberN{
+// 					Value: "1668984054",
+// 				},
+// 				"ttl": &types.AttributeValueMemberN{
+// 					Value: "1668984354",
+// 				},
+// 			},
+// 			TableName: &dynamoClient.CeremonyTableName,
+// 		},
+// 	})
 
-	return &Handler{
-		Id:      "test",
-		Ctx:     context.Background(),
-		Dynamo:  dynamoClient,
-		Config:  nil,
-		Cognito: cognito.NewMockClient(),
-		logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
-		counter: 0,
-	}
-}
+// 	return &Handler{
+// 		Id:      "test",
+// 		Ctx:     context.Background(),
+// 		Dynamo:  dynamoClient,
+// 		Config:  nil,
+// 		Cognito: cognito.NewMockClient(),
+// 		logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
+// 		counter: 0,
+// 	}
+// }
 
-func TestHandler_Invoke(t *testing.T) {
+func TestAttest(t *testing.T) {
 
-	Handler := DummyHandler(t)
+	dynamo.AttachLocalDynamoServer(t)
 
 	tests := []struct {
 		name    string
-		args    Input
+		input   Input
 		want    Output
+		puts    []dtypes.Put
+		checks  []dtypes.Update
 		wantErr bool
 	}{
 		{
 			name: "A",
-			args: Input{
+			input: Input{
 				Headers: map[string]string{
-					"Content-Type":                  "application/json",
-					"x-nugg-hex-attestation-object": "0xa363666d74646e6f6e656761747453746d74a06861757468446174615898a9b9abf7fc46b13564b49d5cf85bcbf371f9cb630e0d6b354bc60b51e065da485d000000000000000000000000000000000000000000147053ed09000cfafdd6e1d98d929796f9c07c466ba501020326200121582030dfb831ebb382bcbd45ac6cb1745222b7d81ad8d44ab33e20d2bda632b5692a225820f6496d03d357717d7669a7af490c8706fef052c0819a02bdca4b92bd42459a00",
-					"x-nugg-hex-credential-id":      "0x7053ed09000cfafdd6e1d98d929796f9c07c466b",
-					"x-nugg-utf-client-data-json":   `{"challenge":"pVr2PUG_le6lde9wxeImHA","origin":"https://nugg.xyz","type":"webauthn.create"}`,
-					// "x-nugg-webauthn-creation":      "eyJyYXdDbGllbnREYXRhSlNPTiI6ImV5SmphR0ZzYkdWdVoyVWlPaUp3Vm5JeVVGVkhYMnhsTm14a1pUbDNlR1ZKYlVoQklpd2liM0pwWjJsdUlqb2lhSFIwY0hNNkx5OXVkV2RuTG5oNWVpSXNJblI1Y0dVaU9pSjNaV0poZFhSb2JpNWpjbVZoZEdVaWZRPT0iLCJyYXdBdHRlc3RhdGlvbk9iamVjdCI6Im8yTm1iWFJrYm05dVpXZGhkSFJUZEcxMG9HaGhkWFJvUkdGMFlWaVlxYm1yOS94R3NUVmt0SjFjK0Z2TDgzSDV5Mk1PRFdzMVM4WUxVZUJsMmtoZEFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFGSEJUN1FrQURQcjkxdUhaalpLWGx2bkFmRVpycFFFQ0F5WWdBU0ZZSUREZnVESHJzNEs4dlVXc2JMRjBVaUszMkJyWTFFcXpQaURTdmFZeXRXa3FJbGdnOWtsdEE5TlhjWDEyYWFldlNReUhCdjd3VXNDQm1nSzl5a3VTdlVKRm1nQT0iLCJjcmVkZW50aWFsSWQiOiJjRlB0Q1FBTSt2M1c0ZG1Oa3BlVytjQjhSbXM9In0=",
+					"x-nugg-hex-request-assertion":  hex.Hash(`{"credential_id":"0xfb1fd0ac98dca2891761baf97a486c75726900d3a94105afa598575f89c47295","assertion_object":"0xa2697369676e617475726558483046022100c8bd5185936a695cac3abcb7fd4be9765cbc3a564507fd38bb1ebe7cfa35fbe3022100f3e001e08f3bc09be02b8bf64c4250b49a3ea8e5446626c5cca0147cc5d797837161757468656e74696361746f72446174615825c41fc555acfac4530a4fa4a565c197c12dd5d44d252d33299c7369b34cf577c64000000003","session_id":"0x3a298ca21194c5ee7920d2ffc5247d6fa0f330a038cf3933e138602660430b8d","provider":"apple","client_data_json":"{\"challenge\":\"Ym53J5KkgHce06bpevFvvxGdTF0R4aQqjuv6HMhEatU\",\"origin\":\"https://nugg.xyz\",\"type\":\"webauthn.get\"}"}`).Hex(),
+					"x-nugg-hex-credential-id":      "0x3d22bea4b1b7b6745c45494ebfe982724eb45710",
+					"x-nugg-hex-attestation-object": "0xa363666d74646e6f6e656761747453746d74a06861757468446174615898a9b9abf7fc46b13564b49d5cf85bcbf371f9cb630e0d6b354bc60b51e065da485d000000000000000000000000000000000000000000143d22bea4b1b7b6745c45494ebfe982724eb45710a5010203262001215820e9dce49b7ee0e7223645ce3b18c747d7b8d87b8581c9d4faa1056d88d76170fe22582080fd71bb59b3d9d870b560ff9d306289b37fc531744b14d356bc056213b4d4f0",
+					"x-nugg-utf-client-data-json":   "{\"type\":\"webauthn.create\",\"challenge\":\"uyX6GSJcNCgvt9pL8tXswFNlSsFJp_IYYp2DNGBePM4\",\"origin\":\"https://nugg.xyz\"}",
 				},
 			},
 			want: Output{
@@ -83,55 +85,125 @@ func TestHandler_Invoke(t *testing.T) {
 					"x-nugg-utf-access-token": "OpenIdToken",
 				},
 			},
+			puts: []dtypes.Put{
+				{
+					Item: map[string]dtypes.AttributeValue{
+						"challenge_id":  types.S(hex.MustBase64ToHash("Ym53J5KkgHce06bpevFvvxGdTF0R4aQqjuv6HMhEatU").Hex()),
+						"session_id":    types.S("0x3a298ca21194c5ee7920d2ffc5247d6fa0f330a038cf3933e138602660430b8d"),
+						"credential_id": types.S("0xfb1fd0ac98dca2891761baf97a486c75726900d3a94105afa598575f89c47295"),
+						"ceremony_type": types.S("webauthn.get"),
+						"created_at":    types.N("1668984054"),
+						"ttl":           types.N("1668984354"),
+					},
+					TableName: dynamo.MockCeremonyTableName(),
+				},
+				{
+					Item: map[string]dtypes.AttributeValue{
+						"challenge_id":  types.S(hex.MustBase64ToHash("uyX6GSJcNCgvt9pL8tXswFNlSsFJp_IYYp2DNGBePM4").Hex()),
+						"session_id":    types.S("0x3a298ca21194c5ee7920d2ffc5247d6fa0f330a038cf3933e138602660430b8d"),
+						"credential_id": types.S("0x3d22bea4b1b7b6745c45494ebfe982724eb45710"),
+						"ceremony_type": types.S("webauthn.create"),
+						"created_at":    types.N("1668984054"),
+						"ttl":           types.N("1668984354"),
+					},
+					TableName: dynamo.MockCeremonyTableName(),
+				},
+				{
+					Item: map[string]dtypes.AttributeValue{
+						"created_at":       types.N("1669414368"),
+						"session_id":       types.S("0x"),
+						"aaguid":           types.S("0x617070617474657374646576656c6f70"),
+						"clone_warning":    types.BOOL(false),
+						"public_key":       types.S("0x04bee9490389b5b36c0d4bd0676c52c46426bee73ace82f6d3c4479d6b6bec24f20ad2264f7739994e636f65f280c384aa2b70c2311741027e677db62ec80071ee"),
+						"attestation_type": types.S("apple-appattest"),
+						"receipt":          types.S("0x308006092a864886f70d010702a0803080020101310f300d06096086480165030402010500308006092a864886f70d010701a0802480048203e831820400301f020102020101041734343937514a534144332e78797a2e6e7567672e617070308202ea020103020101048202e0308202dc30820262a00302010202060184b0d656b9300a06082a8648ce3d040302304f3123302106035504030c1a4170706c6520417070204174746573746174696f6e204341203131133011060355040a0c0a4170706c6520496e632e3113301106035504080c0a43616c69666f726e6961301e170d3232313132343232303930375a170d3233303831373034343030375a3081913149304706035504030c4066623166643061633938646361323839313736316261663937613438366337353732363930306433613934313035616661353938353735663839633437323935311a3018060355040b0c114141412043657274696669636174696f6e31133011060355040a0c0a4170706c6520496e632e3113301106035504080c0a43616c69666f726e69613059301306072a8648ce3d020106082a8648ce3d03010703420004bee9490389b5b36c0d4bd0676c52c46426bee73ace82f6d3c4479d6b6bec24f20ad2264f7739994e636f65f280c384aa2b70c2311741027e677db62ec80071eea381e63081e3300c0603551d130101ff04023000300e0603551d0f0101ff0404030204f0307106092a864886f76364080504643062a40302010abf893003020101bf893103020100bf893203020101bf893303020101bf893419041734343937514a534144332e78797a2e6e7567672e617070a5060404736b7320bf893603020105bf893703020100bf893903020100bf893a03020100301b06092a864886f763640807040e300cbf8a7808040631362e312e31303306092a864886f76364080204263024a12204208749423ff7d8e2fbea183a2a4c2936138300528398c346332c57d80d4ddf038b300a06082a8648ce3d040302036800306502301da8920cc88f57b30c2127dbe10d7533f70fee099a7ef2a78f0ae76d7d3b12886c2edce51990511361b4194768c88ccf023100f7e2cc5cdd8f903fca505149e6ba073a2679bc8620f9645736f1181a3daf17c68e201855664d3f58977c554c26308cb53028020104020101042049e739fa222e42b6d5cb2b24522477deeead2ce1097f931c3400586cb38afe9030600201050201010458734a4b726d4f414e3974307850343858636a5a38696c78783052326932566f3555314a38516d31594d546f456d4579423079487a54385854473252776153775262675a694e435a78344230477a5063464736553165413d3d300e0201060201010406415454455354300f020107020101040773616e64626f78302002010c0201010418323032322d31312d32355432323a30393a30372e3830345a302002011502041c01010418323032332d30322d32335432323a30393a30372e3830345a000000000000a080308203ae30820354a00302010202100939b4bce90cc3a1816536372f667141300a06082a8648ce3d040302307c3130302e06035504030c274170706c65204170706c69636174696f6e20496e746567726174696f6e2043412035202d20473131263024060355040b0c1d4170706c652043657274696669636174696f6e20417574686f7269747931133011060355040a0c0a4170706c6520496e632e310b3009060355040613025553301e170d3232303431393133333330335a170d3233303531393133333330325a305a3136303406035504030c2d4170706c69636174696f6e204174746573746174696f6e2046726175642052656365697074205369676e696e6731133011060355040a0c0a4170706c6520496e632e310b30090603550406130255533059301306072a8648ce3d020106082a8648ce3d0301070342000439d4f9aa9b1cc445d65ba617acf2c084ec6f0708d59014a0e76ecf3dee3999a94c6bfb0155105555646cda8e23e026011402d07e13b9541fd8b4d657d82e9378a38201d8308201d4300c0603551d130101ff04023000301f0603551d23041830168014d917fe4b6790384b92f4dbced55780140b8f3dc9304306082b0601050507010104373035303306082b060105050730018627687474703a2f2f6f6373702e6170706c652e636f6d2f6f63737030332d616169636135673130313082011c0603551d20048201133082010f3082010b06092a864886f7636405013081fd3081c306082b060105050702023081b60c81b352656c69616e6365206f6e207468697320636572746966696361746520627920616e7920706172747920617373756d657320616363657074616e6365206f6620746865207468656e206170706c696361626c65207374616e64617264207465726d7320616e6420636f6e646974696f6e73206f66207573652c20636572746966696361746520706f6c69637920616e642063657274696669636174696f6e2070726163746963652073746174656d656e74732e303506082b060105050702011629687474703a2f2f7777772e6170706c652e636f6d2f6365727469666963617465617574686f72697479301d0603551d0e04160414fb67d30dbf73b792a6265d488d2cc11d95e273f8300e0603551d0f0101ff040403020780300f06092a864886f763640c0f04020500300a06082a8648ce3d04030203480030450221009490a0673773e72f7829367623b8dd51d7c89a09eabb00e39c6e450b05580bd0022047341a2bd13cc054a80a3aaacc3cc1457c00545318ea338d7d6dd5f60b2b872e308202f93082027fa003020102021056fb83d42bff8dc3379923b55aae6ebd300a06082a8648ce3d0403033067311b301906035504030c124170706c6520526f6f74204341202d20473331263024060355040b0c1d4170706c652043657274696669636174696f6e20417574686f7269747931133011060355040a0c0a4170706c6520496e632e310b3009060355040613025553301e170d3139303332323137353333335a170d3334303332323030303030305a307c3130302e06035504030c274170706c65204170706c69636174696f6e20496e746567726174696f6e2043412035202d20473131263024060355040b0c1d4170706c652043657274696669636174696f6e20417574686f7269747931133011060355040a0c0a4170706c6520496e632e310b30090603550406130255533059301306072a8648ce3d020106082a8648ce3d0301070342000492ce63bd7d86b1ab280a3b1ce1affb04948091acf631dfa6cb28356f444be121e557dd128d8dba827c95be49fabe33caaecd0419f12f4325faf4beb3cb837ebaa381f73081f4300f0603551d130101ff040530030101ff301f0603551d23041830168014bbb0dea15833889aa48a99debebdebafdacb24ab304606082b06010505070101043a3038303606082b06010505073001862a687474703a2f2f6f6373702e6170706c652e636f6d2f6f63737030332d6170706c65726f6f746361673330370603551d1f0430302e302ca02aa0288626687474703a2f2f63726c2e6170706c652e636f6d2f6170706c65726f6f74636167332e63726c301d0603551d0e04160414d917fe4b6790384b92f4dbced55780140b8f3dc9300e0603551d0f0101ff0404030201063010060a2a864886f7636406020304020500300a06082a8648ce3d04030303680030650231008d6fa69fa1e0e4ec5b4e738a927f3d7853988ff4da1f581ec3754afe38a84c2a831a1aaa0da6646de1b993e8d1554ced0230673b2cb4e1e8370777cbd5ec76a81a3a553b3f356ac8c5e692b0e161be804969e45f2ba96ce11102aacc61d938b7734a30820243308201c9a00302010202082dc5fc88d2c54b95300a06082a8648ce3d0403033067311b301906035504030c124170706c6520526f6f74204341202d20473331263024060355040b0c1d4170706c652043657274696669636174696f6e20417574686f7269747931133011060355040a0c0a4170706c6520496e632e310b3009060355040613025553301e170d3134303433303138313930365a170d3339303433303138313930365a3067311b301906035504030c124170706c6520526f6f74204341202d20473331263024060355040b0c1d4170706c652043657274696669636174696f6e20417574686f7269747931133011060355040a0c0a4170706c6520496e632e310b30090603550406130255533076301006072a8648ce3d020106052b810400220362000498e92f3d4072a4ed93227281131cdd1095f1c5a34e71dc1416d90ee5a6052a77647b5f4e38d3bb1c44b57ff51fb632625dc9e9845b4f304f115a00fd58580ca5f50f2c4d07471375da9797976f315ced2b9d7b203bd8b954d95e99a43a510a31a3423040301d0603551d0e04160414bbb0dea15833889aa48a99debebdebafdacb24ab300f0603551d130101ff040530030101ff300e0603551d0f0101ff040403020106300a06082a8648ce3d040303036800306502310083e9c1c4165e1a5d3418d9edeff46c0e00464bb8dfb24611c50ffde67a8ca1a66bcec203d49cf593c674b86adfaa231502306d668a10cad40dd44fcd8d433eb48a63a5336ee36dda17b7641fc85326f9886274390b175bcb51a80ce81803e7a2b22800003181fd3081fa020101308190307c3130302e06035504030c274170706c65204170706c69636174696f6e20496e746567726174696f6e2043412035202d20473131263024060355040b0c1d4170706c652043657274696669636174696f6e20417574686f7269747931133011060355040a0c0a4170706c6520496e632e310b300906035504061302555302100939b4bce90cc3a1816536372f667141300d06096086480165030402010500300a06082a8648ce3d0403020447304502205a59898ffdde0d2a1b8135006b746ea2efe9f5386c920541dbd1c9912283ef38022100a3ea3ca0e32f9025fcc878dde76d56138a39b9ff52624172a68d54672cb177cb000000000000"),
+						"sign_count":       types.N("0"),
+						"updated_at":       types.N("1669414368"),
+						"credential_id":    types.S("0xfb1fd0ac98dca2891761baf97a486c75726900d3a94105afa598575f89c47295"),
+						"credential_type":  types.S("public-key"),
+					},
+					TableName: dynamo.MockCredentialTableName(),
+				},
+			},
+			checks: []dtypes.Update{
+				{
+					Key: map[string]dtypes.AttributeValue{
+						"credential_id": types.S("0xfb1fd0ac98dca2891761baf97a486c75726900d3a94105afa598575f89c47295"),
+					},
+					TableName: dynamo.MockCredentialTableName(),
+					ExpressionAttributeValues: map[string]dtypes.AttributeValue{
+						"sign_count": types.N("1"),
+					},
+				},
+				{
+					Key: map[string]dtypes.AttributeValue{
+						"credential_id": types.S("0x3d22bea4b1b7b6745c45494ebfe982724eb45710"),
+					},
+					TableName: dynamo.MockCredentialTableName(),
+					ExpressionAttributeValues: map[string]dtypes.AttributeValue{
+						"session_id":       types.S("0x"),
+						"aaguid":           types.S("0x00000000000000000000000000000000"),
+						"clone_warning":    types.BOOL(false),
+						"public_key":       types.S("0xa5010203262001215820e9dce49b7ee0e7223645ce3b18c747d7b8d87b8581c9d4faa1056d88d76170fe22582080fd71bb59b3d9d870b560ff9d306289b37fc531744b14d356bc056213b4d4f0"),
+						"attestation_type": types.S("none"),
+						"receipt":          types.S("0x"),
+						"sign_count":       types.N("0"),
+						"credential_id":    types.S("0x3d22bea4b1b7b6745c45494ebfe982724eb45710"),
+						"credential_type":  types.S("public-key"),
+						// "created_at":       types.N("1669414368"),
+						// "updated_at":       types.N("1669414368"),
+
+					},
+				},
+				{
+					Key: map[string]dtypes.AttributeValue{
+						"challenge_id": types.S(hex.MustBase64ToHash("Ym53J5KkgHce06bpevFvvxGdTF0R4aQqjuv6HMhEatU").Hex()),
+					},
+					TableName: dynamo.MockCeremonyTableName(),
+					ExpressionAttributeValues: map[string]dtypes.AttributeValue{
+						"challenge_id": nil,
+					},
+				},
+				{
+					Key: map[string]dtypes.AttributeValue{
+						"challenge_id": types.S(hex.MustBase64ToHash("uyX6GSJcNCgvt9pL8tXswFNlSsFJp_IYYp2DNGBePM4").Hex()),
+					},
+					TableName: dynamo.MockCeremonyTableName(),
+					ExpressionAttributeValues: map[string]dtypes.AttributeValue{
+						"challenge_id": nil,
+					},
+				},
+			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Handler.Invoke(context.Background(), tt.args)
+
+			dynamoClient := dynamo.NewMockClient(t)
+
+			handler := Handler{
+				Id:      "test",
+				Ctx:     context.Background(),
+				Dynamo:  dynamoClient,
+				Config:  nil,
+				Cognito: cognito.NewMockClient(),
+				logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
+				counter: 0,
+			}
+
+			dynamo.MockBatchPut(t, dynamoClient, tt.puts...)
+
+			got, err := handler.Invoke(context.Background(), tt.input)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Handler.Invoke() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Handler.Invoke() = %v, want %v", got, tt.want)
 			}
 
-			r, err := Handler.Dynamo.GetItem(Handler.Ctx, &dynamodb.GetItemInput{
-				TableName: &Handler.Dynamo.CeremonyTableName,
-				Key: map[string]types.AttributeValue{
-					"challenge_id": &types.AttributeValueMemberS{Value: "0xa55af63d41bf95eea575ef70c5e2261c"},
-				},
-			})
-			if err != nil {
-				t.Error(err)
-			}
-
-			if r.Item == nil {
-				t.Error("item is nil")
-			}
-
-			c, err := Handler.Dynamo.GetItem(Handler.Ctx, &dynamodb.GetItemInput{
-				TableName: &Handler.Dynamo.CredentialTableName,
-				Key: map[string]types.AttributeValue{
-					"credential_id": &types.AttributeValueMemberS{Value: "0x7053ed09000cfafdd6e1d98d929796f9c07c466b"},
-				},
-			})
-
-			if err != nil {
-				t.Error(err)
-			}
-
-			if c.Item == nil {
-				t.Error("item is nil")
-			}
-			if Handler.counter != len(tests) {
-				t.Errorf("Handler.Invoke() counter = %v, want 1", Handler.counter)
-			}
-
+			dynamo.MockBatchCheck(t, dynamoClient, tt.checks...)
 		})
-
 	}
-
 }
