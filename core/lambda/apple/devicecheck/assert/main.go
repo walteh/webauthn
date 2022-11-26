@@ -127,7 +127,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	}
 
 	// Handle steps 4 through 16
-	validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
+	if validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
 		Input:                          parsed,
 		StoredChallenge:                cerem.ChallengeID,
 		RelyingPartyID:                 "4497QJSAD3.xyz.nugg.app",
@@ -140,8 +140,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		Extensions:                     extensions.ClientInputs{},
 		DataSignedByClient:             append(body, cerem.ChallengeID...),
 		UseSavedAttestedCredentialData: true,
-	})
-	if validError != nil {
+	}); validError != nil {
 		return inv.Error(validError, 400, "failed to verify assertion")
 	}
 
