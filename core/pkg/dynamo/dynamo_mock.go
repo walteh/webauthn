@@ -91,7 +91,7 @@ func MockBatchCheck(t *testing.T, cli *Client, items ...dtypes.Update) {
 		} else {
 			for k, want := range put.ExpressionAttributeValues {
 				if !reflect.DeepEqual(val.Item[k], want) {
-					t.Errorf("dynamo.MockBatchCheck() = %v, want %v", val.Item[k], want)
+					t.Errorf("dynamo.MockBatchCheck() [\"%s\"] = %v, want %v", k, val.Item[k], want)
 					return
 				}
 			}

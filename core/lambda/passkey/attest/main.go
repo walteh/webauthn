@@ -6,11 +6,8 @@ import (
 	"nugg-webauthn/core/pkg/env"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/invocation"
-	"nugg-webauthn/core/pkg/webauthn/clientdata"
-	"nugg-webauthn/core/pkg/webauthn/credential"
 	"nugg-webauthn/core/pkg/webauthn/handlers/devicecheck"
-	"nugg-webauthn/core/pkg/webauthn/providers"
-	"nugg-webauthn/core/pkg/webauthn/types"
+	"nugg-webauthn/core/pkg/webauthn/handlers/passkey"
 
 	"context"
 	"os"
@@ -21,7 +18,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type Input = events.APIGatewayV2HTTPRequest
@@ -93,61 +89,13 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, res.SuggestedStatusCode, "devicecheck assertion failed")
 	}
 
-	parsedResponse := types.AttestationInput{
-		AttestationObject:  attestation,
-		UTF8ClientDataJSON: clientData,
-		CredentialID:       credentialID,
-		ClientExtensions:   nil,
-	}
-
-	cd, err := clientdata.ParseClientData(parsedResponse.UTF8ClientDataJSON)
-	if err != nil {
-		return inv.Error(err, 400, "invalid client data")
-	}
-
-	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
-
-	err = h.Dynamo.TransactGet(ctx, cerem)
-	if err != nil {
-		return inv.Error(err, 500, "failed to get ceremony")
-	}
-
-	cred, invalidErr := credential.VerifyAttestationInput(types.VerifyAttestationInputArgs{
-		Provider:           providers.NewNoneAttestationProvider(),
-		Input:              parsedResponse,
-		StoredChallenge:    cerem.ChallengeID,
-		SessionId:          cerem.SessionID,
-		VerifyUser:         false,
-		RelyingPartyID:     "nugg.xyz",
-		RelyingPartyOrigin: "https://nugg.xyz",
+	out, err := passkey.Attest(ctx, h.Dynamo, h.Cognito, passkey.PasskeyAttestationInput{
+		RawAttestationObject: attestation,
+		UTF8ClientDataJSON:   clientData,
+		RawCredentialID:      credentialID,
 	})
-
-	if invalidErr != nil {
-		return inv.Error(invalidErr, 400, "invalid attestation")
-	}
-
-	z, err := h.Cognito.GetDevCreds(ctx, cerem.CredentialID)
 	if err != nil {
-		return inv.Error(err, 500, "failed to get dev creds")
+		return inv.Error(err, out.SuggestedStatusCode, "passkey attestation failed")
 	}
-
-	credput, err := h.Dynamo.BuildPut(cred)
-	if err != nil {
-		return inv.Error(err, 500, "failed to create credential put")
-	}
-
-	ceremput, err := h.Dynamo.BuildPut(cerem)
-	if err != nil {
-		return inv.Error(err, 500, "failed to create ceremony put")
-	}
-
-	err = h.Dynamo.TransactWrite(ctx,
-		dtypes.TransactWriteItem{Put: credput},
-		dtypes.TransactWriteItem{Put: ceremput},
-	)
-	if err != nil {
-		return inv.Error(err, 500, "failed to write to dynamo")
-	}
-
-	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": *z.Token}, "")
+	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": out.AccessToken}, "")
 }
