@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/types"
 	"nugg-webauthn/core/pkg/webauthn/webauthncose"
 )

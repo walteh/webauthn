@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/metadata"
 	"nugg-webauthn/core/pkg/webauthn/types"
 

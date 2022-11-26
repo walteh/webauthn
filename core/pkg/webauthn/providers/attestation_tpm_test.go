@@ -4,9 +4,9 @@ import (
 	"crypto/sha256"
 	"testing"
 
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/webauthn/credential"
-	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/googletpm"
 	"nugg-webauthn/core/pkg/webauthn/types"
 

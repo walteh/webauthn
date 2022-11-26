@@ -3,8 +3,8 @@ package credential
 import (
 	"crypto/sha256"
 	"fmt"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/providers"
 	"nugg-webauthn/core/pkg/webauthn/types"
 	"testing"

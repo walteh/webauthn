@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/webauthn/authdata"
 	"nugg-webauthn/core/pkg/webauthn/clientdata"
-	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/types"
 	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
 )

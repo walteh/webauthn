@@ -8,8 +8,8 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"fmt"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/types"
 )
 

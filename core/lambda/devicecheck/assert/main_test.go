@@ -93,7 +93,7 @@ func TestHandler_Invoke(t *testing.T) {
 	test2 = test1
 	test2.name = "test2"
 	test2.want = Output{
-		StatusCode: 400,
+		StatusCode: 401,
 		Headers:    map[string]string{},
 	}
 	test2.args.Body = "agk="

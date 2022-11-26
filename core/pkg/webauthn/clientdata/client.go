@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"nugg-webauthn/core/pkg/webauthn/errors"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/webauthn/types"
 )
 
