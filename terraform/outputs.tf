@@ -24,13 +24,13 @@ output "appsync_lambda_authorizer_function_arn" {
 }
 
 
-output "passkey_attest_lambda_function_name" {
-  value = aws_lambda_function.passkey_attest.function_name
+output "ios_register_passkey_lambda_function_name" {
+  value = aws_lambda_function.ios_register_passkey.function_name
 }
 
 
-output "passkey_attest_lambda_function_arn" {
-  value = aws_lambda_function.passkey_attest.arn
+output "ios_register_passkey_lambda_function_arn" {
+  value = aws_lambda_function.ios_register_passkey.arn
 }
 
 output "passkey_assert_lambda_function_name" {
@@ -41,13 +41,13 @@ output "passkey_assert_lambda_function_arn" {
   value = aws_lambda_function.passkey_assert.arn
 }
 
-output "devicecheck_attest_lambda_function_name" {
-  value = aws_lambda_function.devicecheck_attest.function_name
+output "ios_register_device_lambda_function_name" {
+  value = aws_lambda_function.ios_register_device.function_name
 }
 
 
-output "devicecheck_attest_lambda_function_arn" {
-  value = aws_lambda_function.devicecheck_attest.arn
+output "ios_register_device_lambda_function_arn" {
+  value = aws_lambda_function.ios_register_device.arn
 }
 
 output "devicecheck_assert_lambda_function_name" {

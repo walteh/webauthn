@@ -1,36 +1,36 @@
-resource "null_resource" "passkey_attest" {
+resource "null_resource" "ios_register_passkey" {
   triggers = { src_hash = "${data.archive_file.core.output_sha}" }
   provisioner "local-exec" {
     environment = {
-      dir = local.passkey_attest_dir
-      tag = "${aws_ecr_repository.core.repository_url}:${local.passkey_attest_tag}"
+      dir = local.ios_register_passkey_dir
+      tag = "${aws_ecr_repository.core.repository_url}:${local.ios_register_passkey_tag}"
     }
     command = local.lambda_docker_deploy_command
   }
 }
 
-data "aws_ecr_image" "passkey_attest" {
-  depends_on      = [null_resource.passkey_attest]
+data "aws_ecr_image" "ios_register_passkey" {
+  depends_on      = [null_resource.ios_register_passkey]
   repository_name = aws_ecr_repository.core.name
-  image_tag       = local.passkey_attest_tag
+  image_tag       = local.ios_register_passkey_tag
 }
 
 
-resource "aws_lambda_function" "passkey_attest" {
+resource "aws_lambda_function" "ios_register_passkey" {
   depends_on = [
     aws_ecr_repository.core,
-    data.aws_ecr_image.passkey_attest
+    data.aws_ecr_image.ios_register_passkey
   ]
 
-  function_name    = "${local.app_stack}-passkey-attest"
-  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.passkey_attest_tag}"
-  role             = aws_iam_role.passkey_attest.arn
+  function_name    = "${local.app_stack}-ios-register-passkey"
+  image_uri        = "${aws_ecr_repository.core.repository_url}:${local.ios_register_passkey_tag}"
+  role             = aws_iam_role.ios_register_passkey.arn
   memory_size      = 128
   timeout          = 120
   package_type     = "Image"
   publish          = true
   architectures    = ["arm64"]
-  source_code_hash = trimprefix(data.aws_ecr_image.passkey_attest.image_digest, "sha256:")
+  source_code_hash = trimprefix(data.aws_ecr_image.ios_register_passkey.image_digest, "sha256:")
 
   environment {
     variables = {
@@ -50,12 +50,12 @@ resource "aws_lambda_function" "passkey_attest" {
 
 
 
-resource "aws_iam_role" "passkey_attest" {
-  name               = "${local.app_stack}-passkey-attest-ExecutionRole"
+resource "aws_iam_role" "ios_register_passkey" {
+  name               = "${local.app_stack}-ios-register-passkey-ExecutionRole"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
   inline_policy {
-    name   = "${local.app_stack}-passkey-attest-ExecutionRolePolicy"
-    policy = data.aws_iam_policy_document.passkey_attest_lambda_inline.json
+    name   = "${local.app_stack}-ios-register-passkey-ExecutionRolePolicy"
+    policy = data.aws_iam_policy_document.ios_register_passkey_lambda_inline.json
   }
 
   managed_policy_arns = [
@@ -65,13 +65,7 @@ resource "aws_iam_role" "passkey_attest" {
 }
 
 
-data "aws_iam_policy_document" "passkey_attest_lambda_inline" {
-  /* statement {
-    effect    = "Allow"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.signinwithprivatekey.arn]
-  } */
-
+data "aws_iam_policy_document" "ios_register_passkey_lambda_inline" {
   statement {
     effect    = "Allow"
     actions   = ["cognito-identity:GetOpenIdTokenForDeveloperIdentity"]
@@ -85,32 +79,29 @@ data "aws_iam_policy_document" "passkey_attest_lambda_inline" {
   }
 }
 
-
-
 /*/////////////////////////
 		API Gateway
 ////////////////////////*/
 
-resource "aws_apigatewayv2_route" "passkey_attest" {
+resource "aws_apigatewayv2_route" "ios_register_passkey" {
   api_id             = aws_apigatewayv2_api.auth.id
-  route_key          = "POST /passkey/attest"
+  route_key          = "POST /ios/register/passkey"
   authorization_type = "NONE"
-  target             = "integrations/${aws_apigatewayv2_integration.passkey_attest_lambda.id}"
+  target             = "integrations/${aws_apigatewayv2_integration.ios_register_passkey_lambda.id}"
 }
 
-resource "aws_lambda_permission" "passkey_attest" {
-  statement_id  = "${local.app_stack}-passkey-attest-AllowExecutionFromApiGatewayRoute"
+resource "aws_lambda_permission" "ios_register_passkey" {
+  statement_id  = "${local.app_stack}-ios-register-passkey-AllowExecutionFromApiGatewayRoute"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.passkey_attest.function_name
+  function_name = aws_lambda_function.ios_register_passkey.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/attest"
+  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/assert"
 }
 
-resource "aws_apigatewayv2_integration" "passkey_attest_lambda" {
+resource "aws_apigatewayv2_integration" "ios_register_passkey_lambda" {
   api_id                 = aws_apigatewayv2_api.auth.id
   integration_type       = "AWS_PROXY"
   integration_method     = "POST"
-  integration_uri        = aws_lambda_function.passkey_attest.invoke_arn
+  integration_uri        = aws_lambda_function.ios_register_passkey.invoke_arn
   payload_format_version = "2.0"
 }
-
