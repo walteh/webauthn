@@ -10,8 +10,6 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/credential"
 	"nugg-webauthn/core/pkg/webauthn/providers"
 	"nugg-webauthn/core/pkg/webauthn/types"
-
-	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type PasskeyAttestationInput struct {
@@ -76,10 +74,7 @@ func Attest(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cogn
 		return PasskeyAttestationOutput{500, ""}, errors.NewError(0x99).WithMessage("problem building ceremony put").WithRoot(err).WithCaller()
 	}
 
-	err = dynamoClient.TransactWrite(ctx,
-		dtypes.TransactWriteItem{Put: credput},
-		*ceremput,
-	)
+	err = dynamoClient.TransactWrite(ctx, *credput, *ceremput)
 	if err != nil {
 		return PasskeyAttestationOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
 	}

@@ -33,13 +33,13 @@ type Puttable interface {
 	Put() (*dtypes.Put, error)
 }
 
-func MakePut(table *string, d Puttable) (*dtypes.Put, error) {
+func MakePut(table *string, d Puttable) (*dtypes.TransactWriteItem, error) {
 	put, err := d.Put()
 	if err != nil {
 		return nil, err
 	}
 	put.TableName = table
-	return put, nil
+	return &dtypes.TransactWriteItem{Put: put}, nil
 }
 
 func MakeDelete(table *string, d Gettable) (*dtypes.TransactWriteItem, error) {
@@ -88,7 +88,7 @@ type Gettable interface {
 	Get() *dtypes.Get
 }
 
-func (c *Client) BuildPut(d Puttable) (*dtypes.Put, error) {
+func (c *Client) BuildPut(d Puttable) (*dtypes.TransactWriteItem, error) {
 	switch d.(type) {
 	case *types.Ceremony:
 		return MakePut(c.MustCeremonyTableName(), d)

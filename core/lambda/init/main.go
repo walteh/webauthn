@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type Input = events.APIGatewayV2HTTPRequest
@@ -96,7 +95,7 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to create ceremony")
 	}
 
-	err = h.Dynamo.TransactWrite(ctx, dtypes.TransactWriteItem{Put: cer})
+	err = h.Dynamo.TransactWrite(ctx, *cer)
 	if err != nil {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}
