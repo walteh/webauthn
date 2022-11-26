@@ -95,7 +95,7 @@ resource "aws_lambda_permission" "ios_register_passkey" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.ios_register_passkey.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/assert"
+  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/ios/register/passkey"
 }
 
 resource "aws_apigatewayv2_integration" "ios_register_passkey_lambda" {

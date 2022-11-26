@@ -101,7 +101,7 @@ resource "aws_lambda_permission" "ios_register_device" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.ios_register_device.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/attest"
+  source_arn    = "${aws_apigatewayv2_api.auth.execution_arn}/*/*/ios/register/device"
 }
 
 resource "aws_apigatewayv2_integration" "ios_register_device_lambda" {

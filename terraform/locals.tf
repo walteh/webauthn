@@ -28,7 +28,7 @@ locals {
   appsync_dir              = "lambda/appsync/authorizer"
   apigw_dir                = "lambda/apigw/authorizer"
   init_dir                 = "lambda/init"
-  ios_register_passkey_dir = "lambda/passkey/attest"
+  ios_register_passkey_dir = "lambda/ios/register/passkey"
   passkey_assert_dir       = "lambda/passkey/assert"
   ios_register_device_dir  = "lambda/ios/register/device"
 
