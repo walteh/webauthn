@@ -24,38 +24,38 @@ output "appsync_lambda_authorizer_function_arn" {
 }
 
 
-output "apple_passkey_attest_lambda_function_name" {
-  value = aws_lambda_function.apple_passkey_attest.function_name
+output "passkey_attest_lambda_function_name" {
+  value = aws_lambda_function.passkey_attest.function_name
 }
 
 
-output "apple_passkey_attest_lambda_function_arn" {
-  value = aws_lambda_function.apple_passkey_attest.arn
+output "passkey_attest_lambda_function_arn" {
+  value = aws_lambda_function.passkey_attest.arn
 }
 
-output "apple_passkey_assert_lambda_function_name" {
-  value = aws_lambda_function.apple_passkey_assert.function_name
+output "passkey_assert_lambda_function_name" {
+  value = aws_lambda_function.passkey_assert.function_name
 }
 
-output "apple_passkey_assert_lambda_function_arn" {
-  value = aws_lambda_function.apple_passkey_assert.arn
+output "passkey_assert_lambda_function_arn" {
+  value = aws_lambda_function.passkey_assert.arn
 }
 
-output "apple_devicecheck_attest_lambda_function_name" {
-  value = aws_lambda_function.apple_devicecheck_attest.function_name
+output "devicecheck_attest_lambda_function_name" {
+  value = aws_lambda_function.devicecheck_attest.function_name
 }
 
 
-output "apple_devicecheck_attest_lambda_function_arn" {
-  value = aws_lambda_function.apple_devicecheck_attest.arn
+output "devicecheck_attest_lambda_function_arn" {
+  value = aws_lambda_function.devicecheck_attest.arn
 }
 
-output "apple_devicecheck_assert_lambda_function_name" {
-  value = aws_lambda_function.apple_devicecheck_assert.function_name
+output "devicecheck_assert_lambda_function_name" {
+  value = aws_lambda_function.devicecheck_assert.function_name
 }
 
-output "apple_devicecheck_assert_lambda_function_arn" {
-  value = aws_lambda_function.apple_devicecheck_assert.arn
+output "devicecheck_assert_lambda_function_arn" {
+  value = aws_lambda_function.devicecheck_assert.arn
 }
 
 output "apple_identity_pool_id" {

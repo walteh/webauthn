@@ -25,22 +25,22 @@ locals {
 locals {
   latest = "latest"
 
-  appsync_dir                  = "lambda/appsync/authorizer"
-  apigw_dir                    = "lambda/apigw/authorizer"
-  init_dir                     = "lambda/init"
-  apple_passkey_attest_dir     = "lambda/apple/passkey/attest"
-  apple_passkey_assert_dir     = "lambda/apple/passkey/assert"
-  apple_devicecheck_attest_dir = "lambda/apple/devicecheck/attest"
+  appsync_dir            = "lambda/appsync/authorizer"
+  apigw_dir              = "lambda/apigw/authorizer"
+  init_dir               = "lambda/init"
+  passkey_attest_dir     = "lambda/passkey/attest"
+  passkey_assert_dir     = "lambda/passkey/assert"
+  devicecheck_attest_dir = "lambda/devicecheck/attest"
 
-  apple_devicecheck_assert_dir = "lambda/apple/devicecheck/assert"
+  devicecheck_assert_dir = "lambda/devicecheck/assert"
 
-  apigw_tag                    = replace("${local.apigw_dir}/${local.latest}", "/", "_")
-  appsync_tag                  = replace("${local.appsync_dir}/${local.latest}", "/", "_")
-  init_tag                     = replace("${local.init_dir}/${local.latest}", "/", "_")
-  apple_passkey_attest_tag     = replace("${local.apple_passkey_attest_dir}/${local.latest}", "/", "_")
-  apple_passkey_assert_tag     = replace("${local.apple_passkey_assert_dir}/${local.latest}", "/", "_")
-  apple_devicecheck_attest_tag = replace("${local.apple_devicecheck_attest_dir}/${local.latest}", "/", "_")
-  apple_devicecheck_assert_tag = replace("${local.apple_devicecheck_assert_dir}/${local.latest}", "/", "_")
+  apigw_tag              = replace("${local.apigw_dir}/${local.latest}", "/", "_")
+  appsync_tag            = replace("${local.appsync_dir}/${local.latest}", "/", "_")
+  init_tag               = replace("${local.init_dir}/${local.latest}", "/", "_")
+  passkey_attest_tag     = replace("${local.passkey_attest_dir}/${local.latest}", "/", "_")
+  passkey_assert_tag     = replace("${local.passkey_assert_dir}/${local.latest}", "/", "_")
+  devicecheck_attest_tag = replace("${local.devicecheck_attest_dir}/${local.latest}", "/", "_")
+  devicecheck_assert_tag = replace("${local.devicecheck_assert_dir}/${local.latest}", "/", "_")
 
   primary = "primary"
 
