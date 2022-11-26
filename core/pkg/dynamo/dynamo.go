@@ -42,6 +42,13 @@ func MakePut(table *string, d Puttable) (*dtypes.Put, error) {
 	return put, nil
 }
 
+func MakeDelete(table *string, d Gettable) (*dtypes.TransactWriteItem, error) {
+	return &dtypes.TransactWriteItem{Delete: &dtypes.Delete{
+		Key:       d.Get().Key,
+		TableName: table,
+	}}, nil
+}
+
 func FindInOnePerTableGetResult[I interface{}](result []*GetOutput, tableName *string) (*I, error) {
 	if len(result) == 0 {
 		return nil, ErrCeremonyNotFound
@@ -89,6 +96,19 @@ func (c *Client) BuildPut(d Puttable) (*dtypes.Put, error) {
 	// 	return MakePut(c.MustUserTableName(), d)
 	case *types.Credential:
 		return MakePut(c.MustCredentialTableName(), d)
+	default:
+		return nil, fmt.Errorf("unknown type %T", d)
+	}
+}
+
+func (c *Client) BuildDelete(d Gettable) (*dtypes.TransactWriteItem, error) {
+	switch d.(type) {
+	case *types.Ceremony:
+		return MakeDelete(c.MustCeremonyTableName(), d)
+	// case types.Cser:
+	// 	return MakeDelete(c.MustUserTableName(), d)
+	case *types.Credential:
+		return MakeDelete(c.MustCredentialTableName(), d)
 	default:
 		return nil, fmt.Errorf("unknown type %T", d)
 	}

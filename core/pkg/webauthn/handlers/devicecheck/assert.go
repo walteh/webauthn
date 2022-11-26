@@ -14,21 +14,31 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/types"
 )
 
-func Assert(ctx context.Context, dynamoClient *dynamo.Client, assert hex.Hash, body hex.Hash) (int, bool, error) {
+type DeviceCheckAssertionInput struct {
+	RawAssertionObject   hex.Hash
+	ClientDataToValidate hex.Hash
+}
+
+type DeviceCheckAssertionOutput struct {
+	SuggestedStatusCode int
+	OK                  bool
+}
+
+func Assert(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckAssertionInput) (DeviceCheckAssertionOutput, error) {
 	var err error
 
-	if assert.IsZero() || len(body) == 0 {
-		return 400, false, errors.Err0x67InvalidInput.WithCaller()
+	if input.RawAssertionObject.IsZero() || input.ClientDataToValidate.IsZero() {
+		return DeviceCheckAssertionOutput{400, false}, errors.Err0x67InvalidInput.WithCaller()
 	}
 
-	parsed, err := assertion.ParseFidoAssertionInput(assert)
+	parsed, err := assertion.ParseFidoAssertionInput(input.RawAssertionObject)
 	if err != nil {
-		return 400, false, errors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAssertionOutput{400, false}, errors.Err0x67InvalidInput.WithCaller()
 	}
 
 	cd, err := clientdata.ParseClientData(parsed.RawClientDataJSON)
 	if err != nil {
-		return 400, false, errors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAssertionOutput{400, false}, errors.Err0x67InvalidInput.WithCaller()
 	}
 
 	cred := types.NewUnsafeGettableCredential(parsed.CredentialID)
@@ -36,22 +46,22 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, assert hex.Hash, b
 
 	err = dynamoClient.TransactGet(ctx, cred, cerem)
 	if err != nil {
-		return 502, false, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		return DeviceCheckAssertionOutput{502, false}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
 	}
 
 	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
 		log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
-		return 401, false, errors.Err0x67InvalidInput.WithMessage("credential ids do not match").WithCaller()
+		return DeviceCheckAssertionOutput{401, false}, errors.Err0x67InvalidInput.WithMessage("credential ids do not match").WithCaller()
 	}
 
 	if !cerem.ChallengeID.Equals(cd.Challenge) {
-		return 401, false, errors.Err0x67InvalidInput.WithMessage("challenge ids do not match").WithCaller()
+		return DeviceCheckAssertionOutput{401, false}, errors.Err0x67InvalidInput.WithMessage("challenge ids do not match").WithCaller()
 	}
 
 	attestationProvider := providers.NewAppAttestSandbox()
 
 	if attestationProvider.ID() != cred.AttestationType {
-		return 401, false, errors.Err0x67InvalidInput.WithMessage("invalid attestation provider").WithCaller()
+		return DeviceCheckAssertionOutput{401, false}, errors.Err0x67InvalidInput.WithMessage("invalid attestation provider").WithCaller()
 	}
 
 	// Handle steps 4 through 16
@@ -66,21 +76,26 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, assert hex.Hash, b
 		VerifyUser:                     false,
 		CredentialPublicKey:            cred.PublicKey,
 		Extensions:                     extensions.ClientInputs{},
-		DataSignedByClient:             append(body, cerem.ChallengeID...),
+		DataSignedByClient:             append(input.ClientDataToValidate, cerem.ChallengeID...),
 		UseSavedAttestedCredentialData: true,
 	}); validError != nil {
-		return 401, false, errors.Err0x67InvalidInput.WithMessage("invalid assertion").WithCaller()
+		return DeviceCheckAssertionOutput{401, false}, errors.Err0x67InvalidInput.WithMessage("invalid assertion").WithCaller()
+	}
+
+	ceremonyDelete, err := dynamoClient.BuildDelete(cerem)
+	if err != nil {
+		return DeviceCheckAssertionOutput{500, false}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
 	}
 
 	credentialUpdate, err := cred.UpdateIncreasingCounter(dynamoClient.MustCredentialTableName())
 	if err != nil {
-		return 500, false, errors.NewError(0x99).WithMessage("problem creating dynamo put").WithRoot(err).WithCaller()
+		return DeviceCheckAssertionOutput{500, false}, errors.NewError(0x99).WithMessage("problem creating dynamo put").WithRoot(err).WithCaller()
 	}
 
-	err = dynamoClient.TransactWrite(ctx, *credentialUpdate)
+	err = dynamoClient.TransactWrite(ctx, *credentialUpdate, *ceremonyDelete)
 	if err != nil {
-		return 502, false, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		return DeviceCheckAssertionOutput{502, false}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
 	}
 
-	return 204, true, nil
+	return DeviceCheckAssertionOutput{204, true}, nil
 }

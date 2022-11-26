@@ -7,6 +7,7 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/types"
 	"os"
 	"os/exec"
+	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -20,9 +21,17 @@ type MockClient struct {
 	*Client
 }
 
-func (cli *MockClient) MockCreateTable(t *testing.T, name string, pk string) string {
+func MockCeremonyTableName() *string {
+	return aws.String("ceremony-table")
+}
+
+func MockCredentialTableName() *string {
+	return aws.String("credential-table")
+}
+
+func (cli *MockClient) MockCreateTable(t *testing.T, name *string, pk string) string {
 	_, err := cli.CreateTable(context.Background(), &dynamodb.CreateTableInput{
-		TableName: aws.String(name),
+		TableName: name,
 		AttributeDefinitions: []dtypes.AttributeDefinition{
 			{
 				AttributeName: aws.String(pk),
@@ -45,12 +54,12 @@ func (cli *MockClient) MockCreateTable(t *testing.T, name string, pk string) str
 		t.Error(err)
 	}
 
-	return name
+	return *name
 }
 
-func (cli *MockClient) MockDeleteTable(t *testing.T, name string) {
+func (cli *MockClient) MockDeleteTable(t *testing.T, name *string) {
 	_, err := cli.DeleteTable(context.Background(), &dynamodb.DeleteTableInput{
-		TableName: aws.String(name),
+		TableName: name,
 	})
 
 	if err != nil {
@@ -68,6 +77,26 @@ func MockBatchPut(t *testing.T, cli *Client, items ...dtypes.Put) {
 			t.Errorf("handler.Dynamo.PutItem() error = %v", err)
 			return
 		}
+	}
+}
+
+func MockBatchCheck(t *testing.T, cli *Client, items ...dtypes.Update) {
+	for _, put := range items {
+		if val, err := cli.GetItem(context.Background(), &dynamodb.GetItemInput{
+			Key:       put.Key,
+			TableName: put.TableName,
+		}); err != nil {
+			t.Errorf("handler.Dynamo.PutItem() error = %v", err)
+			return
+		} else {
+			for k, want := range put.ExpressionAttributeValues {
+				if !reflect.DeepEqual(val.Item[k], want) {
+					t.Errorf("dynamo.MockBatchCheck() = %v, want %v", val.Item[k], want)
+					return
+				}
+			}
+		}
+
 	}
 }
 
@@ -94,8 +123,6 @@ func NewMockClient(t *testing.T) *Client {
 		t.Fatal(err)
 	}
 
-	AttachLocalDynamoServer(t)
-
 	cli := dynamodb.NewFromConfig(conf, func(o *dynamodb.Options) {
 		o.EndpointResolver = dynamodb.EndpointResolverFromURL("http://localhost:8777")
 	})
@@ -106,16 +133,14 @@ func NewMockClient(t *testing.T) *Client {
 
 	t.Cleanup(func() {
 		log.Println("teardown - tables")
-		mocked.MockDeleteTable(t, "credential-table")
-		mocked.MockDeleteTable(t, "user-table")
-		mocked.MockDeleteTable(t, "ceremony-table")
+		mocked.MockDeleteTable(t, MockCredentialTableName())
+		mocked.MockDeleteTable(t, MockCeremonyTableName())
 	})
 
 	return &Client{
 		Client:              cli,
-		UserTableName:       mocked.MockCreateTable(t, "user-table", "user_id"),
-		CeremonyTableName:   mocked.MockCreateTable(t, "ceremony-table", "challenge_id"),
-		CredentialTableName: mocked.MockCreateTable(t, "credential-table", "credential_id"),
+		CeremonyTableName:   mocked.MockCreateTable(t, MockCeremonyTableName(), "challenge_id"),
+		CredentialTableName: mocked.MockCreateTable(t, MockCredentialTableName(), "credential_id"),
 	}
 }
 

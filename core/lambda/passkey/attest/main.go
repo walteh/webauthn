@@ -21,7 +21,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
@@ -82,13 +81,16 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	clientData := payload.Headers["x-nugg-utf-client-data-json"]
 	credentialID := hex.HexToHash(payload.Headers["x-nugg-hex-credential-id"])
 
-	if attestation.IsZero() || clientData == "" || credentialID.IsZero() {
+	if attestation.IsZero() || clientData == "" || credentialID.IsZero() || dc.IsZero() {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-creation")
 	}
 
-	code, ok, err := devicecheck.Assert(ctx, h.Dynamo, dc, credentialID)
-	if err != nil || !ok {
-		return inv.Error(err, code, "devicecheck assertion failed")
+	res, err := devicecheck.Assert(ctx, h.Dynamo, devicecheck.DeviceCheckAssertionInput{
+		RawAssertionObject:   dc,
+		ClientDataToValidate: credentialID,
+	})
+	if err != nil || !res.OK {
+		return inv.Error(err, res.SuggestedStatusCode, "devicecheck assertion failed")
 	}
 
 	parsedResponse := types.AttestationInput{
@@ -124,31 +126,10 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(invalidErr, 400, "invalid attestation")
 	}
 
-	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
-	defer close(chaner)
-	stale := false
-	var chanerr error
-
-	go func() {
-		go func() {
-			<-ctx.Done()
-			if !stale {
-				chaner <- nil
-			}
-			stale = true
-
-		}()
-
-		z, err := h.Cognito.GetDevCreds(ctx, cerem.CredentialID)
-		if !stale {
-			if err != nil {
-				chanerr = err
-				chaner <- nil
-			} else {
-				chaner <- z
-			}
-		}
-	}()
+	z, err := h.Cognito.GetDevCreds(ctx, cerem.CredentialID)
+	if err != nil {
+		return inv.Error(err, 500, "failed to get dev creds")
+	}
 
 	credput, err := h.Dynamo.BuildPut(cred)
 	if err != nil {
@@ -168,12 +149,5 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "failed to write to dynamo")
 	}
 
-	result := <-chaner
-	stale = true
-
-	if result == nil {
-		return inv.Error(chanerr, 500, "failed to get dev creds")
-	}
-
-	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": *result.Token}, "")
+	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": *z.Token}, "")
 }

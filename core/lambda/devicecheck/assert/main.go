@@ -82,12 +82,15 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		body = hex.HexToHash(input.Body)
 	}
 
-	code, ok, err := devicecheck.Assert(ctx, h.Dynamo, assert, body)
-	if err != nil || !ok {
+	res, err := devicecheck.Assert(ctx, h.Dynamo, devicecheck.DeviceCheckAssertionInput{
+		RawAssertionObject:   assert,
+		ClientDataToValidate: body,
+	})
+	if err != nil || !res.OK {
 		if err == nil {
 			err = errors.ErrVerification
 		}
-		return inv.Error(err, code, "failed to assert devicecheck")
+		return inv.Error(err, res.SuggestedStatusCode, "failed to assert devicecheck")
 	}
 
 	return inv.Success(204, map[string]string{}, "")

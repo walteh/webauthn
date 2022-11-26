@@ -93,10 +93,10 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		SessionID:            userId,
 	}
 
-	code, token, err := passkey.Assert(ctx, h.Dynamo, h.Cognito, abc, credentialId)
+	res, err := passkey.Assert(ctx, h.Dynamo, h.Cognito, abc)
 	if err != nil {
-		return inv.Error(err, code, "failed to assert passkey")
+		return inv.Error(err, res.SuggestedStatusCode, "failed to assert passkey")
 	}
 
-	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": token}, "")
+	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": res.AccessToken}, "")
 }
