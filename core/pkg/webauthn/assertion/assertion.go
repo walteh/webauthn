@@ -30,12 +30,15 @@ func VerifyAssertionInput(args types.VerifyAssertionInputArgs) error {
 		asserter types.AssertionObject
 	)
 
-	if args.Input.AssertionObject == nil && args.Input.RawAssertionObject.IsZero() {
+	if args.Input.AssertionObject == nil && !args.Input.RawAssertionObject.IsZero() {
 		asserter, err = ParseAssertionObject(args.Input.RawAssertionObject)
 		if err != nil {
 			return err
 		}
 	} else {
+		if args.Input.AssertionObject == nil {
+			return errors.ErrBadRequest.WithCaller().WithMessage("Assertion object is missing")
+		}
 		asserter = *args.Input.AssertionObject
 	}
 
@@ -190,6 +193,7 @@ func ParseAssertionInput(response []byte, attestationType types.CredentialAttest
 		RawClientDataJSON: parsed.UTF8ClientDataJSON,
 		// RawAuthenticatorData: nil,
 		RawAssertionObject: parsed.AssertionObject,
+		AssertionObject:    nil,
 		// Type:            attestationType,
 	}
 

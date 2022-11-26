@@ -9,8 +9,6 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/providers"
 	"nugg-webauthn/core/pkg/webauthn/types"
 	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
-
-	"github.com/k0kubun/pp"
 )
 
 var byteID = hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
@@ -85,7 +83,6 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 				return
 			}
 
-			pp.Println("yo", got, tt.want)
 			if !reflect.DeepEqual(got.AttStatement, tt.want.AttStatement) {
 				t.Errorf("Extensions = %v \n want: %v", got, tt.want)
 			}

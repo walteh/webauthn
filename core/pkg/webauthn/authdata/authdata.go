@@ -10,8 +10,6 @@ import (
 	"nugg-webauthn/core/pkg/webauthn/errors"
 	"nugg-webauthn/core/pkg/webauthn/types"
 	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
-
-	"github.com/k0kubun/pp"
 )
 
 const (
@@ -141,8 +139,6 @@ func VerifyAuenticatorData(args types.VerifyAuenticatorDataArgs) error {
 	if hasAttestationCredsSaved && data.AttData.CredentialPublicKey.IsZero() {
 		data.AttData = args.OptionalAttestedCredentialData
 	}
-
-	pp.Println(data)
 
 	// Registration Step 9 & Assertion Step 11
 	// Verify that the RP ID hash in authData is indeed the SHA-256

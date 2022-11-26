@@ -57,7 +57,7 @@ func (s *Ceremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMembe
 		return err
 	}
 
-	if s.CredentialID, err = GetSHashNotZero(av, "credential_id"); err != nil {
+	if s.CredentialID, err = GetSHash(av, "credential_id"); err != nil {
 		return err
 	}
 

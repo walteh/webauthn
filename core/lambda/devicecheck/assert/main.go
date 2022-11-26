@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 	"github.com/segmentio/ksuid"
 )
@@ -90,8 +89,6 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	if assert.IsZero() || len(body) == 0 {
 		return inv.Error(nil, 400, "missing required headers")
 	}
-
-	pp.Println("assertion", string(assert))
 
 	parsed, err := assertion.ParseFidoAssertionInput(assert)
 	if err != nil {
