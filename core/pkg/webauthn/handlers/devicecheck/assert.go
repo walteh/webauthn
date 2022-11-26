@@ -82,5 +82,5 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, assert hex.Hash, b
 		return 502, false, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
 	}
 
-	return 200, true, nil
+	return 204, true, nil
 }

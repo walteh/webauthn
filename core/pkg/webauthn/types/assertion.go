@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/webauthn/extensions"
 )
@@ -36,6 +37,13 @@ type AssertionInput struct {
 	RawAssertionObject hex.Hash `json:"signature"`
 	// Type            string   `json:"credentialType"`
 	AssertionObject *AssertionObject
+}
+
+func (a *AssertionInput) Validate() error {
+	if len(a.UserID) == 0 || len(a.CredentialID) == 0 || len(a.RawClientDataJSON) == 0 || (len(a.RawAssertionObject) == 0 && a.AssertionObject == nil) {
+		return errors.Err0x67InvalidInput.WithMessage("missing required fields").WithCaller()
+	}
+	return nil
 }
 
 type DataAssertion struct {

@@ -8,6 +8,7 @@ import (
 	"nugg-webauthn/core/pkg/invocation"
 	"nugg-webauthn/core/pkg/webauthn/clientdata"
 	"nugg-webauthn/core/pkg/webauthn/credential"
+	"nugg-webauthn/core/pkg/webauthn/handlers/devicecheck"
 	"nugg-webauthn/core/pkg/webauthn/providers"
 	"nugg-webauthn/core/pkg/webauthn/types"
 
@@ -77,11 +78,17 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	inv, ctx := invocation.NewInvocation(ctx, h, payload)
 
 	attestation := hex.HexToHash(payload.Headers["x-nugg-hex-attestation-object"])
+	dc := hex.HexToHash(payload.Headers["x-nugg-hex-devicecheck-assertion-object"])
 	clientData := payload.Headers["x-nugg-utf-client-data-json"]
 	credentialID := hex.HexToHash(payload.Headers["x-nugg-hex-credential-id"])
 
 	if attestation.IsZero() || clientData == "" || credentialID.IsZero() {
 		return inv.Error(nil, 400, "missing header x-nugg-webauthn-creation")
+	}
+
+	code, ok, err := devicecheck.Assert(ctx, h.Dynamo, dc, credentialID)
+	if err != nil || !ok {
+		return inv.Error(err, code, "devicecheck assertion failed")
 	}
 
 	parsedResponse := types.AttestationInput{

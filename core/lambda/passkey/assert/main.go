@@ -2,17 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
 	"nugg-webauthn/core/pkg/cognito"
 	"nugg-webauthn/core/pkg/dynamo"
 	"nugg-webauthn/core/pkg/env"
 	"nugg-webauthn/core/pkg/hex"
 	"nugg-webauthn/core/pkg/invocation"
-	"nugg-webauthn/core/pkg/webauthn/assertion"
-	"nugg-webauthn/core/pkg/webauthn/clientdata"
-	"nugg-webauthn/core/pkg/webauthn/extensions"
-	"nugg-webauthn/core/pkg/webauthn/providers"
-	"nugg-webauthn/core/pkg/webauthn/types"
+	"nugg-webauthn/core/pkg/webauthn/handlers/passkey"
 
 	"os"
 
@@ -22,7 +17,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 )
 
 type Input = events.APIGatewayV2HTTPRequest
@@ -91,97 +85,18 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(nil, 400, "missing required headers")
 	}
 
-	abc := types.AssertionInput{
-		CredentialID:       credentialId,
-		RawAssertionObject: hex.Hash{},
-		AssertionObject: &types.AssertionObject{
-			RawAuthenticatorData: authenticatorData,
-			Signature:            signature,
-		},
-		UserID:            userId,
-		RawClientDataJSON: clientDataJson,
+	abc := passkey.PasskeyAssertionInput{
+		RawAuthenticatorData: authenticatorData,
+		CredentialID:         credentialId,
+		RawSignature:         signature,
+		UTF8ClientDataJSON:   clientDataJson,
+		SessionID:            userId,
 	}
 
-	cd, err := clientdata.ParseClientData(abc.RawClientDataJSON)
+	code, token, err := passkey.Assert(ctx, h.Dynamo, h.Cognito, abc, credentialId)
 	if err != nil {
-		return inv.Error(err, 400, "failed to parse client data")
+		return inv.Error(err, code, "failed to assert passkey")
 	}
 
-	cred := types.NewUnsafeGettableCredential(abc.CredentialID)
-	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
-
-	if err = h.Dynamo.TransactGet(ctx, cred, cerem); err != nil {
-		return inv.Error(err, 500, "failed to send transact get")
-	}
-
-	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
-		log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
-		return inv.Error(nil, 400, "invalid credential id")
-	}
-
-	chaner := make(chan *cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, 1)
-	defer close(chaner)
-	stale := false
-	defer func() { stale = true }()
-	var chanerr error
-
-	go func() {
-		go func() {
-			<-ctx.Done()
-			if !stale {
-				chaner <- nil
-			}
-			stale = true
-
-		}()
-
-		z, err := h.Cognito.GetDevCreds(ctx, cerem.CredentialID)
-		if !stale {
-			if err != nil {
-				chanerr = err
-				chaner <- nil
-			} else {
-				chaner <- z
-			}
-		}
-	}()
-
-	// Handle steps 4 through 16
-	if validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
-		Input:                          abc,
-		StoredChallenge:                cerem.ChallengeID,
-		RelyingPartyID:                 env.RPID(),
-		RelyingPartyOrigin:             env.RPOrigin(),
-		CredentialAttestationType:      types.NotFidoAttestationType,
-		AttestationProvider:            providers.NewNoneAttestationProvider(),
-		AAGUID:                         cred.AAGUID,
-		VerifyUser:                     false,
-		CredentialPublicKey:            cred.PublicKey,
-		Extensions:                     extensions.ClientInputs{},
-		DataSignedByClient:             hex.Hash([]byte(abc.RawClientDataJSON)),
-		UseSavedAttestedCredentialData: false,
-	}); validError != nil {
-		return inv.Error(validError, 400, "failed to verify assertion")
-	}
-
-	credentialUpdate, err := cred.UpdateIncreasingCounter(h.Dynamo.MustCredentialTableName())
-	if err != nil {
-		return inv.Error(err, 500, "failed to create apple pass key")
-	}
-
-	err = h.Dynamo.TransactWrite(ctx, *credentialUpdate)
-	if err != nil {
-		return inv.Error(err, 500, "failed to update apple pass key")
-	}
-
-	result := <-chaner
-	stale = true
-
-	if result == nil {
-		return inv.Error(chanerr, 500, "failed to get dev creds")
-	}
-
-	return inv.Success(204, map[string]string{
-		"x-nugg-utf-access-token": *result.Token,
-	}, "")
+	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": token}, "")
 }
