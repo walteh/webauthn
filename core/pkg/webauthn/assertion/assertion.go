@@ -25,13 +25,18 @@ func VerifyAssertionInput(args types.VerifyAssertionInputArgs) error {
 	// "assertive" steps, i.e "Let JSONtext be the result of running UTF-8 decode on the value of cData."
 	// We handle these steps in part as we verify but also beforehand
 	var (
-		key interface{}
-		err error
+		key      interface{}
+		err      error
+		asserter types.AssertionObject
 	)
 
-	asserter, err := ParseAssertionObject(args.Input.AssertionObject)
-	if err != nil {
-		return err
+	if args.Input.AssertionObject == nil && args.Input.RawAssertionObject.IsZero() {
+		asserter, err = ParseAssertionObject(args.Input.RawAssertionObject)
+		if err != nil {
+			return err
+		}
+	} else {
+		asserter = *args.Input.AssertionObject
 	}
 
 	credId := types.NewDefaultCredentialIdentifier(args.Input.CredentialID)
@@ -184,7 +189,7 @@ func ParseAssertionInput(response []byte, attestationType types.CredentialAttest
 		CredentialID:      parsed.CredentialID,
 		RawClientDataJSON: parsed.UTF8ClientDataJSON,
 		// RawAuthenticatorData: nil,
-		AssertionObject: parsed.AssertionObject,
+		RawAssertionObject: parsed.AssertionObject,
 		// Type:            attestationType,
 	}
 
@@ -205,7 +210,7 @@ func ParseAssertionObject(input hex.Hash) (types.AssertionObject, error) {
 	// Decode the attestation data with unmarshalled auth data
 	err := codec.NewDecoderBytes(input, &cborHandler).Decode(&a)
 	if err != nil {
-		return b, errors.ErrParsingData.WithInfo(err.Error())
+		return b, errors.Err0x66CborDecode.WithCaller().WithInfo(err.Error())
 	}
 
 	b.RawAuthenticatorData = a.RawAuthenticatorData

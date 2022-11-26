@@ -59,6 +59,18 @@ func (cli *MockClient) MockDeleteTable(t *testing.T, name string) {
 	}
 }
 
+func MockBatchPut(t *testing.T, cli *Client, items ...dtypes.Put) {
+	for _, put := range items {
+		if _, err := cli.PutItem(context.Background(), &dynamodb.PutItemInput{
+			Item:      put.Item,
+			TableName: put.TableName,
+		}); err != nil {
+			t.Errorf("handler.Dynamo.PutItem() error = %v", err)
+			return
+		}
+	}
+}
+
 func AttachLocalDynamoServer(t *testing.T) {
 	cmd := exec.Command("docker", "run", "-d", "-p", "8777:8000", "amazon/dynamodb-local")
 	err := cmd.Start()
@@ -107,7 +119,7 @@ func NewMockClient(t *testing.T) *Client {
 	}
 }
 
-func (dynamoClient *Client) MockSetCeremony(t *testing.T, credential hex.Hash, challenge hex.Hash, type_ types.CeremonyType) {
+func (dynamoClient *MockClient) MockSetCeremony(t *testing.T, credential hex.Hash, challenge hex.Hash, type_ types.CeremonyType) {
 	t.Helper()
 
 	cer := types.NewCeremony(credential, challenge, type_)

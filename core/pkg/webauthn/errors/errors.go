@@ -20,4 +20,5 @@ var (
 	ErrUnsupportedAlgorithm   = errors.NewError(0x33).WithType("unsupported_key_algorithm").WithInfo("Unsupported public key algorithm")
 	ErrNotSpecImplemented     = errors.NewError(0x33).WithType("spec_unimplemented").WithInfo("This field is not yet supported by the WebAuthn spec")
 	ErrNotImplemented         = errors.NewError(0x33).WithType("not_implemented").WithInfo("This field is not yet supported by this library")
+	Err0x66CborDecode         = errors.NewError(0x66).WithType("cbor_decode").WithInfo("Error decoding CBOR data")
 )

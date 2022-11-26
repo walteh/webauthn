@@ -39,6 +39,18 @@ func (err *Error) WithCaller() *Error {
 
 }
 
+func (err *Error) WithCallerStepingBack(offset int) *Error {
+	// add line number and file name to caller
+	_, file, no, ok := runtime.Caller(offset + 1)
+	if ok {
+		err.Caller_ = fmt.Sprintf("%s:%d", file, no)
+	} else {
+		err.Caller_ = "unknown"
+	}
+
+	return err
+
+}
 func (err *Error) Copy() *Error {
 	newErr := *err
 	return &newErr

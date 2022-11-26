@@ -33,8 +33,9 @@ type AssertionInput struct {
 	CredentialID      hex.Hash `json:"credentialID"`
 	RawClientDataJSON string   `json:"rawClientDataJSON"`
 	// RawAuthenticatorData hex.Hash `json:"rawAuthenticatorData"`
-	AssertionObject hex.Hash `json:"signature"`
+	RawAssertionObject hex.Hash `json:"signature"`
 	// Type            string   `json:"credentialType"`
+	AssertionObject *AssertionObject
 }
 
 type DataAssertion struct {

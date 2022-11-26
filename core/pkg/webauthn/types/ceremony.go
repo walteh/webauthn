@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -44,39 +43,35 @@ func (s Ceremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM,
 func (s *Ceremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMemberM) (err error) {
 
 	if av.Value == nil {
-		return errors.NewError(0x11).WithMessage("attribute value is nil - prob the id was not found in dynamo").WithCaller()
+		return errors.NewError(0x11).
+			WithMessage("attribute value is nil - prob the id was not found in dynamo").
+			WithKV("challenge_id", s.ChallengeID.Hex()).
+			WithCaller()
 	}
 
-	if x, ok := av.Value["challenge_id"].(*types.AttributeValueMemberS); ok {
-		s.ChallengeID = hex.HexToHash(x.Value)
-	} else {
-		return fmt.Errorf("could not unmarshal challenge_id")
-	}
-
-	if x, ok := av.Value["session_id"].(*types.AttributeValueMemberS); ok {
-		s.SessionID = hex.HexToHash(x.Value)
-	} else {
-		return fmt.Errorf("could not unmarshal session_id")
-
-	}
-
-	if x, ok := av.Value["credential_id"].(*types.AttributeValueMemberS); ok {
-
-		s.CredentialID = hex.HexToHash(x.Value)
-	} else {
-		return fmt.Errorf("could not unmarshal credential_id")
-	}
-
-	if x, ok := av.Value["ceremony_type"].(*types.AttributeValueMemberS); ok {
-		s.CeremonyType = CeremonyType(x.Value)
-	} else {
-		return fmt.Errorf("could not unmarshal ceremony_type")
-	}
-
-	if s.CreatedAt, err = strconv.ParseUint(av.Value["created_at"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+	if s.ChallengeID, err = GetSHashNotZero(av, "challenge_id"); err != nil {
 		return err
 	}
-	if s.Ttl, err = strconv.ParseUint(av.Value["ttl"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+
+	if s.SessionID, err = GetSHashNotZero(av, "session_id"); err != nil {
+		return err
+	}
+
+	if s.CredentialID, err = GetSHashNotZero(av, "credential_id"); err != nil {
+		return err
+	}
+
+	if r, err := GetS(av, "ceremony_type"); err != nil {
+		return err
+	} else {
+		s.CeremonyType = CeremonyType(r)
+	}
+
+	if s.CreatedAt, err = GetNUint64(av, "created_at"); err != nil {
+		return err
+	}
+
+	if s.Ttl, err = GetNUint64(av, "ttl"); err != nil {
 		return err
 	}
 
@@ -112,6 +107,10 @@ func (s Ceremony) Get() *types.Get {
 			"challenge_id": &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()},
 		},
 	}
+}
+
+func (s Ceremony) WasGot() bool {
+	return s.CreatedAt != 0
 }
 
 func NewUnsafeGettableCeremony(id hex.Hash) *Ceremony {

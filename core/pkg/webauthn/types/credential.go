@@ -2,8 +2,8 @@ package types
 
 import (
 	"fmt"
+	"nugg-webauthn/core/pkg/errors"
 	"nugg-webauthn/core/pkg/hex"
-	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -76,25 +76,59 @@ func (s Credential) MarshalDynamoDBAttributeValue() (*types.AttributeValueMember
 }
 
 func (s *Credential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
+	if m.Value == nil {
+		return errors.NewError(0x11).
+			WithMessage("attribute value is nil - prob the id was not found in dynamo").
+			WithKV("credential_id", s.RawID.Hex()).
+			WithCaller()
+	}
 
-	s.RawID = hex.HexToHash(m.Value["credential_id"].(*types.AttributeValueMemberS).Value)
-	s.Type = CredentialType(m.Value["credential_type"].(*types.AttributeValueMemberS).Value)
-	s.PublicKey = hex.HexToHash(m.Value["public_key"].(*types.AttributeValueMemberS).Value)
-	s.AttestationType = m.Value["attestation_type"].(*types.AttributeValueMemberS).Value
-	s.Receipt = hex.HexToHash(m.Value["receipt"].(*types.AttributeValueMemberS).Value)
-	s.AAGUID = hex.HexToHash(m.Value["aaguid"].(*types.AttributeValueMemberS).Value)
-	s.SessionId = hex.HexToHash(m.Value["session_id"].(*types.AttributeValueMemberS).Value)
-	s.CloneWarning = m.Value["clone_warning"].(*types.AttributeValueMemberBOOL).Value
+	if s.RawID, err = GetSHashNotZero(m, "credential_id"); err != nil {
+		return err
+	}
 
-	if s.SignCount, err = strconv.ParseUint(m.Value["sign_count"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+	if r, err := GetS(m, "credential_type"); err != nil {
+		return err
+	} else {
+		s.Type = CredentialType(r)
+	}
+
+	if s.PublicKey, err = GetSHashNotZero(m, "public_key"); err != nil {
 		return err
 	}
-	if s.CreatedAt, err = strconv.ParseUint(m.Value["created_at"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+
+	if s.AttestationType, err = GetS(m, "attestation_type"); err != nil {
 		return err
 	}
-	if s.UpdatedAt, err = strconv.ParseUint(m.Value["updated_at"].(*types.AttributeValueMemberN).Value, 10, 64); err != nil {
+
+	if s.Receipt, err = GetSHash(m, "receipt"); err != nil {
 		return err
 	}
+
+	if s.AAGUID, err = GetSHash(m, "aaguid"); err != nil {
+		return err
+	}
+
+	if s.SignCount, err = GetNUint64(m, "sign_count"); err != nil {
+		return err
+	}
+
+	if s.CloneWarning, err = GetBOOL(m, "clone_warning"); err != nil {
+		return err
+	}
+
+	if s.CreatedAt, err = GetNUint64(m, "created_at"); err != nil {
+		return err
+	}
+
+	if s.UpdatedAt, err = GetNUint64(m, "updated_at"); err != nil {
+		return err
+	}
+
+	if s.SessionId, err = GetSHash(m, "session_id"); err != nil {
+		return err
+	}
+
 	return err
 }
 

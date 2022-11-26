@@ -92,11 +92,14 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	}
 
 	abc := types.AssertionInput{
-		CredentialID:      credentialId,
-		AssertionObject:   signature,
+		CredentialID:       credentialId,
+		RawAssertionObject: hex.Hash{},
+		AssertionObject: &types.AssertionObject{
+			RawAuthenticatorData: authenticatorData,
+			Signature:            signature,
+		},
 		UserID:            userId,
 		RawClientDataJSON: clientDataJson,
-		// Type:              credentialType,
 	}
 
 	cd, err := clientdata.ParseClientData(abc.RawClientDataJSON)
@@ -104,19 +107,10 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(err, 400, "failed to parse client data")
 	}
 
-	// r1 := protocol.DecodeCredentialAssertionResponse(abc)
-
-	// parsedResponse, err := assertio(*r1)
-	// if err != nil {
-	// 	return inv.Error(err, 400, "failed to parse attestation")
-	// }
-
 	cred := types.NewUnsafeGettableCredential(abc.CredentialID)
-
 	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
 
-	err = h.Dynamo.TransactGet(ctx, cred, cerem)
-	if err != nil {
+	if err = h.Dynamo.TransactGet(ctx, cred, cerem); err != nil {
 		return inv.Error(err, 500, "failed to send transact get")
 	}
 
@@ -153,7 +147,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 	}()
 
 	// Handle steps 4 through 16
-	validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
+	if validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
 		Input:                          abc,
 		StoredChallenge:                cerem.ChallengeID,
 		RelyingPartyID:                 env.RPID(),
@@ -166,9 +160,7 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		Extensions:                     extensions.ClientInputs{},
 		DataSignedByClient:             hex.Hash([]byte(abc.RawClientDataJSON)),
 		UseSavedAttestedCredentialData: false,
-	})
-
-	if validError != nil {
+	}); validError != nil {
 		return inv.Error(validError, 400, "failed to verify assertion")
 	}
 
