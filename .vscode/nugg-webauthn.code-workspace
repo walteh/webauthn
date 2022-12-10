@@ -40,6 +40,14 @@
 		"material-icon-theme.folders.associations": {
 			"dynamo": "database",
 			"webauthn": "guard",
-		}
+		},
+		"emeraldwalk.runonsave": {
+			"commands": [
+				{
+					"match": "\\.tf$|\\.tfvars$|\\.hcl$|\\.hclvars$",
+					"cmd": "sed -e':a' -e's/^\\(\t*\\)  /\\1\t/;ta' \"${file}\" > \"${file}\"-notab && mv \"${file}\"-notab \"${file}\""
+				},
+			]
+		},
 	}
 }
