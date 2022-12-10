@@ -51,36 +51,3 @@ resource "aws_apigatewayv2_deployment" "default" {
 		create_before_destroy = true
 	}
 }
-
-
-/* resource "aws_iam_role" "complete_integration_role" {
-	name               = "${local.app_stack}-complete-IntegrationRole"
-	assume_role_policy = data.aws_iam_policy_document.apigw_assume.json
-	inline_policy {
-		name   = "${local.app_stack}-complete-IntegrationRolePolicy"
-		policy = data.aws_iam_policy_document.complete_integration_inline.json
-	}
-
-	managed_policy_arns = [
-		"arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
-	]
-}
-
-data "aws_iam_policy_document" "apigw_assume" {
-	statement {
-		effect  = "Allow"
-		actions = ["sts:AssumeRole"]
-		principals {
-			type        = "Service"
-			identifiers = ["apigateway.amazonaws.com"]
-		}
-	}
-}
-
-data "aws_iam_policy_document" "complete_integration_inline" {
-	statement {
-		effect    = "Allow"
-		actions   = ["lambda:InvokeFunction"]
-		resources = [aws_lambda_function.complete.arn]
-	}
-} */
