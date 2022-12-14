@@ -71,5 +71,5 @@ output "apigw_host" {
 }
 
 output "auth_exp_api_invoke_url" {
-	value = aws_apigatewayv2_stage.default.invoke_url
+	value = aws_apigatewayv2_stage.main.invoke_url
 }
