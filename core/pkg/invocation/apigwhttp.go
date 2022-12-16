@@ -38,6 +38,25 @@ func NewInvocation(ctx context.Context, handler Handler, input Input) (*Invocati
 	}, ctx
 }
 
+func NewGenericInvocation(ctx context.Context, handler Handler, input string) (*Invocation, context.Context) {
+	ctx, cnl := context.WithCancel(ctx)
+
+	logg := handler.Logger().With().
+		Int("counter", handler.IncrementCounter()).
+		Str("handler", handler.ID()).
+		Logger()
+
+	logg.Info().Str("input", input).Msg("starting invocation")
+
+	ctx = logg.WithContext(ctx)
+
+	return &Invocation{
+		cancel: cnl,
+		Logger: logg,
+		Start:  time.Now(),
+	}, ctx
+}
+
 func (h *Invocation) Error(err error, code int, message string) (Output, error) {
 
 	event := h.Logger.Error()
