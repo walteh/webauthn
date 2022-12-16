@@ -8,9 +8,10 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"fmt"
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/types"
+
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 )
 
 // From §8.8. https://www.w3.org/TR/webauthn-2/#sctn-apple-anonymous-attestation

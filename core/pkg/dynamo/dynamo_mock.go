@@ -3,12 +3,13 @@ package dynamo
 import (
 	"context"
 	"log"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/types"
 	"os"
 	"os/exec"
 	"reflect"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"

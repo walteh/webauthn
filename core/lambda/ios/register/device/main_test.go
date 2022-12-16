@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/hex"
 	"reflect"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/dynamo"
+	"github.com/nuggxyz/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"

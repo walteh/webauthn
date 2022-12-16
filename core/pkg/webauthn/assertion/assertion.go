@@ -7,12 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/authdata"
-	"nugg-webauthn/core/pkg/webauthn/clientdata"
-	"nugg-webauthn/core/pkg/webauthn/types"
-	"nugg-webauthn/core/pkg/webauthn/webauthncose"
+
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/authdata"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/webauthncose"
 
 	"github.com/ugorji/go/codec"
 )

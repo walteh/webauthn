@@ -5,12 +5,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/x509"
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/types"
-	"nugg-webauthn/core/pkg/webauthn/webauthncbor"
 
-	"nugg-webauthn/core/pkg/webauthn/webauthncose"
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/webauthncbor"
+
+	"github.com/nuggxyz/webauthn/pkg/webauthn/webauthncose"
 )
 
 type U2FAttestationProvider struct{}

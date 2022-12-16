@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/webauthn/challenge"
 	"reflect"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/dynamo"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/challenge"
 
 	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"

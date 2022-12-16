@@ -3,15 +3,16 @@ package devicecheck
 import (
 	"context"
 	"log"
-	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/env"
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/assertion"
-	"nugg-webauthn/core/pkg/webauthn/clientdata"
-	"nugg-webauthn/core/pkg/webauthn/extensions"
-	"nugg-webauthn/core/pkg/webauthn/providers"
-	"nugg-webauthn/core/pkg/webauthn/types"
+
+	"github.com/nuggxyz/webauthn/pkg/dynamo"
+	"github.com/nuggxyz/webauthn/pkg/env"
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/assertion"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/extensions"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/providers"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 )
 
 type DeviceCheckAssertionInput struct {

@@ -3,9 +3,10 @@ package authdata
 import (
 	"encoding/base64"
 	"encoding/binary"
-	"nugg-webauthn/core/pkg/webauthn/types"
 	"reflect"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 )
 
 func TestAuthenticatorFlags_UserPresent(t *testing.T) {

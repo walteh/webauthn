@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"nugg-webauthn/core/pkg/cognito"
-	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/env"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/invocation"
-	"nugg-webauthn/core/pkg/webauthn/handlers/passkey"
+
+	"github.com/nuggxyz/webauthn/pkg/cognito"
+	"github.com/nuggxyz/webauthn/pkg/dynamo"
+	"github.com/nuggxyz/webauthn/pkg/env"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/invocation"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/handlers/passkey"
 
 	"os"
 

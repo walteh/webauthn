@@ -2,8 +2,9 @@ package invocation
 
 import (
 	"context"
-	"nugg-webauthn/core/pkg/errors"
 	"time"
+
+	"github.com/nuggxyz/webauthn/pkg/errors"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/rs/zerolog"

@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/credential"
-	"nugg-webauthn/core/pkg/webauthn/googletpm"
-	"nugg-webauthn/core/pkg/webauthn/types"
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/credential"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/googletpm"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 
 	"github.com/stretchr/testify/assert"
 )

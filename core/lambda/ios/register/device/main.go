@@ -1,12 +1,12 @@
 package main
 
 import (
-	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/env"
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/invocation"
-	"nugg-webauthn/core/pkg/webauthn/handlers/devicecheck"
+	"github.com/nuggxyz/webauthn/pkg/dynamo"
+	"github.com/nuggxyz/webauthn/pkg/env"
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/invocation"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/handlers/devicecheck"
 
 	"context"
 	"os"

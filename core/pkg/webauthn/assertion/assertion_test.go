@@ -2,9 +2,10 @@ package assertion
 
 import (
 	"fmt"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/types"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 )
 
 // func TestParseCredentialRequestResponse(t *testing.T) {

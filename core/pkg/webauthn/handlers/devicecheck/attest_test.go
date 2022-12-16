@@ -2,11 +2,12 @@ package devicecheck
 
 import (
 	"context"
-	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/types"
 	"reflect"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/dynamo"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 
 	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )

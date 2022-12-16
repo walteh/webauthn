@@ -2,9 +2,10 @@ package types
 
 import (
 	"encoding/json"
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/extensions"
+
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/extensions"
 )
 
 type VerifyAssertionInputArgs struct {

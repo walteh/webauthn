@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"nugg-webauthn/core/pkg/hex"
+
+	"github.com/nuggxyz/webauthn/pkg/hex"
 )
 
 type VerifyClientDataArgs struct {

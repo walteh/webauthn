@@ -1,9 +1,10 @@
 package types
 
 import (
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
 	"strconv"
+
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )

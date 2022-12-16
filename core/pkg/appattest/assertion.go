@@ -7,7 +7,8 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"nugg-webauthn/core/pkg/hex"
+
+	"github.com/nuggxyz/webauthn/pkg/hex"
 
 	"github.com/ugorji/go/codec"
 )

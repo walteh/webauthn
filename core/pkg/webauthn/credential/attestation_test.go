@@ -3,11 +3,12 @@ package credential
 import (
 	"crypto/sha256"
 	"fmt"
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/providers"
-	"nugg-webauthn/core/pkg/webauthn/types"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/providers"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 )
 
 func TestAttestationVerify(t *testing.T) {

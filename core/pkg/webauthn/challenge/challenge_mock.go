@@ -4,8 +4,9 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"io"
-	"nugg-webauthn/core/pkg/hex"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/hex"
 )
 
 type MockHashDeterministicReader struct {

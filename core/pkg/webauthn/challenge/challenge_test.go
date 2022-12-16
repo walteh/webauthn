@@ -1,9 +1,10 @@
 package challenge
 
 import (
-	"nugg-webauthn/core/pkg/hex"
 	"reflect"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/hex"
 )
 
 func TestCreateChallenge(t *testing.T) {

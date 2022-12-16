@@ -2,14 +2,15 @@ package passkey
 
 import (
 	"context"
-	"nugg-webauthn/core/pkg/cognito"
-	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/clientdata"
-	"nugg-webauthn/core/pkg/webauthn/credential"
-	"nugg-webauthn/core/pkg/webauthn/providers"
-	"nugg-webauthn/core/pkg/webauthn/types"
+
+	"github.com/nuggxyz/webauthn/pkg/cognito"
+	"github.com/nuggxyz/webauthn/pkg/dynamo"
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/credential"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/providers"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 )
 
 type PasskeyAttestationInput struct {

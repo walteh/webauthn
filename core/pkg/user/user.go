@@ -1,8 +1,9 @@
 package user
 
 import (
-	"nugg-webauthn/core/pkg/signinwithapple"
 	"time"
+
+	"github.com/nuggxyz/webauthn/pkg/signinwithapple"
 )
 
 type User struct {

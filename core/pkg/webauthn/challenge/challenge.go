@@ -3,8 +3,9 @@ package challenge
 import (
 	"crypto/rand"
 	"io"
-	"nugg-webauthn/core/pkg/hex"
 	"sync"
+
+	"github.com/nuggxyz/webauthn/pkg/hex"
 )
 
 // ChallengeLength - Length of bytes to generate for a challenge

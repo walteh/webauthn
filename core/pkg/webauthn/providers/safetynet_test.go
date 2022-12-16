@@ -3,11 +3,12 @@ package providers
 import (
 	"crypto/sha256"
 	"fmt"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/credential"
-	"nugg-webauthn/core/pkg/webauthn/types"
 	"reflect"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/credential"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 )
 
 var globalSaftynet = SafetynetAttestationProvider{}

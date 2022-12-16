@@ -2,10 +2,11 @@ package passkey
 
 import (
 	"context"
-	"nugg-webauthn/core/pkg/cognito"
-	"nugg-webauthn/core/pkg/dynamo"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/types"
+
+	"github.com/nuggxyz/webauthn/pkg/cognito"
+	"github.com/nuggxyz/webauthn/pkg/dynamo"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 
 	"reflect"
 	"testing"

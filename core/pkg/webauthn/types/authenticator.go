@@ -1,7 +1,7 @@
 package types
 
 import (
-	"nugg-webauthn/core/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/hex"
 )
 
 type VerifyAuenticatorDataArgs struct {

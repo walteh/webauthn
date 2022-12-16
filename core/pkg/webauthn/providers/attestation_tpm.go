@@ -9,12 +9,12 @@ import (
 	"math/big"
 	"strings"
 
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/types"
-	"nugg-webauthn/core/pkg/webauthn/webauthncose"
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/webauthncose"
 
-	"nugg-webauthn/core/pkg/webauthn/googletpm"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/googletpm"
 )
 
 func init() {

@@ -1,4 +1,4 @@
-module nugg-webauthn/core
+module github.com/nuggxyz/webauthn
 
 go 1.19
 

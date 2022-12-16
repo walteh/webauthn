@@ -1,9 +1,10 @@
 package providers
 
 import (
-	"nugg-webauthn/core/pkg/webauthn/types"
 	"reflect"
 	"testing"
+
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 )
 
 func Test_verifyPackedFormat(t *testing.T) {

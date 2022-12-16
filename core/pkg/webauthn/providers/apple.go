@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"nugg-webauthn/core/pkg/errors"
-	"nugg-webauthn/core/pkg/hex"
-	"nugg-webauthn/core/pkg/webauthn/types"
-	"nugg-webauthn/core/pkg/webauthn/webauthncose"
+	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/webauthn/pkg/hex"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"github.com/nuggxyz/webauthn/pkg/webauthn/webauthncose"
 )
 
 type AppleAttestationProvider struct{}
