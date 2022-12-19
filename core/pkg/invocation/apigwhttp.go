@@ -81,6 +81,30 @@ func (h *Invocation) Error(err error, code int, message string) (Output, error) 
 	return Output{StatusCode: code}, nil
 }
 
+func (h *Invocation) ErrorReturningError(err error, code int, message string) (int, error) {
+
+	event := h.Logger.Error()
+
+	// if error is an error type, then we can use the With* methods
+	if e, ok := err.(*errors.Error); ok {
+		err = e.Roots()[0]
+		roots := e.Roots()
+		event = event.Errs("roots", roots[1:])
+
+	}
+
+	event.
+		Err(err).
+		Str("body", "").
+		CallerSkipFrame(1).
+		TimeDiff("duration", time.Now(), h.Start).
+		Msg("returning error: " + message)
+
+	go h.cancel()
+
+	return code, err
+}
+
 func (h *Invocation) Success(code int, headers map[string]string, message string) (Output, error) {
 
 	output := Output{
@@ -116,4 +140,41 @@ func (h *Invocation) Success(code int, headers map[string]string, message string
 	go h.cancel()
 
 	return output, nil
+}
+
+func (h *Invocation) SuccessReturningError(code int, headers map[string]string, message string) (int, error) {
+
+	output := Output{
+		StatusCode: code,
+		Headers:    headers,
+	}
+
+	if message != "" && code != 204 {
+		output.Body = message
+	}
+
+	r := zerolog.Dict()
+	for k, v := range output.Headers {
+		r = r.Str(k, v)
+	}
+
+	if message == "" {
+		message = "empty"
+	}
+
+	if code == 204 && headers["Content-Length"] == "" {
+		output.Headers["Content-Length"] = "0"
+	}
+
+	h.Logger.Info().
+		Int("status_code", code).
+		Str("body", output.Body).
+		Dict("headers", r).
+		CallerSkipFrame(1).
+		TimeDiff("duration", time.Now(), h.Start).
+		Msg(message)
+
+	go h.cancel()
+
+	return code, nil
 }
