@@ -4,9 +4,12 @@ import (
 	"context"
 	"log"
 
+	"github.com/nuggxyz/golang/errors"
+
 	"github.com/nuggxyz/webauthn/pkg/dynamo"
 	"github.com/nuggxyz/webauthn/pkg/env"
-	"github.com/nuggxyz/webauthn/pkg/errors"
+	cerrors "github.com/nuggxyz/webauthn/pkg/errors"
+
 	"github.com/nuggxyz/webauthn/pkg/hex"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/assertion"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
@@ -29,17 +32,17 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckA
 	var err error
 
 	if input.RawAssertionObject.IsZero() || input.ClientDataToValidate.IsZero() {
-		return DeviceCheckAssertionOutput{400, false}, errors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAssertionOutput{400, false}, cerrors.Err0x67InvalidInput.WithCaller()
 	}
 
 	parsed, err := assertion.ParseFidoAssertionInput(input.RawAssertionObject)
 	if err != nil {
-		return DeviceCheckAssertionOutput{400, false}, errors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAssertionOutput{400, false}, cerrors.Err0x67InvalidInput.WithCaller()
 	}
 
 	cd, err := clientdata.ParseClientData(parsed.RawClientDataJSON)
 	if err != nil {
-		return DeviceCheckAssertionOutput{400, false}, errors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAssertionOutput{400, false}, cerrors.Err0x67InvalidInput.WithCaller()
 	}
 
 	cred := types.NewUnsafeGettableCredential(parsed.CredentialID)
@@ -52,17 +55,17 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckA
 
 	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
 		log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
-		return DeviceCheckAssertionOutput{401, false}, errors.Err0x67InvalidInput.WithMessage("credential ids do not match").WithCaller()
+		return DeviceCheckAssertionOutput{401, false}, cerrors.Err0x67InvalidInput.WithMessage("credential ids do not match").WithCaller()
 	}
 
 	if !cerem.ChallengeID.Equals(cd.Challenge) {
-		return DeviceCheckAssertionOutput{401, false}, errors.Err0x67InvalidInput.WithMessage("challenge ids do not match").WithCaller()
+		return DeviceCheckAssertionOutput{401, false}, cerrors.Err0x67InvalidInput.WithMessage("challenge ids do not match").WithCaller()
 	}
 
 	attestationProvider := providers.NewAppAttestSandbox()
 
 	if attestationProvider.ID() != cred.AttestationType {
-		return DeviceCheckAssertionOutput{401, false}, errors.Err0x67InvalidInput.WithMessage("invalid attestation provider").WithCaller()
+		return DeviceCheckAssertionOutput{401, false}, cerrors.Err0x67InvalidInput.WithMessage("invalid attestation provider").WithCaller()
 	}
 
 	// Handle steps 4 through 16
@@ -80,7 +83,7 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckA
 		DataSignedByClient:             append(input.ClientDataToValidate, cerem.ChallengeID...),
 		UseSavedAttestedCredentialData: true,
 	}); validError != nil {
-		return DeviceCheckAssertionOutput{401, false}, errors.Err0x67InvalidInput.WithMessage("invalid assertion").WithCaller()
+		return DeviceCheckAssertionOutput{401, false}, cerrors.Err0x67InvalidInput.WithMessage("invalid assertion").WithCaller()
 	}
 
 	ceremonyDelete, err := dynamoClient.BuildDelete(cerem)

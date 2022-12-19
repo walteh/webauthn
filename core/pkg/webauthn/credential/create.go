@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 
+	commonerrors "github.com/nuggxyz/golang/errors"
+
 	"github.com/nuggxyz/webauthn/pkg/errors"
 	"github.com/nuggxyz/webauthn/pkg/hex"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/authdata"
@@ -228,7 +230,7 @@ func VerifyAttestationInput(args types.VerifyAttestationInputArgs) (*types.Crede
 	// client data computed in step 7.
 	pk, attestationType, receipt, err := args.Provider.Attest(*attestationObject, clientDataHash[:])
 	if err != nil {
-		return nil, err.(*errors.Error).WithInfo(attestationType).WithCaller()
+		return nil, err.(*commonerrors.Error).WithInfo(attestationType).WithCaller()
 	}
 
 	if len(receipt) > 0 {

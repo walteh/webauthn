@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/golang/errors"
 	"github.com/nuggxyz/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/aws"

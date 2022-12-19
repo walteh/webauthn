@@ -3,8 +3,10 @@ package devicecheck
 import (
 	"context"
 
+	"github.com/nuggxyz/golang/errors"
+
 	"github.com/nuggxyz/webauthn/pkg/dynamo"
-	"github.com/nuggxyz/webauthn/pkg/errors"
+	cerrors "github.com/nuggxyz/webauthn/pkg/errors"
 	"github.com/nuggxyz/webauthn/pkg/hex"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/credential"
@@ -28,7 +30,7 @@ func Attest(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckA
 	var err error
 
 	if input.RawAttestationObject.IsZero() || input.UTF8ClientDataJSON == "" || input.RawCredentialID.IsZero() {
-		return DeviceCheckAttestationOutput{400, false}, errors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAttestationOutput{400, false}, cerrors.Err0x67InvalidInput.WithCaller()
 	}
 	parsedResponse := types.AttestationInput{
 		AttestationObject:  input.RawAttestationObject,
@@ -40,7 +42,7 @@ func Attest(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckA
 
 	cd, err := clientdata.ParseClientData(parsedResponse.UTF8ClientDataJSON)
 	if err != nil {
-		return DeviceCheckAttestationOutput{400, false}, errors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAttestationOutput{400, false}, cerrors.Err0x67InvalidInput.WithCaller()
 	}
 
 	cer := types.NewUnsafeGettableCeremony(cd.Challenge)

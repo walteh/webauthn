@@ -2,16 +2,20 @@ module github.com/nuggxyz/webauthn
 
 go 1.19
 
+replace github.com/nuggxyz/golang v1.0.0 => ../../../shared/golang
+
+require github.com/nuggxyz/golang v1.0.0
+
 require (
-	github.com/aws/aws-lambda-go v1.35.0
-	github.com/aws/aws-sdk-go-v2 v1.17.1
+	github.com/aws/aws-lambda-go v1.36.0
+	github.com/aws/aws-sdk-go-v2 v1.17.3
 	github.com/aws/aws-sdk-go-v2/config v1.18.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.2
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.10.5
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.14.3
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.17.6
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.16.7
-	github.com/aws/smithy-go v1.13.4
+	github.com/aws/smithy-go v1.13.5
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/uuid v1.3.0
@@ -27,8 +31,8 @@ require (
 
 require (
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.19 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.25 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.19 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.27 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.21 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.13.25 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.10 // indirect

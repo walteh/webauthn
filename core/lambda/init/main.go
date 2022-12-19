@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 
+	"github.com/nuggxyz/golang/invocation"
 	"github.com/nuggxyz/webauthn/pkg/dynamo"
 	"github.com/nuggxyz/webauthn/pkg/env"
 	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/invocation"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
 
 	"os"

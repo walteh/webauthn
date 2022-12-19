@@ -3,9 +3,10 @@ package passkey
 import (
 	"context"
 
+	"github.com/nuggxyz/golang/errors"
+
 	"github.com/nuggxyz/webauthn/pkg/cognito"
 	"github.com/nuggxyz/webauthn/pkg/dynamo"
-	"github.com/nuggxyz/webauthn/pkg/errors"
 	"github.com/nuggxyz/webauthn/pkg/hex"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/credential"

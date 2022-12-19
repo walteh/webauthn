@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/nuggxyz/golang/errors"
 
-	"github.com/nuggxyz/webauthn/pkg/errors"
 	"github.com/nuggxyz/webauthn/pkg/hex"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/challenge"
 )

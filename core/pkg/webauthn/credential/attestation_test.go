@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/nuggxyz/webauthn/pkg/errors"
+	"github.com/nuggxyz/golang/errors"
 	"github.com/nuggxyz/webauthn/pkg/hex"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/providers"
 	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
