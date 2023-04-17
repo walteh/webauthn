@@ -1,19 +1,23 @@
-package credential
+package credential_test
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"testing"
 
-	"git.nugg.xyz/go-sdk/errors"
 	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
 	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
 	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAttestationVerify(t *testing.T) {
 	for i := range testAttestationOptions {
 		t.Run(fmt.Sprintf("Running test %d", i), func(t *testing.T) {
+
+			ctx := context.Background()
 
 			arg := testAttestationResponses[i]
 
@@ -30,10 +34,8 @@ func TestAttestationVerify(t *testing.T) {
 			}
 
 			// Test Base Verification
-			_, err := VerifyAttestationInput(args)
-			if err != nil {
-				t.Fatalf("Not valid: %+v (%+s)", err, err.(*errors.Error).DevInfo())
-			}
+			_, err := credential.VerifyAttestationInput(ctx, args)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -42,7 +44,9 @@ func TestPackedAttestationVerification(t *testing.T) {
 	t.Run("Testing Self Packed", func(t *testing.T) {
 		arg := testAttestationResponses[0]
 
-		abc, err := ParseAttestationInput(arg)
+		ctx := context.Background()
+
+		abc, err := credential.ParseAttestationInput(ctx, arg)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -1,15 +1,16 @@
 package clientdata
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/url"
 	"strings"
 
 	"git.nugg.xyz/webauthn/pkg/errors"
 	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/rs/zerolog"
 )
 
 func ParseClientData(clientData string) (types.CollectedClientData, error) {
@@ -26,7 +27,7 @@ func ParseClientData(clientData string) (types.CollectedClientData, error) {
 // new credential and steps 7 through 10 of verifying an authentication assertion
 // See https://www.w3.org/TR/webauthn/#registering-a-new-credential
 // and https://www.w3.org/TR/webauthn/#verifying-assertion
-func Verify(expected types.VerifyClientDataArgs) error {
+func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 
 	real := expected.ClientData
 	// Registration Step 3. Verify that the value of C.type is webauthn.create.
@@ -34,7 +35,7 @@ func Verify(expected types.VerifyClientDataArgs) error {
 	// Assertion Step 7. Verify that the value of C.type is the string webauthn.get.
 	if real.Type != expected.CeremonyType {
 		err := errors.ErrVerification.WithMessage("Error validating ceremony type")
-		err.WithInfo(fmt.Sprintf("Expected Value: %s\n Received: %s\n", expected.CeremonyType, real.Type))
+		zerolog.Ctx(ctx).Error().Err(err).Msg("ceremony type mismatch")
 		return err
 	}
 
@@ -58,7 +59,8 @@ func Verify(expected types.VerifyClientDataArgs) error {
 
 	if subtle.ConstantTimeCompare(expected.StoredChallenge, real.Challenge) != 1 {
 		err := errors.ErrVerification.WithMessage("Error validating challenge")
-		return err.WithInfo(fmt.Sprintf("Expected b Value: %#v\nReceived b: %#v\n", expected.StoredChallenge, real.Challenge))
+		zerolog.Ctx(ctx).Error().Err(err).Str("expected", string(expected.StoredChallenge)).Str("received", string(real.Challenge)).Msg("challenge mismatch")
+		return err
 	}
 
 	// Registration Step 5 & Assertion Step 9. Verify that the value of C.origin matches
@@ -70,7 +72,8 @@ func Verify(expected types.VerifyClientDataArgs) error {
 
 	if !strings.EqualFold(types.FullyQualifiedOrigin(clientDataOrigin), expected.RelyingPartyOrigin) {
 		err := errors.ErrVerification.WithMessage("Error validating origin")
-		return err.WithInfo(fmt.Sprintf("Expected Value: %s\n Received: %s\n", expected.RelyingPartyOrigin, types.FullyQualifiedOrigin(clientDataOrigin)))
+		zerolog.Ctx(ctx).Error().Err(err).Str("expected", expected.RelyingPartyOrigin).Str("received", types.FullyQualifiedOrigin(clientDataOrigin)).Msg("origin mismatch")
+		return err
 	}
 
 	// Registration Step 6 and Assertion Step 10. Verify that the value of C.tokenBinding.status
@@ -82,7 +85,9 @@ func Verify(expected types.VerifyClientDataArgs) error {
 			return errors.ErrParsingData.WithMessage("Error decoding clientData, token binding present without status")
 		}
 		if real.TokenBinding.Status != types.Present && real.TokenBinding.Status != types.Supported && real.TokenBinding.Status != types.NotSupported {
-			return errors.ErrParsingData.WithMessage("Error decoding clientData, token binding present with invalid status").WithInfo(fmt.Sprintf("Got: %s\n", real.TokenBinding.Status))
+			err := errors.ErrParsingData.WithMessage("Error decoding clientData, token binding present with invalid status")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("invalid token binding status")
+			return err
 		}
 	}
 	// Not yet fully implemented by the spec, browsers, and me.

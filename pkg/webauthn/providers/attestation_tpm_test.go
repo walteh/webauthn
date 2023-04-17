@@ -1,9 +1,11 @@
 package providers
 
 import (
+	"context"
 	"crypto/sha256"
 	"testing"
 
+	"git.nugg.xyz/go-sdk/otel/logging"
 	"git.nugg.xyz/webauthn/pkg/errors"
 	"git.nugg.xyz/webauthn/pkg/hex"
 	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
@@ -16,12 +18,14 @@ import (
 var provider = TpmAttestationProvider{}
 
 func TestTPMAttestationVerificationSuccess(t *testing.T) {
+	ctx := logging.NewVerboseLoggerContext(context.Background())
+
 	for i := range testAttestationTPMResponses {
 		t.Run("TPM Positive tests", func(t *testing.T) {
 			pcc := testAttestationTPMResponses[i]
 			clientDataHash := sha256.Sum256([]byte(pcc.UTF8ClientDataJSON))
 
-			att, err := credential.ParseAttestationInput(pcc)
+			att, err := credential.ParseAttestationInput(ctx, pcc)
 			assert.NoError(t, err)
 
 			attestationKey := provider.ID()

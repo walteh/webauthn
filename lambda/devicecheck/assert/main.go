@@ -22,6 +22,7 @@ type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
 type Handler struct {
+	*invocation.Handler[Input, Output]
 	Id      string
 	Ctx     context.Context
 	Dynamo  *dynamo.Client
@@ -66,7 +67,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
-	inv, ctx := invocation.NewInvocation(ctx, h, input)
+	inv, ctx := h.NewInvocation(ctx, input)
 
 	assert := hex.HexToHash(input.Headers["x-nugg-hex-request-assertion"])
 
@@ -93,6 +94,10 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(err, res.SuggestedStatusCode, "failed to assert devicecheck")
 	}
 
-	return inv.Success(204, map[string]string{}, "")
+	return inv.Success(
+		Output{
+			StatusCode: 204,
+		},
+	)
 
 }

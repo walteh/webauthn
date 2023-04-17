@@ -56,7 +56,7 @@ func Attest(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckA
 		return DeviceCheckAttestationOutput{401, false}, errors.NewError(0x99).WithMessage("session id mismatch").WithCaller()
 	}
 
-	pk, err := credential.VerifyAttestationInput(types.VerifyAttestationInputArgs{
+	pk, err := credential.VerifyAttestationInput(ctx, types.VerifyAttestationInputArgs{
 		Provider:           providers.NewAppAttestSandbox(),
 		Input:              parsedResponse,
 		SessionId:          cer.SessionID,

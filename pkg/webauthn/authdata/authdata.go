@@ -2,23 +2,24 @@ package authdata
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
+	"errors"
 	"log"
 
-	"git.nugg.xyz/webauthn/pkg/errors"
 	"git.nugg.xyz/webauthn/pkg/hex"
 	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncbor"
+	"github.com/rs/zerolog"
 )
 
 const (
-	minAuthDataLength     = 37
-	minAttestedAuthLength = 55
+	MinAuthDataLength     = 37
+	MinAttestedAuthLength = 55
 
 	// https://w3c.github.io/webauthn/#attested-credential-data
-	maxCredentialIDLength = 1023
+	MaxCredentialIDLength = 1023
 )
 
 // Unmarshal will take the raw Authenticator Data and marshalls it into AuthenticatorData for further validation.
@@ -27,27 +28,27 @@ const (
 // The authenticator data structure is a byte array of 37 bytes or more, and is laid out in this table:
 // https://www.w3.org/TR/webauthn/#table-authData
 
-func ParseAuthenticatorData(rawAuthData hex.Hash) (a types.AuthenticatorData, err error) {
-	return ParseAuthenticatorDataSavedAttestedCredential(rawAuthData, false)
+func ParseAuthenticatorData(ctx context.Context, rawAuthData hex.Hash) (a types.AuthenticatorData, err error) {
+	return ParseAuthenticatorDataSavedAttestedCredential(ctx, rawAuthData, false)
 }
-func ParseAuthenticatorDataSavedAttestedCredential(rawAuthData hex.Hash, savedAttestedCredentials bool) (a types.AuthenticatorData, err error) {
+func ParseAuthenticatorDataSavedAttestedCredential(ctx context.Context, rawAuthData hex.Hash, savedAttestedCredentials bool) (a types.AuthenticatorData, err error) {
 	a = types.AuthenticatorData{}
 	byt := rawAuthData.Bytes()
-	if minAuthDataLength > len(rawAuthData) {
-		err := errors.ErrBadRequest.WithMessage("Authenticator data length too short")
-		info := fmt.Sprintf("Expected data greater than %d bytes. Got %d bytes\n", minAuthDataLength, len(rawAuthData))
-		return a, err.WithInfo(info)
+	if MinAuthDataLength > len(rawAuthData) {
+		err := errors.New("authenticator data length too short")
+		zerolog.Ctx(ctx).Error().Err(err).Msg("authenticator data length too short")
+		return a, err
 	}
 
 	a.RPIDHash = byt[:32]
 	a.Flags = types.AuthenticatorFlags(byt[32])
 	a.Counter = uint64(binary.BigEndian.Uint32(byt[33:37]))
 
-	remaining := len(byt) - minAuthDataLength
+	remaining := len(byt) - MinAuthDataLength
 
 	if a.Flags.HasAttestedCredentialData() {
-		if len(byt) > minAttestedAuthLength {
-			att, validError := ParseAttestedAuthData(byt)
+		if len(byt) > MinAttestedAuthLength {
+			att, validError := ParseAttestedAuthData(ctx, byt)
 			if validError != nil {
 				return a, validError
 			}
@@ -55,11 +56,15 @@ func ParseAuthenticatorDataSavedAttestedCredential(rawAuthData hex.Hash, savedAt
 			attDataLen := len(a.AttData.AAGUID) + 2 + len(a.AttData.CredentialID) + len(a.AttData.CredentialPublicKey)
 			remaining = remaining - attDataLen
 		} else if !savedAttestedCredentials {
-			return a, errors.ErrBadRequest.WithMessage("Attested credential flag set but data is missing")
+			err := errors.New("attested credential flag set but data is missing")
+			zerolog.Ctx(ctx).Error().Err(err).Send()
+			return a, err
 		}
 	} else {
 		if !a.Flags.HasExtensions() && len(byt) != 37 {
-			return a, errors.ErrBadRequest.WithMessage("Attested credential flag not set")
+			err := errors.New("attested credential flag not set")
+			zerolog.Ctx(ctx).Error().Err(err).Send()
+			return a, err
 		}
 	}
 
@@ -68,35 +73,43 @@ func ParseAuthenticatorDataSavedAttestedCredential(rawAuthData hex.Hash, savedAt
 			a.ExtData = byt[len(byt)-remaining:]
 			remaining -= len(a.ExtData)
 		} else {
-			return a, errors.ErrBadRequest.WithMessage("Extensions flag set but extensions data is missing")
+			err := errors.New("extensions flag set but extensions data is missing")
+			zerolog.Ctx(ctx).Error().Err(err).Send()
+			return a, err
 		}
 	}
 
 	if remaining != 0 {
-		return a, errors.ErrBadRequest.WithMessage("Leftover bytes decoding AuthenticatorData")
+		err := errors.New("leftover bytes decoding authenticatordata")
+		zerolog.Ctx(ctx).Error().Err(err).Send()
+		return a, err
 	}
 
 	return a, nil
 }
 
 // If Attestation Data is present, unmarshall that into the appropriate public key structure
-func ParseAttestedAuthData(rawAuthData []byte) (types.AttestedCredentialData, error) {
+func ParseAttestedAuthData(ctx context.Context, rawAuthData []byte) (types.AttestedCredentialData, error) {
 	a := types.AttestedCredentialData{}
 	a.AAGUID = rawAuthData[37:53]
 	idLength := binary.BigEndian.Uint16(rawAuthData[53:55])
 	if len(rawAuthData) < int(55+idLength) {
-		return a, errors.ErrBadRequest.WithMessage("Authenticator attestation data length too short")
+		err := errors.New("authenticator attestation data length too short")
+		zerolog.Ctx(ctx).Error().Err(err).Send()
+		return a, err
 	}
-	if idLength > maxCredentialIDLength {
-		return a, errors.ErrBadRequest.WithMessage("Authenticator attestation data credential id length too long")
+	if idLength > MaxCredentialIDLength {
+		err := errors.New("authenticator attestation data credential id length too long")
+		zerolog.Ctx(ctx).Error().Err(err).Send()
+		return a, err
 	}
 	a.CredentialID = rawAuthData[55 : 55+idLength]
-	a.CredentialPublicKey = unmarshalCredentialPublicKey(rawAuthData[55+idLength:])
+	a.CredentialPublicKey = UnmarshalCredentialPublicKey(rawAuthData[55+idLength:])
 	return a, nil
 }
 
 // Unmarshall the credential's Public Key into CBOR encoding
-func unmarshalCredentialPublicKey(keyBytes []byte) []byte {
+func UnmarshalCredentialPublicKey(keyBytes []byte) []byte {
 	var m interface{}
 	webauthncbor.Unmarshal(keyBytes, &m)
 	rawBytes, _ := webauthncbor.Marshal(m)
@@ -120,7 +133,7 @@ func ResidentKeyUnrequired() *bool {
 
 // Verify on AuthenticatorData handles Steps 9 through 12 for Registration
 // and Steps 11 through 14 for Assertion.
-func VerifyAuenticatorData(args types.VerifyAuenticatorDataArgs) error {
+func VerifyAuenticatorData(ctx context.Context, args types.VerifyAuenticatorDataArgs) error {
 
 	// Begin Step 11. Verify that the rpIdHash in authData is the SHA-256 hash of the RP ID expected by the RP.
 	rpIDHash := sha256.Sum256([]byte(args.RelyingPartyID))
@@ -132,7 +145,7 @@ func VerifyAuenticatorData(args types.VerifyAuenticatorDataArgs) error {
 
 	hasAttestationCredsSaved := !args.OptionalAttestedCredentialData.CredentialPublicKey.IsZero()
 
-	data, err := ParseAuthenticatorDataSavedAttestedCredential(args.Data, hasAttestationCredsSaved)
+	data, err := ParseAuthenticatorDataSavedAttestedCredential(ctx, args.Data, hasAttestationCredsSaved)
 	if err != nil {
 		return err
 	}
@@ -145,26 +158,39 @@ func VerifyAuenticatorData(args types.VerifyAuenticatorDataArgs) error {
 	// Verify that the RP ID hash in authData is indeed the SHA-256
 	// hash of the RP ID expected by the RP.
 	if !bytes.Equal(data.RPIDHash, rpIDHash[:]) && !bytes.Equal(data.RPIDHash[:], appIDHash[:]) {
-		return errors.ErrVerification.
-			WithInfo(fmt.Sprintf("RP Hash mismatch. Expected %x and Received %x\n", data.RPIDHash, rpIDHash)).
-			WithKV("AuthenticatorData", data)
+		err := errors.New("rp hash mismatch")
+
+		zerolog.Ctx(ctx).Error().Err(err).
+			Str("data.RPIDHash", data.RPIDHash.Hex()).
+			Str("rpIDHash[:]", hex.Bytes2Hex(rpIDHash[:])).
+			Str("appIDHash[:]", hex.Bytes2Hex(appIDHash[:])).
+			Msg("RP Hash mismatch")
+
+		return err
 	}
 
 	// Registration Step 10 & Assertion Step 12
 	// Verify that the User Present bit of the flags in authData is set.
 	if args.RequireUserPresence && !data.Flags.UserPresent() {
-		return errors.ErrVerification.WithInfo(fmt.Sprintln("User presence flag not set by authenticator"))
+		err := errors.New("user presence flag not set by authenticator")
+		zerolog.Ctx(ctx).Error().Err(err).Send()
+		return err
 	}
 
 	// Registration Step 11 & Assertion Step 13
 	// If user verification is required for this assertion, verify that
 	// the User Verified bit of the flags in authData is set.
 	if args.RequireUserVerification && !data.Flags.UserVerified() {
-		return errors.ErrVerification.WithInfo(fmt.Sprintln("User verification required but flag not set by authenticator"))
+		err := errors.New("user verification required but flag not set by authenticator")
+		zerolog.Ctx(ctx).Error().Err(err).Send()
+		return err
+
 	}
 
 	if data.Counter < args.LastSignCount {
-		return errors.ErrVerification.WithInfo(fmt.Sprintf("Counter was not not greater than previous  %d\n", data.Counter))
+		err := errors.New("counter value too low")
+		zerolog.Ctx(ctx).Error().Err(err).Uint64("data.Counter", data.Counter).Uint64("args.LastSignCount", args.LastSignCount).Msg("Counter value too low")
+		return err
 	}
 
 	// Registration Step 12 & Assertion Step 14

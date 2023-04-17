@@ -1,10 +1,13 @@
-package assertion
+package assertion_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
+	"git.nugg.xyz/go-sdk/otel/logging"
 	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/assertion"
 	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
@@ -152,7 +155,8 @@ func TestParsedCredentialAssertionData_Verify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := VerifyAssertionInput(tt.args); (err != nil) != tt.wantErr {
+			ctx := logging.NewVerboseLoggerContext(context.Background())
+			if err := assertion.VerifyAssertionInput(ctx, tt.args); (err != nil) != tt.wantErr {
 				t.Errorf("ParsedCredentialAssertionData.Verify() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

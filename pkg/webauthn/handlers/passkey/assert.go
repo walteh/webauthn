@@ -7,8 +7,8 @@ import (
 	"git.nugg.xyz/go-sdk/errors"
 
 	"git.nugg.xyz/webauthn/pkg/cognito"
+	"git.nugg.xyz/webauthn/pkg/constants"
 	"git.nugg.xyz/webauthn/pkg/dynamo"
-	"git.nugg.xyz/webauthn/pkg/env"
 	"git.nugg.xyz/webauthn/pkg/hex"
 	"git.nugg.xyz/webauthn/pkg/webauthn/assertion"
 	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
@@ -46,14 +46,14 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cogn
 
 	cd, err := clientdata.ParseClientData(input.RawClientDataJSON)
 	if err != nil {
-		return PasskeyAssertionOutput{400, ""}, errors.NewError(0x67).WithMessage("invalid client data").WithRoot(err).WithCaller()
+		return PasskeyAssertionOutput{400, ""}, err
 	}
 
 	cred := types.NewUnsafeGettableCredential(input.CredentialID)
 	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
 
 	if err = dynamoClient.TransactGet(ctx, cred, cerem); err != nil {
-		return PasskeyAssertionOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		return PasskeyAssertionOutput{502, ""}, err
 	}
 
 	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
@@ -67,11 +67,11 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cogn
 	}
 
 	// Handle steps 4 through 16
-	if validError := assertion.VerifyAssertionInput(types.VerifyAssertionInputArgs{
+	if validError := assertion.VerifyAssertionInput(ctx, types.VerifyAssertionInputArgs{
 		Input:                          input,
 		StoredChallenge:                cerem.ChallengeID,
-		RelyingPartyID:                 env.RPID(),
-		RelyingPartyOrigin:             env.RPOrigin(),
+		RelyingPartyID:                 constants.RPID(),
+		RelyingPartyOrigin:             constants.RPOrigin(),
 		CredentialAttestationType:      types.NotFidoAttestationType,
 		AttestationProvider:            providers.NewNoneAttestationProvider(),
 		AAGUID:                         cred.AAGUID,
@@ -81,22 +81,22 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cogn
 		DataSignedByClient:             hex.Hash([]byte(input.RawClientDataJSON)),
 		UseSavedAttestedCredentialData: false,
 	}); validError != nil {
-		return PasskeyAssertionOutput{401, ""}, errors.NewError(0x67).WithMessage("invalid assertion").WithRoot(validError).WithCaller()
+		return PasskeyAssertionOutput{401, ""}, validError
 	}
 
 	credentialUpdate, err := cred.UpdateIncreasingCounter(dynamoClient.MustCredentialTableName())
 	if err != nil {
-		return PasskeyAssertionOutput{500, ""}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		return PasskeyAssertionOutput{500, ""}, err
 	}
 
 	ceremonyDelete, err := dynamoClient.BuildDelete(cerem)
 	if err != nil {
-		return PasskeyAssertionOutput{500, ""}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		return PasskeyAssertionOutput{500, ""}, err
 	}
 
 	err = dynamoClient.TransactWrite(ctx, *credentialUpdate, *ceremonyDelete)
 	if err != nil {
-		return PasskeyAssertionOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		return PasskeyAssertionOutput{502, ""}, err
 	}
 
 	return PasskeyAssertionOutput{204, *z.Token}, nil

@@ -23,6 +23,7 @@ type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
 type Handler struct {
+	*invocation.Handler[Input, Output]
 	Id      string
 	Ctx     context.Context
 	Dynamo  *dynamo.Client
@@ -67,7 +68,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 
-	inv, ctx := invocation.NewInvocation(ctx, h, payload)
+	inv, ctx := h.NewInvocation(ctx, payload)
 
 	sessionId := hex.HexToHash(payload.Headers["x-nugg-hex-session-id"])
 	ceremonyType := payload.Headers["x-nugg-utf-ceremony-type"]
@@ -101,5 +102,10 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 		return inv.Error(err, 500, "Failed to save ceremony")
 	}
 
-	return inv.Success(204, map[string]string{"x-nugg-hex-challenge": cha.ChallengeID.Hex()}, "")
+	return inv.Success(Output{
+		StatusCode: 204,
+		Headers: map[string]string{
+			"x-nugg-hex-challenge": cha.ChallengeID.Hex(),
+		},
+	})
 }

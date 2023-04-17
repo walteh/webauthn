@@ -1,7 +1,8 @@
 package types
 
 import (
-	"git.nugg.xyz/webauthn/pkg/errors"
+	"errors"
+
 	"git.nugg.xyz/webauthn/pkg/hex"
 	"git.nugg.xyz/webauthn/pkg/webauthn/extensions"
 )
@@ -97,7 +98,7 @@ type AttestationProvider interface {
 
 func (me CredentialIdentifier) Verify() error {
 	if me.ID.IsZero() {
-		return errors.ErrBadRequest.WithMessage("Parse error for Registration").WithInfo("Missing ID")
+		return errors.New("missing id")
 	}
 
 	// testB64, err := base64.RawURLEncoding.DecodeString(ccr.ID)
@@ -106,11 +107,11 @@ func (me CredentialIdentifier) Verify() error {
 	// }
 
 	if me.Type == "" {
-		return errors.ErrBadRequest.WithMessage("Parse error for Registration").WithInfo("Missing type")
+		return errors.New("missing type")
 	}
 
 	if me.Type != "public-key" {
-		return errors.ErrBadRequest.WithMessage("Parse error for Registration").WithInfo("Type not public-key")
+		return errors.New("type not public-key")
 	}
 
 	return nil
@@ -155,7 +156,7 @@ func (ppkc CredentialIdentifier) GetAppID(authExt extensions.ClientInputs, crede
 	}
 
 	if enableAppID, ok = clientValue.(bool); !ok {
-		return "", errors.ErrBadRequest.WithMessage("Client Output appid did not have the expected type")
+		return "", errors.New("client output appid did not have the expected type")
 	}
 
 	if !enableAppID {
@@ -163,11 +164,11 @@ func (ppkc CredentialIdentifier) GetAppID(authExt extensions.ClientInputs, crede
 	}
 
 	if value, ok = authExt["appid"]; !ok {
-		return "", errors.ErrBadRequest.WithMessage("Session Data does not have an appid but Client Output indicates it should be set")
+		return "", errors.New("session data does not have an appid but client output indicates it should be set")
 	}
 
 	if appID, ok = value.(string); !ok {
-		return "", errors.ErrBadRequest.WithMessage("Session Data appid did not have the expected type")
+		return "", errors.New("session data appid did not have the expected type")
 	}
 
 	return appID, nil

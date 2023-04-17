@@ -1,11 +1,14 @@
-package authdata
+package authdata_test
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"reflect"
 	"testing"
 
+	"git.nugg.xyz/go-sdk/otel/logging"
+	"git.nugg.xyz/webauthn/pkg/webauthn/authdata"
 	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
@@ -142,7 +145,7 @@ func TestAuthenticatorData_Unmarshal(t *testing.T) {
 
 	attAuthDataIDIsTooLarge := make([]byte, len(attAuthData)+2048)
 	copy(attAuthDataIDIsTooLarge, attAuthData)
-	binary.BigEndian.PutUint16(attAuthDataIDIsTooLarge[53:], maxCredentialIDLength+1)
+	binary.BigEndian.PutUint16(attAuthDataIDIsTooLarge[53:], authdata.MaxCredentialIDLength+1)
 
 	tests := []struct {
 		name    string
@@ -193,7 +196,9 @@ func TestAuthenticatorData_Unmarshal(t *testing.T) {
 			// 	ExtData:  tt.fields.ExtData,
 			// }
 
-			if _, err := ParseAuthenticatorData(tt.args.rawAuthData); (err != nil) != tt.wantErr {
+			ctx := logging.NewVerboseLoggerContext(context.Background())
+
+			if _, err := authdata.ParseAuthenticatorData(ctx, tt.args.rawAuthData); (err != nil) != tt.wantErr {
 				t.Errorf("AuthenticatorData.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -220,8 +225,9 @@ func TestAuthenticatorData_unmarshalAttestedData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := logging.NewVerboseLoggerContext(context.Background())
 
-			if _, err := ParseAttestedAuthData(tt.args.rawAuthData); (err != nil) != tt.wantErr {
+			if _, err := authdata.ParseAttestedAuthData(ctx, tt.args.rawAuthData); (err != nil) != tt.wantErr {
 				t.Errorf("ParseAttestedAuthData() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -241,7 +247,7 @@ func Test_unmarshalCredentialPublicKey(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := unmarshalCredentialPublicKey(tt.args.keyBytes); !reflect.DeepEqual(got, tt.want) {
+			if got := authdata.UnmarshalCredentialPublicKey(tt.args.keyBytes); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("unmarshalCredentialPublicKey() = %v, want %v", got, tt.want)
 			}
 		})
@@ -277,7 +283,9 @@ func TestAuthenticatorData_Verify(t *testing.T) {
 			// 	AttData:  tt.fields.AttData,
 			// 	ExtData:  tt.fields.ExtData,
 			// }
-			if err := VerifyAuenticatorData(tt.args); (err != nil) != tt.wantErr {
+			ctx := logging.NewVerboseLoggerContext(context.Background())
+
+			if err := authdata.VerifyAuenticatorData(ctx, tt.args); (err != nil) != tt.wantErr {
 				t.Errorf("AuthenticatorData.Verify() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

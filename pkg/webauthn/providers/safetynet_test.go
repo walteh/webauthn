@@ -1,11 +1,13 @@
 package providers
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"reflect"
 	"testing"
 
+	"git.nugg.xyz/go-sdk/otel/logging"
 	"git.nugg.xyz/webauthn/pkg/hex"
 	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
 	"git.nugg.xyz/webauthn/pkg/webauthn/types"
@@ -14,6 +16,8 @@ import (
 var globalSaftynet = SafetynetAttestationProvider{}
 
 func Test_verifySafetyNetFormat(t *testing.T) {
+
+	ctx := logging.NewVerboseLoggerContext(context.Background())
 	type args struct {
 		att            types.AttestationObject
 		clientDataHash []byte
@@ -21,7 +25,7 @@ func Test_verifySafetyNetFormat(t *testing.T) {
 	successAttResponse := safetyNetTestResponse["success"]
 	successClienDataHash := sha256.Sum256([]byte(safetyNetTestResponse["success"].UTF8ClientDataJSON))
 
-	obj, err := credential.ParseAttestationInput(successAttResponse)
+	obj, err := credential.ParseAttestationInput(ctx, successAttResponse)
 	if err != nil {
 		t.Fatal(err)
 	}

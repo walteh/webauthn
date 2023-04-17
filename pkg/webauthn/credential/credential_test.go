@@ -1,11 +1,13 @@
-package credential
+package credential_test
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
 
 	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
 	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
 	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncbor"
@@ -77,7 +79,9 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			got, err := ParseAttestationInput(tt.args)
+			ctx := context.Background()
+
+			got, err := credential.ParseAttestationInput(ctx, tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseCredentialCreationResponse() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -181,7 +185,9 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			if _, err := VerifyAttestationInput(tt.args); (err != nil) != tt.wantErr {
+			ctx := context.Background()
+
+			if _, err := credential.VerifyAttestationInput(ctx, tt.args); (err != nil) != tt.wantErr {
 				t.Errorf("ParsedCredentialCreationData.Verify() error = %+v, wantErr %v", err, tt.wantErr)
 			}
 		})

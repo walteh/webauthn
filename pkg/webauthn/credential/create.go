@@ -1,13 +1,14 @@
 package credential
 
 import (
+	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"log"
 
-	commonerrors "git.nugg.xyz/go-sdk/errors"
+	"github.com/rs/zerolog"
 
-	"git.nugg.xyz/webauthn/pkg/errors"
 	"git.nugg.xyz/webauthn/pkg/hex"
 	"git.nugg.xyz/webauthn/pkg/webauthn/authdata"
 	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
@@ -99,20 +100,20 @@ import (
 // Parse the values returned in the authenticator response and perform attestation verification
 // Step 8. This returns a fully decoded struct with the data put into a format that can be
 // used to verify the user and credential that was created
-func ParseAttestationInput(ccr types.AttestationInput) (*types.AttestationObject, error) {
+func ParseAttestationInput(ctx context.Context, ccr types.AttestationInput) (*types.AttestationObject, error) {
 	p := types.AttestationObject{}
 
 	abc, err := clientdata.ParseClientData(ccr.UTF8ClientDataJSON)
 	if err != nil {
-		return nil, errors.ErrParsingData.WithMessage("Error parsing client data").WithRoot(err).WithCaller()
+		return nil, err
 	}
 
 	p.ClientData = abc
 
 	err = webauthncbor.Unmarshal(ccr.AttestationObject, &p)
 	if err != nil {
-		log.Println("Error unmarshalling cbor attestation object", err)
-		return nil, errors.ErrParsingData.WithInfo(err.Error()).WithCaller()
+		zerolog.Ctx(ctx).Error().Err(err).Msg("Error unmarshalling cbor attestation object")
+		return nil, err
 	}
 
 	// p.RawAuthData = hex.Hash(p.RawAuthData)
@@ -120,7 +121,7 @@ func ParseAttestationInput(ccr types.AttestationInput) (*types.AttestationObject
 	// Step 8. Perform CBOR decoding on the attestationObject field of the AuthenticatorAttestationResponse
 	// structure to obtain the attestation statement format fmt, the authenticator data authData, and
 	// the attestation statement attStmt.
-	dat, err := authdata.ParseAuthenticatorData(p.RawAuthData)
+	dat, err := authdata.ParseAuthenticatorData(ctx, p.RawAuthData)
 	if err != nil {
 		log.Println("Error unmarshalling cbor auth data", err)
 		return nil, fmt.Errorf("error decoding auth data: %v", err)
@@ -131,8 +132,7 @@ func ParseAttestationInput(ccr types.AttestationInput) (*types.AttestationObject
 	p.Extensions = ccr.ClientExtensions
 
 	if !p.AuthData.Flags.HasAttestedCredentialData() {
-		log.Println("Authenticator data does not contain attested credential data")
-		return nil, errors.ErrAttestationFormat.WithInfo("Attestation missing attested credential data flag").WithCaller()
+		return nil, errors.New("Attestation missing attested credential data flag")
 	}
 
 	return &p, nil
@@ -141,15 +141,15 @@ func ParseAttestationInput(ccr types.AttestationInput) (*types.AttestationObject
 // // Verifies the Client and Attestation data as laid out by §7.1. Registering a new credential
 // // https://www.w3.org/TR/webauthn/#registering-a-new-credential
 // Verify - Perform Steps 9 through 14 of registration verification, delegating Steps
-func VerifyAttestationInput(args types.VerifyAttestationInputArgs) (*types.Credential, error) {
+func VerifyAttestationInput(ctx context.Context, args types.VerifyAttestationInputArgs) (*types.Credential, error) {
 
-	attestationObject, err := ParseAttestationInput(args.Input)
+	attestationObject, err := ParseAttestationInput(ctx, args.Input)
 	if err != nil {
-		return nil, errors.ErrParsingData.WithMessage("Error parsing attestation object").WithRoot(err).WithCaller()
+		return nil, err
 	}
 
 	// Handles steps 3 through 6 - Verifying the Client Data against the Relying Party's stored data
-	verifyError := clientdata.Verify(types.VerifyClientDataArgs{
+	verifyError := clientdata.Verify(ctx, types.VerifyClientDataArgs{
 		ClientData:         attestationObject.ClientData,
 		StoredChallenge:    args.StoredChallenge,
 		CeremonyType:       types.CreateCeremony,
@@ -172,7 +172,7 @@ func VerifyAttestationInput(args types.VerifyAttestationInputArgs) (*types.Crede
 	// rpIDHash := sha256.Sum256([]byte(relyingPartyID))
 	// Handle Steps 9 through 12
 
-	authDataVerificationError := authdata.VerifyAuenticatorData(types.VerifyAuenticatorDataArgs{
+	authDataVerificationError := authdata.VerifyAuenticatorData(ctx, types.VerifyAuenticatorDataArgs{
 		Data:                    attestationObject.RawAuthData,
 		RelyingPartyID:          args.RelyingPartyID,
 		AppId:                   "",
@@ -215,14 +215,16 @@ func VerifyAttestationInput(args types.VerifyAttestationInputArgs) (*types.Crede
 	// any of the following steps
 	if attestationObject.Format == "none" {
 		if len(attestationObject.AttStatement) != 0 {
-			return nil, errors.ErrAttestationFormat.WithInfo("Attestation format none with attestation present").WithCaller()
+			err := errors.New("attestation format none with attestation present")
+			zerolog.Ctx(ctx).Error().Err(err).Send()
+			return nil, err
 		}
 		return abc, nil
 	}
 
 	// formatHandler, valid := attestationRegistry[attestationObject.Format]
 	// if !valid {
-	// 	return nil, errors.ErrAttestationFormat.WithInfo(fmt.Sprintf("Attestation format %s is unsupported", attestationObject.Format)).WithCaller()
+	// 	return nil, errors.New(fmt.Sprintf("Attestation format %s is unsupported", attestationObject.Format))
 	// }
 
 	// Step 14. Verify that attStmt is a correct attestation statement, conveying a valid attestation signature, by using
@@ -230,13 +232,19 @@ func VerifyAttestationInput(args types.VerifyAttestationInputArgs) (*types.Crede
 	// client data computed in step 7.
 	pk, attestationType, receipt, err := args.Provider.Attest(*attestationObject, clientDataHash[:])
 	if err != nil {
-		return nil, err.(*commonerrors.Error).WithInfo(attestationType).WithCaller()
+		zerolog.Ctx(ctx).Error().Err(err).
+			Str("attestation_type", attestationType).
+			Any("attestation_object", attestationObject).
+			Msg("Error verifying attestation")
+		return nil, err
 	}
 
 	if len(receipt) > 0 {
 		rec, ok := receipt[0].([]byte)
 		if !ok {
-			return nil, errors.ErrAttestationFormat.WithInfo("Attestation receipt is not a byte array").WithCaller()
+			err := errors.New("attestation receipt is not a byte array")
+			zerolog.Ctx(ctx).Error().Err(err).Send()
+			return nil, err
 		}
 		abc.Receipt = rec
 	}

@@ -47,7 +47,7 @@ func Attest(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cogn
 		return PasskeyAttestationOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
 	}
 
-	cred, invalidErr := credential.VerifyAttestationInput(types.VerifyAttestationInputArgs{
+	cred, invalidErr := credential.VerifyAttestationInput(ctx, types.VerifyAttestationInputArgs{
 		Provider:           providers.NewNoneAttestationProvider(),
 		Input:              parsedResponse,
 		StoredChallenge:    cerem.ChallengeID,
