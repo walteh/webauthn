@@ -51,7 +51,7 @@ import (
 	"encoding/asn1"
 	"errors"
 
-	cferr "github.com/nuggxyz/webauthn/pkg/webauthn/cfssl/errors"
+	cferr "git.nugg.xyz/webauthn/pkg/webauthn/cfssl/errors"
 )
 
 // Types used for asn1 Unmarshaling.

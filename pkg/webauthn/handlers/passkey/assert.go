@@ -4,17 +4,17 @@ import (
 	"context"
 	"log"
 
-	"github.com/nuggxyz/golang/errors"
+	"git.nugg.xyz/go-sdk/errors"
 
-	"github.com/nuggxyz/webauthn/pkg/cognito"
-	"github.com/nuggxyz/webauthn/pkg/dynamo"
-	"github.com/nuggxyz/webauthn/pkg/env"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/assertion"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/extensions"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/providers"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/cognito"
+	"git.nugg.xyz/webauthn/pkg/dynamo"
+	"git.nugg.xyz/webauthn/pkg/env"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/assertion"
+	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
+	"git.nugg.xyz/webauthn/pkg/webauthn/extensions"
+	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
 type PasskeyAssertionInput struct {

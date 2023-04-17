@@ -5,9 +5,9 @@ import (
 
 	"testing"
 
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/challenge"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/challenge"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
 func setupCollectedClientData(challenge []byte) types.CollectedClientData {

@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/nuggxyz/webauthn/pkg/errors"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/webauthncbor"
+	"git.nugg.xyz/webauthn/pkg/errors"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncbor"
 )
 
 const (

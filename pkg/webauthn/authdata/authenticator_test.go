@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
 func TestAuthenticatorFlags_UserPresent(t *testing.T) {

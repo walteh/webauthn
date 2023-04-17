@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/nuggxyz/webauthn/pkg/errors"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/errors"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
 func ParseClientData(clientData string) (types.CollectedClientData, error) {

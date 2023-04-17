@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nuggxyz/webauthn/pkg/dynamo"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/challenge"
+	"git.nugg.xyz/webauthn/pkg/dynamo"
+	"git.nugg.xyz/webauthn/pkg/webauthn/challenge"
 
 	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"

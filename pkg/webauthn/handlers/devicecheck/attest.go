@@ -3,15 +3,15 @@ package devicecheck
 import (
 	"context"
 
-	"github.com/nuggxyz/golang/errors"
+	"git.nugg.xyz/go-sdk/errors"
 
-	"github.com/nuggxyz/webauthn/pkg/dynamo"
-	cerrors "github.com/nuggxyz/webauthn/pkg/errors"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/credential"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/providers"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/dynamo"
+	cerrors "git.nugg.xyz/webauthn/pkg/errors"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
+	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
+	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
 type DeviceCheckAttestationInput struct {

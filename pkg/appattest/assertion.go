@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/nuggxyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/hex"
 
 	"github.com/ugorji/go/codec"
 )

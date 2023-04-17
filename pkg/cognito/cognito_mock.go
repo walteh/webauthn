@@ -3,7 +3,7 @@ package cognito
 import (
 	"context"
 
-	"github.com/nuggxyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"

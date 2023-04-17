@@ -1,10 +1,6 @@
-module github.com/nuggxyz/webauthn
+module git.nugg.xyz/webauthn
 
-go 1.19
-
-replace github.com/nuggxyz/golang v1.0.0 => ../../../shared/golang
-
-require github.com/nuggxyz/golang v1.0.0
+go 1.20
 
 require (
 	github.com/aws/aws-lambda-go v1.36.0

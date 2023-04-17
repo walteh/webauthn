@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"git.nugg.xyz/go-sdk/errors"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/nuggxyz/golang/errors"
 
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/challenge"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/challenge"
 )
 
 type Ceremony struct {

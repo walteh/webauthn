@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/nuggxyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/hex"
 )
 
 type MockHashDeterministicReader struct {

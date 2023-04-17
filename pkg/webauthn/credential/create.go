@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"log"
 
-	commonerrors "github.com/nuggxyz/golang/errors"
+	commonerrors "git.nugg.xyz/go-sdk/errors"
 
-	"github.com/nuggxyz/webauthn/pkg/errors"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/authdata"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/webauthncbor"
+	"git.nugg.xyz/webauthn/pkg/errors"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/authdata"
+	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncbor"
 )
 
 // func VerifyAttestationInput(args types.VerifyAttestationInputArgs) (*types.Credential, error) {

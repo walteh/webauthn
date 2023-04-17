@@ -1,6 +1,6 @@
 package errors
 
-import "github.com/nuggxyz/golang/errors"
+import "git.nugg.xyz/go-sdk/errors"
 
 var (
 	ErrBadRequest             = errors.NewError(0x32).WithType("invalid_request").WithInfo("Error reading the request data")

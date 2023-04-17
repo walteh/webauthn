@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/nuggxyz/webauthn/pkg/applepublickey"
+	"git.nugg.xyz/webauthn/pkg/applepublickey"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"

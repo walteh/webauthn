@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/nuggxyz/webauthn/pkg/errors"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/extensions"
+	"git.nugg.xyz/webauthn/pkg/errors"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/extensions"
 )
 
 func NewDefaultCredentialIdentifier(CredentialID hex.Hash) *CredentialIdentifier {

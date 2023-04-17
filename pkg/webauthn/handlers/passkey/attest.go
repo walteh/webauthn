@@ -3,15 +3,15 @@ package passkey
 import (
 	"context"
 
-	"github.com/nuggxyz/golang/errors"
+	"git.nugg.xyz/go-sdk/errors"
 
-	"github.com/nuggxyz/webauthn/pkg/cognito"
-	"github.com/nuggxyz/webauthn/pkg/dynamo"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/clientdata"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/credential"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/providers"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/cognito"
+	"git.nugg.xyz/webauthn/pkg/dynamo"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
+	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
+	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
 type PasskeyAttestationInput struct {

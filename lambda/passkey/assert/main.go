@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 
-	"github.com/nuggxyz/golang/invocation"
-	"github.com/nuggxyz/webauthn/pkg/cognito"
-	"github.com/nuggxyz/webauthn/pkg/dynamo"
-	"github.com/nuggxyz/webauthn/pkg/env"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/handlers/passkey"
+	"git.nugg.xyz/go-sdk/invocation"
+	"git.nugg.xyz/webauthn/pkg/cognito"
+	"git.nugg.xyz/webauthn/pkg/dynamo"
+	"git.nugg.xyz/webauthn/pkg/env"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/handlers/passkey"
 
 	"os"
 

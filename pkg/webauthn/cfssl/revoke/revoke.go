@@ -18,8 +18,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nuggxyz/webauthn/pkg/webauthn/cfssl/helpers"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/cfssl/log"
+	"git.nugg.xyz/webauthn/pkg/webauthn/cfssl/helpers"
+	"git.nugg.xyz/webauthn/pkg/webauthn/cfssl/log"
 
 	"golang.org/x/crypto/ocsp"
 )

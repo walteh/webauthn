@@ -3,8 +3,8 @@ package types
 import (
 	"strconv"
 
-	"github.com/nuggxyz/golang/errors"
-	"github.com/nuggxyz/webauthn/pkg/hex"
+	"git.nugg.xyz/go-sdk/errors"
+	"git.nugg.xyz/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )

@@ -1,8 +1,8 @@
 package providers
 
 import (
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 )
 
 type NoneAttestationProvider struct{}

@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nuggxyz/webauthn/pkg/errors"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/metadata"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/errors"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/metadata"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 
 	"github.com/google/uuid"
 
-	"github.com/nuggxyz/webauthn/pkg/webauthn/webauthncose"
+	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncose"
 )
 
 // From §8.2. https://www.w3.org/TR/webauthn/#packed-attestation

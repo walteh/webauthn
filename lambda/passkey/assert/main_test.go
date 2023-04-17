@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nuggxyz/webauthn/pkg/cognito"
-	"github.com/nuggxyz/webauthn/pkg/dynamo"
-	"github.com/nuggxyz/webauthn/pkg/hex"
-	"github.com/nuggxyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/webauthn/pkg/cognito"
+	"git.nugg.xyz/webauthn/pkg/dynamo"
+	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 
 	"reflect"
 	"testing"
