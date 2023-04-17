@@ -5,47 +5,87 @@
 			"name": "root"
 		},
 		{
-			"path": "../core"
-		},
-		{
-			"path": "../integration"
-		},
-		{
+			"name": "terraform",
 			"path": "../terraform"
 		}
 	],
 	"settings": {
-		"yaml.format.enable": true,
-		"gitlens.codeLens.enabled": false,
+		/* //////////////////////////////////////////////
+							VSCODE
+		////////////////////////////////////////////// */
 		"workbench.tree.indent": 16,
 		"editor.formatOnSave": true,
-		"terraform.experimentalFeatures.validateOnSave": true,
+		"search.useIgnoreFiles": true,
+		"debug.console.wordWrap": false,
+		/* //////////////////////////////////////////////
+							FILES
+		////////////////////////////////////////////// */
+		"material-icon-theme.folders.associations": {
+			"dynamo": "database",
+			"mw": "middleware",
+			"ecs": "container",
+			"logs": "batch",
+			"blocks": "queue",
+			"structure": "database",
+			"events": "api",
+			"integrity": "admin",
+			"internal": "core",
+		},
+		"material-icon-theme.files.associations": {
+			".buildrc": "auto",
+			"*.bats": "tune",
+			"justfile": "makefile",
+		},
+		"files.exclude": {
+			"terraform/": true,
+			".plan": true,
+		},
+		"files.associations": {
+			".buildrc": "yaml",
+		},
+		/* //////////////////////////////////////////////
+							  GO
+		////////////////////////////////////////////// */
+		"go.testTimeout": "90s",
+		/* //////////////////////////////////////////////
+							YAML
+		////////////////////////////////////////////// */
+		"yaml.format.enable": true,
+		"[yaml]": {
+			"editor.defaultFormatter": "redhat.vscode-yaml",
+			"editor.bracketPairColorization.enabled": true,
+			"editor.formatOnSave": true,
+		},
+		"yaml.style.flowSequence": "allow",
+		"yaml.style.flowMapping": "allow",
+		"yaml.format.proseWrap": "preserve",
+		"yaml.format.singleQuote": false,
+		"yaml.extension.recommendations": true,
+		/* //////////////////////////////////////////////
+							TERRAFORM
+		////////////////////////////////////////////// */
+		"terraform.codelens.referenceCount": false,
 		"terraform.languageServer.enable": true,
-		"terraform.codelens.referenceCount": true,
-		"workbench.editor.splitInGroupLayout": "vertical",
+		"terraform.experimentalFeatures.validateOnSave": true,
 		"[terraform]": {
-			"editor.defaultFormatter": "hashicorp.terraform",
+			"editor.defaultFormatter": "hashicorp.terraform-preview",
 			"editor.formatOnSave": false,
 			"editor.codeActionsOnSave": {
-				"source.formatAll.terraform": true
+				"source.formatAll.terraform": false
 			},
 		},
 		"[terraform-vars]": {
-			"editor.defaultFormatter": "hashicorp.terraform",
+			"editor.defaultFormatter": "hashicorp.terraform-preview",
 			"editor.formatOnSave": false,
 			"editor.codeActionsOnSave": {
 				"source.formatAll.terraform": true
 			},
-		},
-		"material-icon-theme.folders.associations": {
-			"dynamo": "database",
-			"webauthn": "guard",
 		},
 		"emeraldwalk.runonsave": {
 			"commands": [
 				{
 					"match": "\\.tf$|\\.tfvars$|\\.hcl$|\\.hclvars$",
-					"cmd": "sed -e':a' -e's/^\\(\t*\\)  /\\1\t/;ta' \"${file}\" > \"${file}\"-notab && mv \"${file}\"-notab \"${file}\""
+					"cmd": "terraform fmt \"${file}\" && sed -e':a' -e's/^\\(\\t*\\)  /\\1\\t/;ta' \"${file}\" > \"${file}\"-notab && mv \"${file}\"-notab \"${file}\""
 				},
 			]
 		},
