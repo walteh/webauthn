@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"log"
 
+	"git.nugg.xyz/go-sdk/ssm"
 	"git.nugg.xyz/webauthn/pkg/applepublickey"
 	"git.nugg.xyz/webauthn/pkg/cognito"
 	"git.nugg.xyz/webauthn/pkg/dynamo"
 	"git.nugg.xyz/webauthn/pkg/env"
-	"git.nugg.xyz/webauthn/pkg/secretsmanager"
 	"git.nugg.xyz/webauthn/pkg/signinwithapple"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -27,7 +27,7 @@ type Handler struct {
 	Cognito         cognito.Client
 	SignInWithApple *signinwithapple.Client
 	ApplePublicKey  *applepublickey.Client
-	SecretsManager  *secretsmanager.Client
+	SecretsManager  *ssm.Client
 	Config          config.Config
 	counter         int
 }
@@ -51,7 +51,7 @@ func main() {
 		Cognito:         cognito.NewClient(cfg, env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
 		SignInWithApple: signinwithapple.NewClient(env.AppleTokenEndpoint(), env.AppleTeamID(), env.AppleServiceName(), env.SignInWithApplePrivateKeyID()),
 		ApplePublicKey:  applepublickey.NewClient(env.ApplePublicKeyEndpoint()),
-		SecretsManager:  secretsmanager.NewClient(ctx, cfg, env.SignInWithApplePrivateKeyName()),
+		SecretsManager:  ssm.NewClient(ctx, cfg, env.SignInWithApplePrivateKeyName()),
 		Config:          cfg,
 		counter:         0,
 	}

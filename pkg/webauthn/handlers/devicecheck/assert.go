@@ -7,8 +7,8 @@ import (
 	"git.nugg.xyz/go-sdk/errors"
 
 	"git.nugg.xyz/go-sdk/env"
-	cerrors "git.nugg.xyz/go-sdk/errors"
 	"git.nugg.xyz/webauthn/pkg/dynamo"
+	cerrors "git.nugg.xyz/webauthn/pkg/errors"
 
 	"git.nugg.xyz/webauthn/pkg/hex"
 	"git.nugg.xyz/webauthn/pkg/webauthn/assertion"

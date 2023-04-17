@@ -24,6 +24,8 @@ type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
 type Handler struct {
+	*invocation.Handler[Input, Output]
+
 	Id      string
 	Dynamo  *dynamo.Client
 	Config  config.Config
@@ -71,7 +73,7 @@ func main() {
 
 func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 
-	inv, ctx := invocation.NewInvocation(ctx, h, input)
+	inv, ctx := h.NewInvocation(ctx, input)
 
 	authenticatorData := hex.HexToHash(input.Headers["x-nugg-hex-authenticator-data"])
 	credentialId := hex.HexToHash(input.Headers["x-nugg-hex-credential-id"])
@@ -99,5 +101,10 @@ func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
 		return inv.Error(err, res.SuggestedStatusCode, "failed to assert passkey")
 	}
 
-	return inv.Success(204, map[string]string{"x-nugg-utf-access-token": res.AccessToken}, "")
+	return inv.Success(Output{
+		Headers: map[string]string{
+			"x-nugg-utf-access-token": res.AccessToken,
+		},
+		StatusCode: 204,
+	})
 }
