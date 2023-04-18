@@ -2,14 +2,15 @@ package passkey
 
 import (
 	"context"
-	"log"
 
+	"git.nugg.xyz/go-sdk/dynamo"
 	"git.nugg.xyz/go-sdk/errors"
+	"git.nugg.xyz/go-sdk/x"
 
 	"git.nugg.xyz/webauthn/pkg/cognito"
 	"git.nugg.xyz/webauthn/pkg/constants"
-	"git.nugg.xyz/webauthn/pkg/dynamo"
 	"git.nugg.xyz/webauthn/pkg/hex"
+	"git.nugg.xyz/webauthn/pkg/structure"
 	"git.nugg.xyz/webauthn/pkg/webauthn/assertion"
 	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
 	"git.nugg.xyz/webauthn/pkg/webauthn/extensions"
@@ -30,7 +31,7 @@ type PasskeyAssertionOutput struct {
 	AccessToken         string
 }
 
-func Assert(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cognito.Client, assert PasskeyAssertionInput) (PasskeyAssertionOutput, error) {
+func Assert(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cognito.Client, assert PasskeyAssertionInput) (PasskeyAssertionOutput, error) {
 	var err error
 
 	input := types.AssertionInput{
@@ -49,19 +50,19 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cogn
 		return PasskeyAssertionOutput{400, ""}, err
 	}
 
-	cred := types.NewUnsafeGettableCredential(input.CredentialID)
+	cred := structure.NewCredentialQueryable(input.CredentialID.Hex())
 	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
 
-	if err = dynamoClient.TransactGet(ctx, cred, cerem); err != nil {
-		return PasskeyAssertionOutput{502, ""}, err
-	}
+	// if err = dynamoClient.TransactGet(ctx, cred, cerem); err != nil {
+	// 	return PasskeyAssertionOutput{502, ""}, err
+	// }
 
-	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
-		log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
-		return PasskeyAssertionOutput{401, ""}, errors.NewError(0x67).WithMessage("credential id does not match").WithCaller()
-	}
+	// if cred.RawID.Hex() != cerem.CredentialID.Hex() {
+	// 	log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
+	// 	return PasskeyAssertionOutput{401, ""}, errors.NewError(0x67).WithMessage("credential id does not match").WithCaller()
+	// }
 
-	z, err := cognitoClient.GetDevCreds(ctx, cerem.CredentialID)
+	z, err := cognitoClient.GetDevCreds(ctx, input.CredentialID)
 	if err != nil {
 		return PasskeyAssertionOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling cognito").WithRoot(err).WithCaller()
 	}
@@ -83,6 +84,8 @@ func Assert(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cogn
 	}); validError != nil {
 		return PasskeyAssertionOutput{401, ""}, validError
 	}
+
+	txs := x.IndexableIncrement(ctx, cred, x.NewCustomLastModifier(0, false), dynamo.N(1))
 
 	credentialUpdate, err := cred.UpdateIncreasingCounter(dynamoClient.MustCredentialTableName())
 	if err != nil {

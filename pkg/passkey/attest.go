@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"git.nugg.xyz/go-sdk/errors"
+	"git.nugg.xyz/go-sdk/x"
 
 	"git.nugg.xyz/webauthn/pkg/cognito"
-	"git.nugg.xyz/webauthn/pkg/dynamo"
 	"git.nugg.xyz/webauthn/pkg/hex"
 	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
 	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
@@ -25,7 +25,7 @@ type PasskeyAttestationOutput struct {
 	AccessToken         string
 }
 
-func Attest(ctx context.Context, dynamoClient *dynamo.Client, cognitoClient cognito.Client, assert PasskeyAttestationInput) (PasskeyAttestationOutput, error) {
+func Attest(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cognito.Client, assert PasskeyAttestationInput) (PasskeyAttestationOutput, error) {
 	var err error
 
 	parsedResponse := types.AttestationInput{
