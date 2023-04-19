@@ -16,14 +16,25 @@ import (
 type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
-type Handler struct {
+type Handler[D x.DynamoDBAPI] struct {
 	*invocation.Handler[Input, Output]
 
 	Dynamo  x.DynamoDBAPI
 	Cognito cognito.Client
 }
 
-func NewHandler() (*Handler, error) {
+func buildHandler[D x.DynamoDBAPI](h *invocation.Handler[Input, Output], d D, c cognito.Client) (*Handler[D], error) {
+
+	abc := &Handler[D]{
+		Handler: h,
+		Dynamo:  d,
+		Cognito: c,
+	}
+
+	return abc, nil
+}
+
+func NewHandler() (*Handler[x.DynamoDBAPI], error) {
 
 	ctx := context.Background()
 
@@ -33,15 +44,14 @@ func NewHandler() (*Handler, error) {
 
 	api := x.NewDynamoDBAPI(dbc, "")
 
-	abc := &Handler{
-		Dynamo:  api,
-		Cognito: cognito.NewClient(*handler.Opts().AwsConfig(), env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName()),
-	}
+	cog := cognito.NewClient(*handler.Opts().AwsConfig(), env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName())
+
+	abc, _ := buildHandler(handler, api, cog)
 
 	return abc, nil
 }
 
-func (h *Handler) Invoke(ctx context.Context, input Input) (Output, error) {
+func (h *Handler[D]) Invoke(ctx context.Context, input Input) (Output, error) {
 
 	inv, ctx := h.NewInvocation(ctx, input)
 

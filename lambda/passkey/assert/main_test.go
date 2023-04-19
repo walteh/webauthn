@@ -13,10 +13,13 @@ import (
 	"testing"
 
 	dynamodb_mock "git.nugg.xyz/go-sdk/dynamo/mock"
+	"git.nugg.xyz/go-sdk/invocation"
 	"git.nugg.xyz/go-sdk/mock"
+	"git.nugg.xyz/go-sdk/x"
 
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/rs/zerolog"
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 func TestMain(m *testing.M) {
@@ -27,21 +30,15 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func DummyHandler(t *testing.T) *Handler {
+func DummyHandler(t *testing.T) *Handler[x.DynamoDBAPIProvisioner] {
 
-	cfg := mock.AwsConfig()
-	ctx := context.Background()
-	_, dynamoClient := dynamodb_mock.NewMockAPIFromTerraform(t, ctx, cfg, "../../../terraform/dynamo.tf")
+	h := invocation.NewDefaultTestHandler[Input, Output]()
 
-	return &Handler{
-		Id:      "test",
-		Ctx:     context.Background(),
-		Dynamo:  dynamoClient,
-		Config:  nil,
-		Cognito: cognito.NewMockClient(),
-		logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
-		counter: 0,
-	}
+	_, dynamoClient := dynamodb_mock.NewMockAPIFromTerraform(t, h.Ctx(), *h.Opts().AwsConfig(), "../../../terraform/dynamo.tf")
+
+	prov, _ := buildHandler(h, dynamoClient, cognito.NewMockClient())
+
+	return prov
 }
 
 var arg = fmt.Sprintf(
@@ -90,7 +87,6 @@ func TestHandler_Invoke(t *testing.T) {
 						"created_at":    types.N("1668984054"),
 						"ttl":           types.N("1668984354"),
 					},
-					TableName: &Handler.Dynamo.CeremonyTableName,
 				},
 				{
 					Item: map[string]dtypes.AttributeValue{
@@ -106,7 +102,6 @@ func TestHandler_Invoke(t *testing.T) {
 						"credential_id":    types.S("0x7053ed09000cfafdd6e1d98d929796f9c07c466b"),
 						"credential_type":  types.S("public-key"),
 					},
-					TableName: &Handler.Dynamo.CredentialTableName,
 				},
 			},
 
@@ -116,17 +111,20 @@ func TestHandler_Invoke(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			Handler := DummyHandler(t)
+			hnd := DummyHandler(t)
 
 			for _, put := range tt.puts {
-				_, err := Handler.Dynamo.PutItem(ctx, &put)
+				_, err := hnd.Dynamo.PutItem(hnd.Ctx(), &dynamodb.PutItemInput{
+					TableName: aws.String("nugg-credentials"),
+					Item:      put.Item,
+				})
 				if err != nil {
 					t.Errorf("Handler.Invoke() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
 			}
 
-			got, err := Handler.Invoke(context.Background(), tt.args)
+			got, err := hnd.Invoke(context.Background(), tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Handler.Invoke() error = %v, wantErr %v", err, tt.wantErr)
 				return

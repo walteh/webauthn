@@ -24,6 +24,8 @@ type PasskeyAssertionInput struct {
 	UTF8ClientDataJSON   string   `json:"rawClientDataJSON"`
 	RawAuthenticatorData hex.Hash `json:"rawAuthenticatorData"`
 	RawSignature         hex.Hash `json:"signature"`
+	PublicKey            hex.Hash `json:"publicKey"`
+	AAGUID               hex.Hash `json:"aaguid"`
 }
 
 type PasskeyAssertionOutput struct {
@@ -50,8 +52,8 @@ func Assert(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cogni
 		return PasskeyAssertionOutput{400, ""}, err
 	}
 
-	cred := structure.NewCredentialQueryable(input.CredentialID.Hex())
-	cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
+	// cred := structure.NewCredentialQueryable(input.CredentialID.Hex())
+	// cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
 
 	// if err = dynamoClient.TransactGet(ctx, cred, cerem); err != nil {
 	// 	return PasskeyAssertionOutput{502, ""}, err
@@ -70,20 +72,26 @@ func Assert(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cogni
 	// Handle steps 4 through 16
 	if validError := assertion.VerifyAssertionInput(ctx, types.VerifyAssertionInputArgs{
 		Input:                          input,
-		StoredChallenge:                cerem.ChallengeID,
+		StoredChallenge:                cd.Challenge,
 		RelyingPartyID:                 constants.RPID(),
 		RelyingPartyOrigin:             constants.RPOrigin(),
 		CredentialAttestationType:      types.NotFidoAttestationType,
 		AttestationProvider:            providers.NewNoneAttestationProvider(),
-		AAGUID:                         cred.AAGUID,
+		AAGUID:                         assert.AAGUID,
 		VerifyUser:                     false,
-		CredentialPublicKey:            cred.PublicKey,
+		CredentialPublicKey:            assert.PublicKey,
 		Extensions:                     extensions.ClientInputs{},
 		DataSignedByClient:             hex.Hash([]byte(input.RawClientDataJSON)),
 		UseSavedAttestedCredentialData: false,
 	}); validError != nil {
 		return PasskeyAssertionOutput{401, ""}, validError
 	}
+
+	// verify the aaguid matches
+	// verify the public key matches
+
+	cred := structure.NewCredentialQueryable(input.CredentialID.Hex())
+	cerem := structure.NewCeremonyQueryable(cd.Challenge.Hex())
 
 	txs := x.IndexableIncrement(ctx, cred, x.NewCustomLastModifier(0, false), dynamo.N(1))
 

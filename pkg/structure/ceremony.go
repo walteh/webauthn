@@ -8,6 +8,7 @@ import (
 var _ x.Indexable = (*Ceremony)(nil)
 
 type Ceremony struct {
+	PK string `dynamo:"pk"`
 }
 
 func (c *Ceremony) ResolvableTableName() string {
@@ -40,6 +41,8 @@ func (c *Ceremony) Combine([]x.Indexable) error {
 func (c *Ceremony) ToProtobuf() protoreflect.ProtoMessage {
 	return nil
 }
-func NewCeremonyQueryable() *Ceremony {
-	return &Ceremony{}
+func NewCeremonyQueryable(id string) *Ceremony {
+	return &Ceremony{
+		PK: "ceremony",
+	}
 }

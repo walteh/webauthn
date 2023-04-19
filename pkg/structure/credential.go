@@ -1,6 +1,8 @@
 package structure
 
 import (
+	"reflect"
+
 	"git.nugg.xyz/go-sdk/x"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -8,7 +10,19 @@ import (
 var _ x.Indexable = (*Credential)(nil)
 
 type Credential struct {
-	Id string `dynamo:"pk,hash"`
+	Id           string `dynamo:"pk,hash"`
+	SessionCount int    `dynamo:"sk,range"`
+}
+
+/*///////////////////////////////////////////////////////////////////
+ ///                     STRUCT FIELDS 							 ///
+///////////////////////////////////////////////////////////////////*/
+
+func CredentialSessionCountStructField() reflect.StructField {
+	tmp := Credential{}
+	_ = tmp.SessionCount
+	f, _ := reflect.TypeOf(tmp).FieldByName("SessionCount")
+	return f
 }
 
 func (c *Credential) ResolvableTableName() string {
