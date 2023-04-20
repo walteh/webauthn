@@ -93,7 +93,13 @@ func Assert(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cogni
 	cred := structure.NewCredentialQueryable(input.CredentialID.Hex())
 	cerem := structure.NewCeremonyQueryable(cd.Challenge.Hex())
 
+	// add session to list of sessions for this credential
 	txs := x.IndexableIncrement(ctx, cred, x.NewCustomLastModifier(0, false), dynamo.N(1))
+
+	// make sure the ceremony has not expired
+	// we should have some sort of ttl on it - need to make sure of that
+	// in our indexable increment or append of the session to a list, we will validate the ceremony has not been used
+	// tx2 := x.Ind
 
 	credentialUpdate, err := cred.UpdateIncreasingCounter(dynamoClient.MustCredentialTableName())
 	if err != nil {
