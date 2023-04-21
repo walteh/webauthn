@@ -12,11 +12,11 @@ type Ceremony struct {
 }
 
 func (c *Ceremony) ResolvableTableName() string {
-	return "ceremony"
+	return "challenge"
 }
 
 func (c *Ceremony) IsWorthy(primary, secondary string) bool {
-	return primary == "ceremony"
+	return primary == "challenge"
 }
 
 func (c *Ceremony) PrimaryIndex() *x.DynamoDBIndex {
@@ -41,8 +41,8 @@ func (c *Ceremony) Combine([]x.Indexable) error {
 func (c *Ceremony) ToProtobuf() protoreflect.ProtoMessage {
 	return nil
 }
-func NewCeremonyQueryable(id string) *Ceremony {
+func NewChallengeQueryable(id string) *Ceremony {
 	return &Ceremony{
-		PK: "ceremony",
+		PK: id,
 	}
 }

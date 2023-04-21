@@ -26,7 +26,7 @@ func CredentialSessionCountStructField() reflect.StructField {
 }
 
 func (c *Credential) ResolvableTableName() string {
-	return "ceremony"
+	return "credential"
 }
 
 func (c *Credential) IsWorthy(primary, secondary string) bool {

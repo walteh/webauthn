@@ -121,7 +121,7 @@ func MustGetTables(fmtr string, key string) *Tables {
 
 func DummyTables() *Tables {
 	return &Tables{
-		Credential: ("creds"),
+		Credential: ("credentials"),
 		Ceremony:   ("ceremonies"),
 	}
 }

@@ -32,7 +32,7 @@ func TestIndexesAgainstTerraform(t *testing.T) {
 		},
 		{
 			name:      "Ceremony",
-			indexable: structure.NewCeremonyQueryable(),
+			indexable: structure.NewChallengeQueryable(""),
 			table:     p.Ceremony,
 		},
 	}
