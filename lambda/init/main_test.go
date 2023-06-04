@@ -13,7 +13,7 @@ import (
 )
 
 func DummyHandler(t *testing.T) *Handler {
-	dynamoClient := dynamo.NewMockClient(t)
+	dynamoClient := x.NewMockClient(t)
 
 	return &Handler{
 		Id:      "test",

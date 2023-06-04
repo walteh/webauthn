@@ -151,7 +151,7 @@ func TestAttest(t *testing.T) {
 
 			client := dynamo.NewMockClient(t)
 
-			dynamo.MockBatchPut(t, client, tt.puts...)
+			dynamo.MockBatchPut(t, client, tt.puts)
 
 			got, err := Attest(context.Background(), client, tt.input)
 			if err != nil && !tt.wantErr {
@@ -171,7 +171,7 @@ func TestAttest(t *testing.T) {
 				t.Errorf("Handler.Invoke() = %v, want %v", got, tt.want)
 			}
 
-			dynamo.MockBatchCheck(t, client, tt.checks...)
+			dynamo.MockBatchCheck(t, client, tt.checks)
 
 		})
 	}

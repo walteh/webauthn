@@ -66,15 +66,13 @@ func Attest(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cogni
 		return PasskeyAttestationOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling cognito").WithRoot(err).WithCaller()
 	}
 
-	credput, err := dynamoClient.BuildPut(cred)
-	if err != nil {
-		return PasskeyAttestationOutput{500, ""}, errors.NewError(0x99).WithMessage("problem building credential put").WithRoot(err).WithCaller()
-	}
+	// put
+	credput := x.IndexablePut(cred, false)
 
-	ceremput, err := dynamoClient.BuildDelete(cerem)
-	if err != nil {
-		return PasskeyAttestationOutput{500, ""}, errors.NewError(0x99).WithMessage("problem building ceremony put").WithRoot(err).WithCaller()
-	}
+	// should be a delete
+	ceremput := x.IndexablePut(cerem, true)
+
+	x.N
 
 	err = dynamoClient.TransactWrite(ctx, *credput, *ceremput)
 	if err != nil {
