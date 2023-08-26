@@ -1,9 +1,8 @@
-module git.nugg.xyz/webauthn
+module github.com/walteh/webauthn
 
-go 1.20
+go 1.21
 
 require (
-	git.nugg.xyz/go-sdk v0.0.36
 	github.com/aws/aws-lambda-go v1.40.0
 	github.com/aws/aws-sdk-go v1.44.253
 	github.com/aws/aws-sdk-go-v2 v1.18.0
