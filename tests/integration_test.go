@@ -6,7 +6,7 @@ import (
 
 	"github.com/docker/distribution/reference"
 	"github.com/moby/buildkit/util/testutil/integration"
-	"github.com/walteh/buildrc/tests/workers"
+	"github.com/walteh/webauthn/tests/workers"
 )
 
 func init() {

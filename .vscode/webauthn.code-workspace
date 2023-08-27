@@ -37,7 +37,6 @@
 			"justfile": "makefile",
 		},
 		"files.exclude": {
-			"terraform/": true,
 			".plan": true,
 		},
 		"files.associations": {
@@ -72,14 +71,14 @@
 		"terraform.languageServer.enable": true,
 		"terraform.experimentalFeatures.validateOnSave": true,
 		"[terraform]": {
-			"editor.defaultFormatter": "hashicorp.terraform-preview",
+			"editor.defaultFormatter": "hashicorp.terraform",
 			"editor.formatOnSave": false,
 			"editor.codeActionsOnSave": {
 				"source.formatAll.terraform": false
 			},
 		},
 		"[terraform-vars]": {
-			"editor.defaultFormatter": "hashicorp.terraform-preview",
+			"editor.defaultFormatter": "hashicorp.terraform",
 			"editor.formatOnSave": false,
 			"editor.codeActionsOnSave": {
 				"source.formatAll.terraform": true
