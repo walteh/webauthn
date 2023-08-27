@@ -13,10 +13,6 @@ variable "GENDIR" {
 	default = "./gen"
 }
 
-variable "GO_PKG" {
-	default = "github.com/walteh/webauthn"
-}
-
 variable "DOCKER_IMAGE" {
 	default = "walteh/webauthn"
 }
@@ -30,7 +26,6 @@ target "_common" {
 		GO_VERSION                    = GO_VERSION
 		BUILDKIT_CONTEXT_KEEP_GIT_DIR = 1
 		DOCKER_IMAGE                  = DOCKER_IMAGE
-		GO_PKG                        = GO_PKG
 		BIN_NAME                      = BIN_NAME
 	}
 }

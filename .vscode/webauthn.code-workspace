@@ -80,11 +80,21 @@
 				"source.formatAll.terraform": true
 			},
 		},
+		/* //////////////////////////////////////////////
+							PROTO
+		////////////////////////////////////////////// */
+		"[proto3]": {
+			"editor.formatOnSave": false,
+		},
 		"emeraldwalk.runonsave": {
 			"commands": [
 				{
-					"match": "\\.tf$|\\.tfvars$|\\.hcl$|\\.hclvars$",
-					"cmd": "terraform fmt \"${file}\" && sed -e':a' -e's/^\\(\\t*\\)  /\\1\\t/;ta' \"${file}\" > \"${file}\"-notab && mv \"${file}\"-notab \"${file}\""
+					"match": "\\.tf$|\\.tfvars$|\\.hcl$|\\.hclvars$|\\.hcl2$",
+					"cmd": "~/.tftab/tftab hcl \"${file}\""
+				},
+				{
+					"match": "\\.proto$|\\.proto3$",
+					"cmd": "~/.tftab/tftab buf \"${file}\""
 				},
 			]
 		},
