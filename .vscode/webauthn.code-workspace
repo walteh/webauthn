@@ -4,10 +4,6 @@
 			"path": "..",
 			"name": "root"
 		},
-		{
-			"name": "terraform",
-			"path": "../terraform"
-		}
 	],
 	"settings": {
 		/* //////////////////////////////////////////////
