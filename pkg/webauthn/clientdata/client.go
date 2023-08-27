@@ -28,11 +28,11 @@ func ParseClientData(clientData string) (types.CollectedClientData, error) {
 // and https://www.w3.org/TR/webauthn/#verifying-assertion
 func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 
-	real := expected.ClientData
+	r := expected.ClientData
 	// Registration Step 3. Verify that the value of C.type is webauthn.create.
 
 	// Assertion Step 7. Verify that the value of C.type is the string webauthn.get.
-	if real.Type != expected.CeremonyType {
+	if r.Type != expected.CeremonyType {
 		return errd.Wrap(ctx, ErrInvalidCeremonyType)
 	}
 
@@ -43,7 +43,7 @@ func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 	// that was sent to the authenticator in the PublicKeyCredentialRequestOptions
 	// passed to the get() call.
 
-	// challenge := real.Challenge
+	// challenge := r.Challenge
 
 	// rdata, err := base64.RawURLEncoding.DecodeString(challenge)
 	// if err != nil {
@@ -54,13 +54,13 @@ func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 
 	// log.Println(abc)
 
-	if subtle.ConstantTimeCompare(expected.StoredChallenge, real.Challenge) != 1 {
-		return errd.Mismatch(ctx, ErrChallengeMismatch, string(expected.StoredChallenge), string(real.Challenge))
+	if subtle.ConstantTimeCompare(expected.StoredChallenge, r.Challenge) != 1 {
+		return errd.Mismatch(ctx, ErrChallengeMismatch, string(expected.StoredChallenge), string(r.Challenge))
 	}
 
 	// Registration Step 5 & Assertion Step 9. Verify that the value of C.origin matches
 	// the Relying Party's origin.
-	clientDataOrigin, err := url.Parse(real.Origin)
+	clientDataOrigin, err := url.Parse(r.Origin)
 	if err != nil {
 		return errd.Wrap(ctx, ErrOriginNotParsableAsURL)
 	}
@@ -73,11 +73,11 @@ func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 	// matches the state of Token Binding for the TLS connection over which the assertion was
 	// obtained. If Token Binding was used on that TLS connection, also verify that C.tokenBinding.id
 	// matches the base64url encoding of the Token Binding ID for the connection.
-	if real.TokenBinding != nil {
-		if real.TokenBinding.Status == "" {
+	if r.TokenBinding != nil {
+		if r.TokenBinding.Status == "" {
 			return errd.Wrap(ctx, ErrTokenMissingStatus)
 		}
-		if real.TokenBinding.Status != types.Present && real.TokenBinding.Status != types.Supported && real.TokenBinding.Status != types.NotSupported {
+		if r.TokenBinding.Status != types.Present && r.TokenBinding.Status != types.Supported && r.TokenBinding.Status != types.NotSupported {
 			return errd.Wrap(ctx, ErrTokenInvalidStatus)
 		}
 	}

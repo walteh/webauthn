@@ -10,8 +10,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/walteh/webauthn/pkg/webauthn/cfssl/revoke"
-
+	"github.com/cloudflare/cfssl/revoke"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
