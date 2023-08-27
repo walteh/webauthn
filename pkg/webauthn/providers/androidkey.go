@@ -27,6 +27,8 @@ var (
 	ErrAndroidKey = errors.New("ErrAndroidKey")
 )
 
+var _ types.AttestationProvider = (*AndroidKey)(nil)
+
 // From §8.4. https://www.w3.org/TR/webauthn/#android-key-attestation
 // The android-key attestation statement looks like:
 // $$attStmtType //= (
