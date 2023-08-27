@@ -8,7 +8,7 @@
     mockname: "Mock{{.InterfaceName}}_{{.PackageName}}",
     packages:
         {
-            github.com/aws/aws-sdk-go-v2/service/cognitoidentity:
-                { interfaces: { Client: {} } },
+            github.com/walteh/webauthn/pkg/accesstoken/cognito:
+                { interfaces: { AWSCognitoClient: {} } },
         },
 }
