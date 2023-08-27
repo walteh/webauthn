@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/webauthn/pkg/dynamo"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/dynamo"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 
 	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog"

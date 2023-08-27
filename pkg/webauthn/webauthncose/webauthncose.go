@@ -15,8 +15,8 @@ import (
 
 	"golang.org/x/crypto/ed25519"
 
-	"git.nugg.xyz/webauthn/pkg/webauthn/googletpm"
-	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncbor"
+	"github.com/walteh/webauthn/pkg/webauthn/googletpm"
+	"github.com/walteh/webauthn/pkg/webauthn/webauthncbor"
 )
 
 // PublicKeyData The public key portion of a Relying Party-specific credential key pair, generated

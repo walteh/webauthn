@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"time"
 
-	"git.nugg.xyz/webauthn/pkg/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/metadata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/pkg/errors"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/metadata"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/mitchellh/mapstructure"
@@ -25,7 +25,12 @@ func (me *SafetynetAttestationProvider) ID() string {
 
 func NewSafetynetAttestationProvider() *SafetynetAttestationProvider {
 	return &SafetynetAttestationProvider{}
+
 }
+
+var (
+	ErrSafetyNet = errors.New("ErrSafetyNet")
+)
 
 type SafetyNetResponse struct {
 	Nonce                      string        `json:"nonce"`
@@ -67,18 +72,18 @@ func (me *SafetynetAttestationProvider) Handler(att types.AttestationObject, cli
 	// §8.5.2 Verify that response is a valid SafetyNet response of version ver.
 	version, present := att.AttStatement["ver"].(string)
 	if !present {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Unable to find the version of SafetyNet")
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, "Unable to find the version of SafetyNet")
 	}
 
 	if version == "" {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Not a proper version for SafetyNet")
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, "Not a proper version for SafetyNet")
 	}
 
 	// TODO: provide user the ability to designate their supported versions
 
 	response, present := att.AttStatement["response"].([]byte)
 	if !present {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Unable to find the SafetyNet response")
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, "Unable to find the SafetyNet response")
 	}
 
 	token, err := jwt.Parse(string(response), func(token *jwt.Token) (interface{}, error) {
@@ -89,14 +94,14 @@ func (me *SafetynetAttestationProvider) Handler(att types.AttestationObject, cli
 		return cert.PublicKey, err
 	})
 	if err != nil {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error finding cert issued to correct hostname: %+v", err))
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, fmt.Sprintf("Error finding cert issued to correct hostname: %+v", err))
 	}
 
 	// marshall the JWT payload into the safetynet response json
 	var safetyNetResponse SafetyNetResponse
 	err = mapstructure.Decode(token.Claims, &safetyNetResponse)
 	if err != nil {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage(fmt.Sprintf("Error parsing the SafetyNet response: %+v", err))
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, fmt.Sprintf("Error parsing the SafetyNet response: %+v", err))
 	}
 
 	// §8.5.3 Verify that the nonce in the response is identical to the Base64 encoding of the SHA-256 hash of the concatenation
@@ -104,7 +109,7 @@ func (me *SafetynetAttestationProvider) Handler(att types.AttestationObject, cli
 	nonceBuffer := sha256.Sum256(append(att.RawAuthData, clientDataHash...))
 	nonceBytes, err := base64.StdEncoding.DecodeString(safetyNetResponse.Nonce)
 	if !bytes.Equal(nonceBuffer[:], nonceBytes) || err != nil {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage("Invalid nonce for in SafetyNet response")
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, "Invalid nonce for in SafetyNet response")
 	}
 
 	// §8.5.4 Let attestationCert be the attestation certificate (https://www.w3.org/TR/webauthn/#attestation-certificate)
@@ -112,22 +117,22 @@ func (me *SafetynetAttestationProvider) Handler(att types.AttestationObject, cli
 	l := make([]byte, base64.StdEncoding.DecodedLen(len(certChain[0].(string))))
 	n, err := base64.StdEncoding.Decode(l, []byte(certChain[0].(string)))
 	if err != nil {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error finding cert issued to correct hostname: %+v", err))
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, fmt.Sprintf("Error finding cert issued to correct hostname: %+v", err))
 	}
 	attestationCert, err := x509.ParseCertificate(l[:n])
 	if err != nil {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error finding cert issued to correct hostname: %+v", err))
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, fmt.Sprintf("Error finding cert issued to correct hostname: %+v", err))
 	}
 
 	// §8.5.5 Verify that attestationCert is issued to the hostname "attest.android.com"
 	err = attestationCert.VerifyHostname("attest.android.com")
 	if err != nil {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error finding cert issued to correct hostname: %+v", err))
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, fmt.Sprintf("Error finding cert issued to correct hostname: %+v", err))
 	}
 
 	// §8.5.6 Verify that the ctsProfileMatch attribute in the payload of response is true.
 	if !safetyNetResponse.CtsProfileMatch {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage("ctsProfileMatch attribute of the JWT payload is false")
+		return nil, "", nil, errors.Wrap(ErrSafetyNet, "ctsProfileMatch attribute of the JWT payload is false")
 	}
 
 	// Verify sanity of timestamp in the payload
@@ -136,13 +141,13 @@ func (me *SafetynetAttestationProvider) Handler(att types.AttestationObject, cli
 	t := time.Unix(safetyNetResponse.TimestampMs/1000, 0)
 	if t.After(now) {
 		// zero tolerance for post-dated timestamps
-		return nil, "Basic attestation with SafetyNet", nil, errors.ErrInvalidAttestation.WithMessage("SafetyNet response with timestamp after current time")
+		return nil, "Basic attestation with SafetyNet", nil, errors.Wrap(ErrSafetyNet, "SafetyNet response with timestamp after current time")
 	} else if t.Before(oneMinuteAgo) {
 		// allow old timestamp for testing purposes
 		// TODO: Make this user configurable
 		msg := "SafetyNet response with timestamp before one minute ago"
 		if metadata.Conformance {
-			return nil, "Basic attestation with SafetyNet", nil, errors.ErrInvalidAttestation.WithMessage(msg)
+			return nil, "Basic attestation with SafetyNet", nil, errors.Wrap(ErrSafetyNet, msg)
 		}
 	}
 

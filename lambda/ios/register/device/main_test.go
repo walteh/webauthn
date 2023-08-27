@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/webauthn/pkg/dynamo"
-	"git.nugg.xyz/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/dynamo"
+	"github.com/walteh/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"

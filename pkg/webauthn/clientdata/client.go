@@ -8,9 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"git.nugg.xyz/webauthn/pkg/errors"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
-	"github.com/rs/zerolog"
+	"github.com/walteh/webauthn/pkg/errd"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 func ParseClientData(clientData string) (types.CollectedClientData, error) {
@@ -34,9 +33,7 @@ func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 
 	// Assertion Step 7. Verify that the value of C.type is the string webauthn.get.
 	if real.Type != expected.CeremonyType {
-		err := errors.ErrVerification.WithMessage("Error validating ceremony type")
-		zerolog.Ctx(ctx).Error().Err(err).Msg("ceremony type mismatch")
-		return err
+		return errd.Wrap(ctx, ErrInvalidCeremonyType)
 	}
 
 	// Registration Step 4. Verify that the value of C.challenge matches the challenge
@@ -58,22 +55,18 @@ func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 	// log.Println(abc)
 
 	if subtle.ConstantTimeCompare(expected.StoredChallenge, real.Challenge) != 1 {
-		err := errors.ErrVerification.WithMessage("Error validating challenge")
-		zerolog.Ctx(ctx).Error().Err(err).Str("expected", string(expected.StoredChallenge)).Str("received", string(real.Challenge)).Msg("challenge mismatch")
-		return err
+		return errd.Mismatch(ctx, ErrChallengeMismatch, string(expected.StoredChallenge), string(real.Challenge))
 	}
 
 	// Registration Step 5 & Assertion Step 9. Verify that the value of C.origin matches
 	// the Relying Party's origin.
 	clientDataOrigin, err := url.Parse(real.Origin)
 	if err != nil {
-		return errors.ErrParsingData.WithMessage("Error decoding clientData origin as URL")
+		return errd.Wrap(ctx, ErrOriginNotParsableAsURL)
 	}
 
 	if !strings.EqualFold(types.FullyQualifiedOrigin(clientDataOrigin), expected.RelyingPartyOrigin) {
-		err := errors.ErrVerification.WithMessage("Error validating origin")
-		zerolog.Ctx(ctx).Error().Err(err).Str("expected", expected.RelyingPartyOrigin).Str("received", types.FullyQualifiedOrigin(clientDataOrigin)).Msg("origin mismatch")
-		return err
+		return errd.Mismatch(ctx, ErrOriginMismatch, expected.RelyingPartyOrigin, types.FullyQualifiedOrigin(clientDataOrigin))
 	}
 
 	// Registration Step 6 and Assertion Step 10. Verify that the value of C.tokenBinding.status
@@ -82,12 +75,10 @@ func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 	// matches the base64url encoding of the Token Binding ID for the connection.
 	if real.TokenBinding != nil {
 		if real.TokenBinding.Status == "" {
-			return errors.ErrParsingData.WithMessage("Error decoding clientData, token binding present without status")
+			return errd.Wrap(ctx, ErrTokenMissingStatus)
 		}
 		if real.TokenBinding.Status != types.Present && real.TokenBinding.Status != types.Supported && real.TokenBinding.Status != types.NotSupported {
-			err := errors.ErrParsingData.WithMessage("Error decoding clientData, token binding present with invalid status")
-			zerolog.Ctx(ctx).Error().Err(err).Msg("invalid token binding status")
-			return err
+			return errd.Wrap(ctx, ErrTokenInvalidStatus)
 		}
 	}
 	// Not yet fully implemented by the spec, browsers, and me.

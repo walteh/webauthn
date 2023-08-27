@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 func Test_verifyPackedFormat(t *testing.T) {

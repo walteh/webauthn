@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 
-	"git.nugg.xyz/go-sdk/invocation"
-	"git.nugg.xyz/go-sdk/x"
-	"git.nugg.xyz/webauthn/pkg/cognito"
-	"git.nugg.xyz/webauthn/pkg/env"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/passkey"
+	passkey "github.com/walteh/webauthn/app/passkey_assert"
+	"github.com/walteh/webauthn/pkg/cognito"
+	"github.com/walteh/webauthn/pkg/env"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/indexable"
+	"github.com/walteh/webauthn/pkg/invocation"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -16,14 +16,14 @@ import (
 type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
 
-type Handler[D x.DynamoDBAPI] struct {
+type Handler[D indexable.DynamoDBAPI] struct {
 	*invocation.Handler[Input, Output]
 
-	Dynamo  x.DynamoDBAPI
+	Dynamo  D
 	Cognito cognito.Client
 }
 
-func buildHandler[D x.DynamoDBAPI](h *invocation.Handler[Input, Output], d D, c cognito.Client) (*Handler[D], error) {
+func buildHandler[D indexable.DynamoDBAPI](h *invocation.Handler[Input, Output], d D, c cognito.Client) (*Handler[D], error) {
 
 	abc := &Handler[D]{
 		Handler: h,
@@ -34,7 +34,7 @@ func buildHandler[D x.DynamoDBAPI](h *invocation.Handler[Input, Output], d D, c 
 	return abc, nil
 }
 
-func NewHandler() (*Handler[x.DynamoDBAPI], error) {
+func NewHandler() (*Handler[indexable.DynamoDBAPI], error) {
 
 	ctx := context.Background()
 
@@ -42,7 +42,7 @@ func NewHandler() (*Handler[x.DynamoDBAPI], error) {
 
 	dbc := handler.Opts().NewDynamoDBClient()
 
-	api := x.NewDynamoDBAPI(dbc, "")
+	api := indexable.NewDynamoDBAPI(dbc, "")
 
 	cog := cognito.NewClient(*handler.Opts().AwsConfig(), env.AppleIdentityPoolId(), env.CognitoDeveloperProviderName())
 

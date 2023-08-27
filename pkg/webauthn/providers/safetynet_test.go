@@ -7,17 +7,18 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/go-sdk/otel/logging"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/rs/zerolog"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/credential"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 var globalSaftynet = SafetynetAttestationProvider{}
 
 func Test_verifySafetyNetFormat(t *testing.T) {
 
-	ctx := logging.NewVerboseLoggerContext(context.Background())
+	ctx := zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.TraceLevel).With().Caller().Logger().WithContext(context.Background())
+
 	type args struct {
 		att            types.AttestationObject
 		clientDataHash []byte

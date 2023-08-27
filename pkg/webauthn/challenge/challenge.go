@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/hex"
 )
 
 // ChallengeLength - Length of bytes to generate for a challenge

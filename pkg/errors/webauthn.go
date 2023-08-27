@@ -1,23 +1,38 @@
 package errors
 
-import "git.nugg.xyz/go-sdk/errors"
+import (
+	"context"
+	"fmt"
+
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+)
 
 var (
-	ErrBadRequest             = errors.New("invalid_request").WithMessage("Error reading the request data")
-	ErrChallengeMismatch      = errors.New("challenge_mismatch").WithMessage("Stored challenge and received challenge do not match")
-	ErrOriginMismatch         = errors.New("origin_mismatch").WithMessage("Stored origin and received origin do not match")
-	ErrParsingData            = errors.New("parse_error").WithMessage("Error parsing the authenticator response")
-	ErrAuthData               = errors.New("auth_data").WithMessage("Error verifying the authenticator data")
-	ErrVerification           = errors.New("verification_error").WithMessage("Error validating the authenticator response")
-	ErrAttestation            = errors.New("attesation_error").WithMessage("Error validating the attestation data provided")
-	ErrInvalidAttestation     = errors.New("invalid_attestation").WithMessage("Invalid attestation data")
-	ErrAttestationFormat      = errors.New("invalid_attestation").WithMessage("Invalid attestation format")
-	ErrAttestationCertificate = errors.New("invalid_certificate").WithMessage("Invalid attestation certificate")
-	ErrAssertionSignature     = errors.New("invalid_signature").WithMessage("Assertion Signature against auth data and client hash is not valid")
-	ErrUnsupportedKey         = errors.New("invalid_key_type").WithMessage("Unsupported Public Key Type")
-	ErrUnsupportedAlgorithm   = errors.New("unsupported_key_algorithm").WithMessage("Unsupported public key algorithm")
-	ErrNotSpecImplemented     = errors.New("spec_unimplemented").WithMessage("This field is not yet supported by the WebAuthn spec")
-	ErrNotImplemented         = errors.New("not_implemented").WithMessage("This field is not yet supported by this library")
-	Err0x66CborDecode         = errors.New("cbor_decode").WithMessage("Error decoding CBOR data")
-	Err0x67InvalidInput       = errors.New("invalid_input").WithMessage("Invalid input")
+	ErrBadRequest             = errors.Wrap(errors.New("invalid_request"), "Error reading the request data")
+	ErrChallengeMismatch      = errors.Wrap(errors.New("challenge_mismatch"), "Stored challenge and received challenge do not match")
+	ErrOriginMismatch         = errors.Wrap(errors.New("origin_mismatch"), "Stored origin and received origin do not match")
+	ErrParsingData            = errors.Wrap(errors.New("parse_error"), "Error parsing the authenticator response")
+	ErrAuthData               = errors.Wrap(errors.New("auth_data"), "Error verifying the authenticator data")
+	ErrVerification           = errors.Wrap(errors.New("verification_error"), "Error validating the authenticator response")
+	ErrAttestation            = errors.Wrap(errors.New("attesation_error"), "Error validating the attestation data provided")
+	ErrInvalidAttestation     = errors.Wrap(errors.New("invalid_attestation"), "Invalid attestation data")
+	ErrAttestationFormat      = errors.Wrap(errors.New("invalid_attestation"), "Invalid attestation format")
+	ErrAttestationCertificate = errors.Wrap(errors.New("invalid_certificate"), "Invalid attestation certificate")
+	ErrAssertionSignature     = errors.Wrap(errors.New("invalid_signature"), "Assertion Signature against auth data and client hash is not valid")
+	ErrUnsupportedKey         = errors.Wrap(errors.New("invalid_key_type"), "Unsupported Public Key Type")
+	ErrUnsupportedAlgorithm   = errors.Wrap(errors.New("unsupported_key_algorithm"), "Unsupported public key algorithm")
+	ErrNotSpecImplemented     = errors.Wrap(errors.New("spec_unimplemented"), "This field is not yet supported by the WebAuthn spec")
+	ErrNotImplemented         = errors.Wrap(errors.New("not_implemented"), "This field is not yet supported by this library")
+	Err0x66CborDecode         = errors.Wrap(errors.New("cbor_decode"), "Error decoding CBOR data")
+	Err0x67InvalidInput       = errors.Wrap(errors.New("invalid_input"), "Invalid input")
 )
+
+func Wrap(ctx context.Context, e error, s ...string) error {
+	event := zerolog.Ctx(ctx).Error().Err(e).CallerSkipFrame(1)
+	for i, msg := range s {
+		event = event.Str(fmt.Sprintf("extra[%d]", i), msg)
+	}
+	zerolog.Ctx(ctx).Error().Err(e).CallerSkipFrame(1).Msg("error")
+	return e
+}

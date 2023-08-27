@@ -5,11 +5,12 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/webauthn/pkg/dynamo"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/dynamo"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 
 	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go/aws"
 )
 
 type AttestTestObject struct {
@@ -43,7 +44,7 @@ var attestTestA = AttestTestObject{
 				"created_at":    types.N("1668984054"),
 				"ttl":           types.N("1668984354"),
 			},
-			TableName: dynamo.MockCeremonyTableName(),
+			TableName: aws.String("tmp123"),
 		},
 	},
 	checks: []dtypes.Update{
@@ -52,7 +53,7 @@ var attestTestA = AttestTestObject{
 			Key: map[string]dtypes.AttributeValue{
 				"challenge_id": types.S(hex.MustBase64ToHash("HaUwnocK8Yal0iz17SbtSgtvxcZLO46isdqTTAdDGd0").Hex()),
 			},
-			TableName: dynamo.MockCeremonyTableName(),
+			TableName: aws.String("tmp123"),
 			ExpressionAttributeValues: map[string]dtypes.AttributeValue{
 				"challenge_id": nil,
 			},
@@ -61,7 +62,7 @@ var attestTestA = AttestTestObject{
 			Key: map[string]dtypes.AttributeValue{
 				"credential_id": types.S("0x71d091b418c1c76f2e5969a46a9c96a5665b90170bf8218e2e165e505e110489"),
 			},
-			TableName: dynamo.MockCredentialTableName(),
+			TableName: aws.String("tmp123"),
 			ExpressionAttributeValues: map[string]dtypes.AttributeValue{
 				"session_id":       types.S("0x"),
 				"aaguid":           types.S("0x617070617474657374646576656c6f70"),
@@ -102,7 +103,7 @@ var attestTestB = AttestTestObject{
 				"created_at":    types.N("1668984054"),
 				"ttl":           types.N("1668984354"),
 			},
-			TableName: dynamo.MockCeremonyTableName(),
+			TableName: aws.String("tmp123"),
 		},
 	},
 	checks: []dtypes.Update{
@@ -111,7 +112,7 @@ var attestTestB = AttestTestObject{
 			Key: map[string]dtypes.AttributeValue{
 				"challenge_id": types.S(hex.MustBase64ToHash("CcB74F8PT10Lordu5qtl4vFuQfOpRGhQZmCO9Z3cj48").Hex()),
 			},
-			TableName: dynamo.MockCeremonyTableName(),
+			TableName: aws.String("tmp123"),
 			ExpressionAttributeValues: map[string]dtypes.AttributeValue{
 				"challenge_id": nil,
 			},
@@ -120,7 +121,7 @@ var attestTestB = AttestTestObject{
 			Key: map[string]dtypes.AttributeValue{
 				"credential_id": types.S("0xfb1fd0ac98dca2891761baf97a486c75726900d3a94105afa598575f89c47295"),
 			},
-			TableName: dynamo.MockCredentialTableName(),
+			TableName: aws.String("tmp123"),
 			ExpressionAttributeValues: map[string]dtypes.AttributeValue{
 				"session_id":       types.S("0x"),
 				"aaguid":           types.S("0x617070617474657374646576656c6f70"),

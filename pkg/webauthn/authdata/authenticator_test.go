@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/go-sdk/otel/logging"
-	"git.nugg.xyz/webauthn/pkg/webauthn/authdata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/rs/zerolog"
+	"github.com/walteh/webauthn/pkg/webauthn/authdata"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 func TestAuthenticatorFlags_UserPresent(t *testing.T) {
@@ -196,7 +196,7 @@ func TestAuthenticatorData_Unmarshal(t *testing.T) {
 			// 	ExtData:  tt.fields.ExtData,
 			// }
 
-			ctx := logging.NewVerboseLoggerContext(context.Background())
+			ctx := zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.TraceLevel).With().Caller().Logger().WithContext(context.Background())
 
 			if _, err := authdata.ParseAuthenticatorData(ctx, tt.args.rawAuthData); (err != nil) != tt.wantErr {
 				t.Errorf("AuthenticatorData.Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
@@ -225,7 +225,7 @@ func TestAuthenticatorData_unmarshalAttestedData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := logging.NewVerboseLoggerContext(context.Background())
+			ctx := zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.TraceLevel).With().Caller().Logger().WithContext(context.Background())
 
 			if _, err := authdata.ParseAttestedAuthData(ctx, tt.args.rawAuthData); (err != nil) != tt.wantErr {
 				t.Errorf("ParseAttestedAuthData() error = %v, wantErr %v", err, tt.wantErr)
@@ -283,7 +283,7 @@ func TestAuthenticatorData_Verify(t *testing.T) {
 			// 	AttData:  tt.fields.AttData,
 			// 	ExtData:  tt.fields.ExtData,
 			// }
-			ctx := logging.NewVerboseLoggerContext(context.Background())
+			ctx := zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.TraceLevel).With().Caller().Logger().WithContext(context.Background())
 
 			if err := authdata.VerifyAuenticatorData(ctx, tt.args); (err != nil) != tt.wantErr {
 				t.Errorf("AuthenticatorData.Verify() error = %v, wantErr %v", err, tt.wantErr)

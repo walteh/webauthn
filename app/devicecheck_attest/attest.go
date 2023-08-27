@@ -2,16 +2,16 @@ package devicecheck
 
 import (
 	"context"
+	"errors"
 
-	"git.nugg.xyz/go-sdk/errors"
-
-	"git.nugg.xyz/webauthn/pkg/dynamo"
-	cerrors "git.nugg.xyz/webauthn/pkg/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
-	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/rs/zerolog"
+	"github.com/walteh/webauthn/pkg/dynamo"
+	"github.com/walteh/webauthn/pkg/errd"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
+	"github.com/walteh/webauthn/pkg/webauthn/credential"
+	"github.com/walteh/webauthn/pkg/webauthn/providers"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 type DeviceCheckAttestationInput struct {
@@ -26,11 +26,27 @@ type DeviceCheckAttestationOutput struct {
 	OK                  bool
 }
 
+var (
+	ErrDeviceCheckAttestInvalidInput = errors.New("ErrDeviceCheckAttestInvalidInput")
+
+	ErrDeviceCheckAttestInvalidSessionID = errors.New("ErrDeviceCheckAttestInvalidSessionID")
+
+	ErrDeviceCheckAttestInvalidCredentialID = errors.New("ErrDeviceCheckAttestInvalidCredentialID")
+
+	ErrDeviceCheckAttestInvalidChallenge = errors.New("ErrDeviceCheckAttestInvalidChallenge")
+
+	ErrDeviceCheckAttestInvalidCounter = errors.New("ErrDeviceCheckAttestInvalidCounter")
+
+	ErrDeviceCheckAttestDataRead = errors.New("ErrDeviceCheckAttestDataRead")
+
+	ErrDeviceCheckAttestDataWrite = errors.New("ErrDeviceCheckAttestDataWrite")
+)
+
 func Attest(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckAttestationInput) (DeviceCheckAttestationOutput, error) {
 	var err error
 
 	if input.RawAttestationObject.IsZero() || input.UTF8ClientDataJSON == "" || input.RawCredentialID.IsZero() {
-		return DeviceCheckAttestationOutput{400, false}, cerrors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAttestationOutput{400, false}, errd.Wrap(ctx, ErrDeviceCheckAttestInvalidInput)
 	}
 	parsedResponse := types.AttestationInput{
 		AttestationObject:  input.RawAttestationObject,
@@ -42,18 +58,19 @@ func Attest(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckA
 
 	cd, err := clientdata.ParseClientData(parsedResponse.UTF8ClientDataJSON)
 	if err != nil {
-		return DeviceCheckAttestationOutput{400, false}, cerrors.Err0x67InvalidInput.WithCaller()
+		return DeviceCheckAttestationOutput{400, false}, errd.Wrap(ctx, ErrDeviceCheckAttestInvalidInput)
 	}
 
 	cer := types.NewUnsafeGettableCeremony(cd.Challenge)
 
 	err = dynamoClient.TransactGet(ctx, cer)
 	if err != nil {
-		return DeviceCheckAttestationOutput{502, false}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to transact get")
+		return DeviceCheckAttestationOutput{502, false}, errd.Wrap(ctx, ErrDeviceCheckAttestDataRead)
 	}
 
 	if !cer.SessionID.Equals(input.RawSessionID) {
-		return DeviceCheckAttestationOutput{401, false}, errors.NewError(0x99).WithMessage("session id mismatch").WithCaller()
+		return DeviceCheckAttestationOutput{401, false}, errd.Mismatch(ctx, ErrDeviceCheckAttestInvalidSessionID, cer.SessionID.Hex(), input.RawSessionID.Hex())
 	}
 
 	pk, err := credential.VerifyAttestationInput(ctx, types.VerifyAttestationInputArgs{
@@ -67,27 +84,29 @@ func Attest(ctx context.Context, dynamoClient *dynamo.Client, input DeviceCheckA
 	})
 
 	if err != nil {
-		return DeviceCheckAttestationOutput{401, false}, errors.NewError(0x99).WithMessage("problem verifying attestation").WithRoot(err).WithCaller()
+		return DeviceCheckAttestationOutput{401, false}, errd.Wrap(ctx, err)
 	}
 
 	if !input.RawCredentialID.Equals(pk.RawID) {
-		err := errors.NewError(0x93).WithCaller().WithKV("attestationKey", input.RawCredentialID.Hex()).WithKV("pk.RawID", pk.RawID.Hex())
-		return DeviceCheckAttestationOutput{401, false}, err
+		return DeviceCheckAttestationOutput{401, false}, errd.Mismatch(ctx, ErrDeviceCheckAttestInvalidCredentialID, input.RawCredentialID.Hex(), pk.RawID.Hex())
 	}
 
 	del, err := dynamo.MakeDelete(dynamoClient.MustCeremonyTableName(), cer)
 	if err != nil {
-		return DeviceCheckAttestationOutput{502, false}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to make delete")
+		return DeviceCheckAttestationOutput{502, false}, errd.Wrap(ctx, ErrDeviceCheckAttestDataWrite)
 	}
 
 	putter, err := dynamo.MakePut(dynamoClient.MustCredentialTableName(), pk)
 	if err != nil {
-		return DeviceCheckAttestationOutput{500, false}, errors.NewError(0x99).WithMessage("problem making put").WithRoot(err).WithCaller()
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to make put")
+		return DeviceCheckAttestationOutput{500, false}, errd.Wrap(ctx, ErrDeviceCheckAttestDataWrite)
 	}
 
 	err = dynamoClient.TransactWrite(ctx, *putter, *del)
 	if err != nil {
-		return DeviceCheckAttestationOutput{502, false}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to transact write")
+		return DeviceCheckAttestationOutput{502, false}, errd.Wrap(ctx, ErrDeviceCheckAttestDataWrite)
 	}
 
 	return DeviceCheckAttestationOutput{204, true}, nil

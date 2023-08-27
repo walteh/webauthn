@@ -7,9 +7,9 @@ import (
 	"errors"
 	"log"
 
-	"git.nugg.xyz/webauthn/pkg/webauthn/cfssl/pkcs7"
+	"github.com/walteh/webauthn/pkg/webauthn/cfssl/pkcs7"
 
-	cferr "git.nugg.xyz/webauthn/pkg/webauthn/cfssl/errors"
+	cferr "github.com/walteh/webauthn/pkg/webauthn/cfssl/errors"
 )
 
 // ParseCertificatePEM parses and returns a PEM-encoded certificate,

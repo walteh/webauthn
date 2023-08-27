@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"git.nugg.xyz/webauthn/pkg/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
-	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncose"
+	"github.com/pkg/errors"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/webauthn/webauthncose"
 )
 
 type AppleAttestationProvider struct{}
@@ -25,6 +25,10 @@ func NewAppleAttestationProvider() *AppleAttestationProvider {
 func (me *AppleAttestationProvider) ID() string {
 	return "apple"
 }
+
+var (
+	ErrApple = errors.New("ErrApple")
+)
 
 // From §8.8. https://www.w3.org/TR/webauthn-2/#sctn-apple-anonymous-attestation
 // The apple attestation statement looks like:
@@ -44,7 +48,7 @@ func (me *AppleAttestationProvider) Handler(att types.AttestationObject, clientD
 
 	// 7. Verify that the authenticator data’s counter field equals 0.
 	if att.AuthData.Counter != 0 {
-		return nil, "", nil, errors.ErrVerification.WithMessage(fmt.Sprintf("Counter was not 0, but %d\n", att.AuthData.Counter))
+		return nil, "", nil, errors.Wrap(ErrApple, fmt.Sprintf("Counter was not 0, but %d\n", att.AuthData.Counter))
 	}
 
 	// 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the development environment,
@@ -52,7 +56,7 @@ func (me *AppleAttestationProvider) Handler(att types.AttestationObject, clientD
 	aaguid := make([]byte, 16)
 	copy(aaguid, []byte("appattestdevelop"))
 	if !bytes.Equal(att.AuthData.AttData.AAGUID, aaguid) {
-		return nil, "", nil, errors.ErrVerification.WithMessage("AAGUID was not appattestdevelop\n")
+		return nil, "", nil, errors.Wrap(ErrApple, "AAGUID was not appattestdevelop\n")
 	}
 
 	// Step 1. Verify that attStmt is valid CBOR conforming to the syntax defined
@@ -62,17 +66,17 @@ func (me *AppleAttestationProvider) Handler(att types.AttestationObject, clientD
 	x5c, x509present := att.AttStatement["x5c"].([]interface{})
 	if !x509present {
 		// Handle Basic Attestation steps for the x509 Certificate
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Error retreiving x5c value")
+		return nil, "", nil, errors.Wrap(ErrApple, "Error retreiving x5c value")
 	}
 
 	credCertBytes, valid := x5c[0].([]byte)
 	if !valid {
-		return nil, "", nil, errors.ErrAttestation.WithMessage("Error getting certificate from x5c cert chain")
+		return nil, "", nil, errors.Wrap(ErrApple, "Error getting certificate from x5c cert chain")
 	}
 
 	credCert, err := x509.ParseCertificate(credCertBytes)
 	if err != nil {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+		return nil, "", nil, errors.Wrap(ErrApple, fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
 	}
 
 	// Step 2. Concatenate authenticatorData and clientDataHash to form nonceToHash.
@@ -89,24 +93,24 @@ func (me *AppleAttestationProvider) Handler(att types.AttestationObject, clientD
 		}
 	}
 	if len(attExtBytes) == 0 {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Attestation certificate extensions missing 1.2.840.113635.100.8.2")
+		return nil, "", nil, errors.Wrap(ErrApple, "Attestation certificate extensions missing 1.2.840.113635.100.8.2")
 	}
 
 	decoded := AppleAnonymousAttestation{}
 	_, err = asn1.Unmarshal([]byte(attExtBytes), &decoded)
 	if err != nil {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Unable to parse apple attestation certificate extensions")
+		return nil, "", nil, errors.Wrap(ErrApple, "Unable to parse apple attestation certificate extensions")
 	}
 
 	if !bytes.Equal(decoded.Nonce, nonce[:]) || err != nil {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage("Attestation certificate does not contain expected nonce")
+		return nil, "", nil, errors.Wrap(ErrApple, "Attestation certificate does not contain expected nonce")
 	}
 
 	// Step 5. Verify that the credential public key equals the Subject Public Key of credCert.
 	// TODO: Probably move this part to webauthncose.go
 	pubKey, err := webauthncose.ParsePublicKey(att.AuthData.AttData.CredentialPublicKey)
 	if err != nil {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage(fmt.Sprintf("Error parsing public key: %+v\n", err))
+		return nil, "", nil, errors.Wrap(ErrApple, fmt.Sprintf("Error parsing public key: %+v\n", err))
 	}
 	credPK := pubKey.(webauthncose.EC2PublicKeyData)
 	subjectPK := credCert.PublicKey.(*ecdsa.PublicKey)
@@ -116,7 +120,7 @@ func (me *AppleAttestationProvider) Handler(att types.AttestationObject, clientD
 		Y:     big.NewInt(0).SetBytes(credPK.YCoord),
 	}
 	if !credPKInfo.Equal(subjectPK) {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage("Certificate public key does not match public key in authData")
+		return nil, "", nil, errors.Wrap(ErrApple, "Certificate public key does not match public key in authData")
 	}
 
 	// Step 6. If successful, return implementation-specific values representing attestation type Anonymization CA and attestation trust path x5c.

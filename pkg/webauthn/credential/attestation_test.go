@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"testing"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
-	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
 	"github.com/stretchr/testify/require"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/credential"
+	"github.com/walteh/webauthn/pkg/webauthn/providers"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 func TestAttestationVerify(t *testing.T) {

@@ -3,11 +3,11 @@ package structure
 import (
 	"reflect"
 
-	"git.nugg.xyz/go-sdk/x"
+	"github.com/walteh/webauthn/pkg/indexable"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-var _ x.Indexable = (*Credential)(nil)
+var _ indexable.Indexable = (*Credential)(nil)
 
 type Credential struct {
 	Id           string `dynamo:"pk,hash"`
@@ -33,22 +33,22 @@ func (c *Credential) IsWorthy(primary, secondary string) bool {
 	return primary == "ceremony"
 }
 
-func (c *Credential) PrimaryIndex() *x.DynamoDBIndex {
-	return &x.DynamoDBIndex{
+func (c *Credential) PrimaryIndex() *indexable.DynamoDBIndex {
+	return &indexable.DynamoDBIndex{
 		HashKey:  "pk",
 		RangeKey: "sk",
 	}
 }
 
-func (c *Credential) SecondaryIndexes() map[string]*x.DynamoDBIndex {
-	return map[string]*x.DynamoDBIndex{}
+func (c *Credential) SecondaryIndexes() map[string]*indexable.DynamoDBIndex {
+	return map[string]*indexable.DynamoDBIndex{}
 }
 
 func (c *Credential) ID() string {
 	return ""
 }
 
-func (c *Credential) Combine([]x.Indexable) error {
+func (c *Credential) Combine([]indexable.Indexable) error {
 	return nil
 }
 

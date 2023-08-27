@@ -1,12 +1,12 @@
 package main
 
 import (
-	"git.nugg.xyz/go-sdk/invocation"
-	"git.nugg.xyz/webauthn/pkg/devicecheck"
-	"git.nugg.xyz/webauthn/pkg/dynamo"
-	"git.nugg.xyz/webauthn/pkg/env"
-	"git.nugg.xyz/webauthn/pkg/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
+	devicecheck "github.com/walteh/webauthn/app/devicecheck_assert"
+	"github.com/walteh/webauthn/pkg/dynamo"
+	"github.com/walteh/webauthn/pkg/env"
+	"github.com/walteh/webauthn/pkg/errors"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/invocation"
 
 	"context"
 	"os"

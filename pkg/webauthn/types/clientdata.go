@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/hex"
 )
 
 type VerifyClientDataArgs struct {

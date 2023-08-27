@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
-	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
-	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncbor"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/credential"
+	"github.com/walteh/webauthn/pkg/webauthn/providers"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/webauthn/webauthncbor"
 )
 
 var byteID = hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")

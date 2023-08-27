@@ -9,9 +9,9 @@ import (
 	"encoding/asn1"
 	"fmt"
 
-	"git.nugg.xyz/webauthn/pkg/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/pkg/errors"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 // From §8.8. https://www.w3.org/TR/webauthn-2/#sctn-apple-anonymous-attestation
@@ -47,26 +47,15 @@ func (me *AppAttest) ID() string {
 	return "apple-appattest"
 }
 
-const APPLE_ROOT_CERT = `-----BEGIN CERTIFICATE-----
-MIICITCCAaegAwIBAgIQC/O+DvHN0uD7jG5yH2IXmDAKBggqhkjOPQQDAzBSMSYw
-JAYDVQQDDB1BcHBsZSBBcHAgQXR0ZXN0YXRpb24gUm9vdCBDQTETMBEGA1UECgwK
-QXBwbGUgSW5jLjETMBEGA1UECAwKQ2FsaWZvcm5pYTAeFw0yMDAzMTgxODMyNTNa
-Fw00NTAzMTUwMDAwMDBaMFIxJjAkBgNVBAMMHUFwcGxlIEFwcCBBdHRlc3RhdGlv
-biBSb290IENBMRMwEQYDVQQKDApBcHBsZSBJbmMuMRMwEQYDVQQIDApDYWxpZm9y
-bmlhMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAERTHhmLW07ATaFQIEVwTtT4dyctdh
-NbJhFs/Ii2FdCgAHGbpphY3+d8qjuDngIN3WVhQUBHAoMeQ/cLiP1sOUtgjqK9au
-Yen1mMEvRq9Sk3Jm5X8U62H+xTD3FE9TgS41o0IwQDAPBgNVHRMBAf8EBTADAQH/
-MB0GA1UdDgQWBBSskRBTM72+aEH/pwyp5frq5eWKoTAOBgNVHQ8BAf8EBAMCAQYw
-CgYIKoZIzj0EAwMDaAAwZQIwQgFGnByvsiVbpTKwSga0kP0e8EeDS4+sQmTvb7vn
-53O5+FRXgeLhpJ06ysC5PrOyAjEAp5U4xDgEgllF7En3VcE3iexZZtKeYnpqtijV
-oyFraWVIyd/dganmrduC1bmTBGwD
------END CERTIFICATE-----`
+var (
+	ErrAppleAppAttest = errors.New("ErrAppleAppAttest")
+)
 
 func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
 
 	// 7. Verify that the authenticator data’s counter field equals 0.
 	if att.AuthData.Counter != 0 {
-		return nil, "", nil, errors.ErrVerification.WithMessage(fmt.Sprintf("Counter was not 0, but %d\n", att.AuthData.Counter))
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, fmt.Sprintf("Counter was not 0, but %d\n", att.AuthData.Counter))
 	}
 
 	// 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the development environment,
@@ -78,7 +67,7 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 		copy(aaguid, []byte("appattestdevelop"))
 	}
 	if !bytes.Equal(att.AuthData.AttData.AAGUID, aaguid) {
-		return nil, "", nil, errors.ErrVerification.WithMessage("AAGUID was not appattestdevelop\n")
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "AAGUID was not appattestdevelop\n")
 	}
 
 	roots := x509.NewCertPool()
@@ -87,27 +76,27 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	// Add Apple root Cert
 	ok := roots.AppendCertsFromPEM([]byte(APPLE_ROOT_CERT))
 	if !ok {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Error adding root certificate to pool.")
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error adding root certificate to pool.")
 	}
 
 	x5c, x509present := att.AttStatement["x5c"].([]interface{})
 	if !x509present {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Error retrieving x5c value")
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error retrieving x5c value")
 	}
 
 	_, receiptPresent := att.AttStatement["receipt"].([]byte)
 	if !receiptPresent {
-		return nil, "", nil, errors.ErrAttestationFormat.WithMessage("Error retreiving receipt value")
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error retreiving receipt value")
 	}
 
 	for _, c := range x5c {
 		cb, cv := c.([]byte)
 		if !cv {
-			return nil, "", nil, errors.ErrAttestationCertificate.WithMessage("Error getting certificate from x5c cert chain 1")
+			return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error getting certificate from x5c cert chain 1")
 		}
 		ct, err := x509.ParseCertificate(cb)
 		if err != nil {
-			return nil, "", nil, errors.ErrAttestationCertificate.WithMessage(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+			return nil, "", nil, errors.Wrap(ErrAppleAppAttest, fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
 		}
 		if ct.IsCA {
 			intermediates.AddCert(ct)
@@ -116,12 +105,12 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 
 	credCertBytes, valid := x5c[0].([]byte)
 	if !valid {
-		return nil, "", nil, errors.ErrAttestationCertificate.WithMessage("Error getting certificate from x5c cert chain 2")
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error getting certificate from x5c cert chain 2")
 	}
 
 	credCert, err := x509.ParseCertificate(credCertBytes)
 	if err != nil {
-		return nil, "", nil, errors.ErrAttestationCertificate.WithMessage(fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
 	}
 
 	// Create verification options.
@@ -135,7 +124,7 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	// Verify the validity of the certificates using Apple’s root certificate.
 	_, err = credCert.Verify(verifyOptions)
 	if err != nil {
-		return nil, "", nil, errors.ErrAttestationCertificate.WithMessage(fmt.Sprintf("Invalid certificate %+v", err))
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, fmt.Sprintf("Invalid certificate %+v", err))
 	}
 
 	// 2. Create clientDataHash as the SHA256 hash of the one-time challenge sent to your app before performing the attestation,
@@ -157,14 +146,15 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	}
 
 	if len(credCertId) <= 0 {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage("Certificate did not contain credCert extension")
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Certificate did not contain credCert extension")
 	}
 	var unMarshalledCredCertOctet []asn1.RawValue
 	var unMarshalledCredCert asn1.RawValue
 	asn1.Unmarshal(credCertId, &unMarshalledCredCertOctet)
 	asn1.Unmarshal(unMarshalledCredCertOctet[0].Bytes, &unMarshalledCredCert)
 	if !bytes.Equal(nonce[:], unMarshalledCredCert.Bytes) {
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage("Certificate CredCert extension does not match nonce.").WithKV("nonce", nonce[:]).WithKV("credCert", unMarshalledCredCert.Bytes)
+		// TODO .WithKV("nonce", nonce[:]).WithKV("credCert", unMarshalledCredCert.Bytes)
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Certificate CredCert extension does not match nonce.")
 	}
 
 	// 5. Create the SHA256 hash of the public key in credCert, and verify that it matches the key identifier from your app.
@@ -174,10 +164,10 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
 		pubKeyHash := sha256.Sum256(publicKeyBytes)
 		if !bytes.Equal(pubKeyHash[:], att.AuthData.AttData.CredentialID) {
-			return nil, "", nil, errors.ErrInvalidAttestation.WithMessage("The key id is not a valid SHA256 hash of the certificate public key.")
+			return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "The key id is not a valid SHA256 hash of the certificate public key.")
 		}
 	default:
-		return nil, "", nil, errors.ErrInvalidAttestation.WithMessage("Wrong algorithm")
+		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Wrong algorithm")
 	}
 
 	// Return x963-encoded public key and receipt.
@@ -188,3 +178,18 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 // type AppleAnonymousAttestation struct {
 // 	Nonce []byte `asn1:"tag:1,explicit"`
 // }
+
+const APPLE_ROOT_CERT = `-----BEGIN CERTIFICATE-----
+MIICITCCAaegAwIBAgIQC/O+DvHN0uD7jG5yH2IXmDAKBggqhkjOPQQDAzBSMSYw
+JAYDVQQDDB1BcHBsZSBBcHAgQXR0ZXN0YXRpb24gUm9vdCBDQTETMBEGA1UECgwK
+QXBwbGUgSW5jLjETMBEGA1UECAwKQ2FsaWZvcm5pYTAeFw0yMDAzMTgxODMyNTNa
+Fw00NTAzMTUwMDAwMDBaMFIxJjAkBgNVBAMMHUFwcGxlIEFwcCBBdHRlc3RhdGlv
+biBSb290IENBMRMwEQYDVQQKDApBcHBsZSBJbmMuMRMwEQYDVQQIDApDYWxpZm9y
+bmlhMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAERTHhmLW07ATaFQIEVwTtT4dyctdh
+NbJhFs/Ii2FdCgAHGbpphY3+d8qjuDngIN3WVhQUBHAoMeQ/cLiP1sOUtgjqK9au
+Yen1mMEvRq9Sk3Jm5X8U62H+xTD3FE9TgS41o0IwQDAPBgNVHRMBAf8EBTADAQH/
+MB0GA1UdDgQWBBSskRBTM72+aEH/pwyp5frq5eWKoTAOBgNVHQ8BAf8EBAMCAQYw
+CgYIKoZIzj0EAwMDaAAwZQIwQgFGnByvsiVbpTKwSga0kP0e8EeDS4+sQmTvb7vn
+53O5+FRXgeLhpJ06ysC5PrOyAjEAp5U4xDgEgllF7En3VcE3iexZZtKeYnpqtijV
+oyFraWVIyd/dganmrduC1bmTBGwD
+-----END CERTIFICATE-----`

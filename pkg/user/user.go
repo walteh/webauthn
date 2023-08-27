@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	"git.nugg.xyz/webauthn/pkg/signinwithapple"
+	"github.com/walteh/webauthn/pkg/signinwithapple"
 )
 
 type User struct {

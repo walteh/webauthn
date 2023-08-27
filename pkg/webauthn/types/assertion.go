@@ -3,9 +3,8 @@ package types
 import (
 	"encoding/json"
 
-	"git.nugg.xyz/webauthn/pkg/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/extensions"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/extensions"
 )
 
 type VerifyAssertionInputArgs struct {
@@ -42,7 +41,7 @@ type AssertionInput struct {
 
 func (a *AssertionInput) Validate() error {
 	if len(a.UserID) == 0 || len(a.CredentialID) == 0 || len(a.RawClientDataJSON) == 0 || (len(a.RawAssertionObject) == 0 && a.AssertionObject == nil) {
-		return errors.Err0x67InvalidInput.WithMessage("missing required fields").WithCaller()
+		return ErrInvalidAssertionInput
 	}
 	return nil
 }

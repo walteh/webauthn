@@ -9,11 +9,11 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/authdata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
-	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncbor"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/authdata"
+	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/webauthn/webauthncbor"
 )
 
 // func VerifyAttestationInput(args types.VerifyAttestationInputArgs) (*types.Credential, error) {

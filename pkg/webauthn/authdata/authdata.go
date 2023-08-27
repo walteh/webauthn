@@ -8,10 +8,10 @@ import (
 	"errors"
 	"log"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
-	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncbor"
 	"github.com/rs/zerolog"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/webauthn/webauthncbor"
 )
 
 const (

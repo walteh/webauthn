@@ -3,8 +3,7 @@ package types
 import (
 	"strconv"
 
-	"git.nugg.xyz/go-sdk/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
@@ -51,7 +50,7 @@ func GetS(av *types.AttributeValueMemberM, key string) (string, error) {
 	if x, ok := av.Value[key].(*types.AttributeValueMemberS); ok {
 		return x.Value, nil
 	}
-	return "", errors.NewError(0x11).WithMessage("could not unmarshal " + key).WithCallerStepingBack(1)
+	return "", ErrUnmarshaling
 }
 
 func GetSHash(av *types.AttributeValueMemberM, key string) (hex.Hash, error) {
@@ -68,7 +67,7 @@ func GetSHashNotZero(av *types.AttributeValueMemberM, key string) (hex.Hash, err
 		return hex.Hash{}, err
 	}
 	if h.IsZero() {
-		return hex.Hash{}, errors.NewError(0x11).WithMessage("could not unmarshal " + key).WithCallerStepingBack(1)
+		return hex.Hash{}, ErrUnmarshaling
 	}
 	return h, nil
 }
@@ -77,12 +76,12 @@ func GetNUint64(av *types.AttributeValueMemberM, key string) (uint64, error) {
 	if x, ok := av.Value[key].(*types.AttributeValueMemberN); ok {
 		return strconv.ParseUint(x.Value, 10, 64)
 	}
-	return 0, errors.NewError(0x11).WithMessage("could not unmarshal " + key).WithCallerStepingBack(1)
+	return 0, ErrUnmarshaling
 }
 
 func GetBOOL(av *types.AttributeValueMemberM, key string) (bool, error) {
 	if x, ok := av.Value[key].(*types.AttributeValueMemberBOOL); ok {
 		return x.Value, nil
 	}
-	return false, errors.NewError(0x11).WithMessage("could not unmarshal " + key).WithCallerStepingBack(1)
+	return false, ErrUnmarshaling
 }

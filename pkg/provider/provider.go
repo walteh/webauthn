@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 type ManagedObject string
@@ -18,9 +18,9 @@ type Provider interface {
 	Get(ctx context.Context, challenge string, cred string) (*types.Credential, error)
 }
 
-type Validation struct{
-	Type ManagedObject
-	ID string
+type Validation struct {
+	Type  ManagedObject
+	ID    string
 	Field reflect.StructField
 	Value interface{}
 }

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/hex"
 )
 
 func TestCreateChallenge(t *testing.T) {

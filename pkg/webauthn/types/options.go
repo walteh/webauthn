@@ -1,8 +1,8 @@
 package types
 
 import (
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/webauthncose"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/webauthncose"
 )
 
 type CredentialCreationOptions struct {

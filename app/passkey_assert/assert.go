@@ -3,19 +3,17 @@ package passkey
 import (
 	"context"
 
-	"git.nugg.xyz/go-sdk/dynamo"
-	"git.nugg.xyz/go-sdk/errors"
-	"git.nugg.xyz/go-sdk/x"
-
-	"git.nugg.xyz/webauthn/pkg/cognito"
-	"git.nugg.xyz/webauthn/pkg/constants"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/structure"
-	"git.nugg.xyz/webauthn/pkg/webauthn/assertion"
-	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/extensions"
-	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/cognito"
+	"github.com/walteh/webauthn/pkg/constants"
+	"github.com/walteh/webauthn/pkg/errd"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/indexable"
+	"github.com/walteh/webauthn/pkg/structure"
+	"github.com/walteh/webauthn/pkg/webauthn/assertion"
+	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
+	"github.com/walteh/webauthn/pkg/webauthn/extensions"
+	"github.com/walteh/webauthn/pkg/webauthn/providers"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 type PasskeyAssertionInput struct {
@@ -33,7 +31,7 @@ type PasskeyAssertionOutput struct {
 	AccessToken         string
 }
 
-func Assert(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cognito.Client, assert PasskeyAssertionInput) (PasskeyAssertionOutput, error) {
+func Assert(ctx context.Context, dynamoClient indexable.DynamoDBAPI, cognitoClient cognito.Client, assert PasskeyAssertionInput) (PasskeyAssertionOutput, error) {
 	var err error
 
 	input := types.AssertionInput{
@@ -66,7 +64,7 @@ func Assert(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cogni
 
 	z, err := cognitoClient.GetDevCreds(ctx, input.CredentialID)
 	if err != nil {
-		return PasskeyAssertionOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling cognito").WithRoot(err).WithCaller()
+		return PasskeyAssertionOutput{502, ""}, errd.Wrap(ctx, err)
 	}
 
 	// Handle steps 4 through 16
@@ -91,10 +89,10 @@ func Assert(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cogni
 	// verify the public key matches
 
 	cred := structure.NewCredentialQueryable(input.CredentialID.Hex())
-	cerem := structure.NewCeremonyQueryable(cd.Challenge.Hex())
+	cerem := structure.NewChallengeQueryable(cd.Challenge.Hex())
 
 	// add session to list of sessions for this credential
-	txs := x.IndexableIncrement(ctx, cred, x.NewCustomLastModifier(0, false), dynamo.N(1))
+	txs := indexable.IndexableIncrement(ctx, cred, indexable.NewCustomLastModifier(0, false), indexable.N(1))
 
 	// make sure the ceremony has not expired
 	// we should have some sort of ttl on it - need to make sure of that

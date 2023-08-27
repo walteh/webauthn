@@ -1,14 +1,14 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
-	"git.nugg.xyz/go-sdk/errors"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/challenge"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/challenge"
 )
 
 type Ceremony struct {
@@ -43,10 +43,7 @@ func (s Ceremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM,
 func (s *Ceremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMemberM) (err error) {
 
 	if av.Value == nil {
-		return errors.NewError(0x11).
-			WithMessage("attribute value is nil - prob the id was not found in dynamo").
-			WithKV("challenge_id", s.ChallengeID.Hex()).
-			WithCaller()
+		return errors.New("empty attribute value")
 	}
 
 	if s.ChallengeID, err = GetSHashNotZero(av, "challenge_id"); err != nil {

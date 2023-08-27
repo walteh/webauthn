@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"git.nugg.xyz/webauthn/pkg/user"
+	"github.com/walteh/webauthn/pkg/user"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"

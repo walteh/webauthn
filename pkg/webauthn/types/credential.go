@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"git.nugg.xyz/go-sdk/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -78,10 +77,7 @@ func (s Credential) MarshalDynamoDBAttributeValue() (*types.AttributeValueMember
 
 func (s *Credential) UnmarshalDynamoDBAttributeValue(m *types.AttributeValueMemberM) (err error) {
 	if m.Value == nil {
-		return errors.NewError(0x11).
-			WithMessage("attribute value is nil - prob the id was not found in dynamo").
-			WithKV("credential_id", s.RawID.Hex()).
-			WithCaller()
+		return fmt.Errorf("nil value")
 	}
 
 	if s.RawID, err = GetSHashNotZero(m, "credential_id"); err != nil {

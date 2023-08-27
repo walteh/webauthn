@@ -5,12 +5,11 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	"git.nugg.xyz/go-sdk/otel/logging"
-	"git.nugg.xyz/webauthn/pkg/errors"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
-	"git.nugg.xyz/webauthn/pkg/webauthn/googletpm"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/rs/zerolog"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/credential"
+	"github.com/walteh/webauthn/pkg/webauthn/googletpm"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +17,7 @@ import (
 var provider = TpmAttestationProvider{}
 
 func TestTPMAttestationVerificationSuccess(t *testing.T) {
-	ctx := logging.NewVerboseLoggerContext(context.Background())
+	ctx := zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.TraceLevel).With().Caller().Logger().WithContext(context.Background())
 
 	for i := range testAttestationTPMResponses {
 		t.Run("TPM Positive tests", func(t *testing.T) {
@@ -86,12 +85,12 @@ func TestTPMAttestationVerificationFailAttStatement(t *testing.T) {
 		{
 			"TPM Negative Test AttStatement x5c not present",
 			types.AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0)}},
-			errors.ErrNotImplemented.Message(),
+			"Error retreiving x5c value",
 		},
 		{
 			"TPM Negative Test AttStatement ecdaaKeyId present",
 			types.AttestationObject{AttStatement: map[string]interface{}{"ver": "2.0", "alg": int64(0), "x5c": []interface{}{}, "ecdaaKeyId": []byte{}}},
-			errors.ErrNotImplemented.Message(),
+			"ECDAA attestation is not supported",
 		},
 		{
 			"TPM Negative Test AttStatement sig not present",

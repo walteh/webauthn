@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/http"
 
-	"git.nugg.xyz/webauthn/pkg/webauthn/cfssl/revoke"
+	"github.com/walteh/webauthn/pkg/webauthn/cfssl/revoke"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"

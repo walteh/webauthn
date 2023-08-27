@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"os"
 
-	"git.nugg.xyz/webauthn/pkg/cognito"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/cognito"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 
 	"reflect"
 	"testing"
 
 	dynamodb_mock "git.nugg.xyz/go-sdk/dynamo/mock"
-	"git.nugg.xyz/go-sdk/invocation"
 	"git.nugg.xyz/go-sdk/mock"
 	"git.nugg.xyz/go-sdk/x"
+	"git.nugg.xyz/pkg/invocation"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"

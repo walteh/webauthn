@@ -6,11 +6,11 @@ import (
 
 	"testing"
 
-	"git.nugg.xyz/go-sdk/otel/logging"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/challenge"
-	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/rs/zerolog"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/challenge"
+	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 func setupCollectedClientData(challenge []byte) types.CollectedClientData {
@@ -25,7 +25,7 @@ func setupCollectedClientData(challenge []byte) types.CollectedClientData {
 
 func TestVerifyCollectedClientData(t *testing.T) {
 
-	ctx := logging.NewVerboseLoggerContext(context.Background())
+	ctx := zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.TraceLevel).With().Caller().Logger().WithContext(context.Background())
 
 	newChallenge, err := challenge.CreateChallenge()
 	if err != nil {
@@ -47,7 +47,7 @@ func TestVerifyCollectedClientData(t *testing.T) {
 }
 
 func TestVerifyCollectedClientDataIncorrectChallenge(t *testing.T) {
-	ctx := logging.NewVerboseLoggerContext(context.Background())
+	ctx := zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.TraceLevel).With().Caller().Logger().WithContext(context.Background())
 
 	newChallenge, err := challenge.CreateChallenge()
 	if err != nil {

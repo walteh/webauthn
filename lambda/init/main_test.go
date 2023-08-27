@@ -5,15 +5,14 @@ import (
 	"reflect"
 	"testing"
 
-	"git.nugg.xyz/webauthn/pkg/dynamo"
-	"git.nugg.xyz/webauthn/pkg/webauthn/challenge"
+	"github.com/walteh/webauthn/pkg/webauthn/challenge"
 
 	"github.com/k0kubun/pp"
 	"github.com/rs/zerolog"
 )
 
 func DummyHandler(t *testing.T) *Handler {
-	dynamoClient := x.NewMockClient(t)
+	dynamoClient := indexable.NewMockClient(t)
 
 	return &Handler{
 		Id:      "test",

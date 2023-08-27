@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"git.nugg.xyz/go-sdk/otel/logging"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/assertion"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/rs/zerolog"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/assertion"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 // func TestParseCredentialRequestResponse(t *testing.T) {
@@ -155,7 +155,7 @@ func TestParsedCredentialAssertionData_Verify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := logging.NewVerboseLoggerContext(context.Background())
+			ctx := zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.TraceLevel).With().Caller().Logger().WithContext(context.Background())
 			if err := assertion.VerifyAssertionInput(ctx, tt.args); (err != nil) != tt.wantErr {
 				t.Errorf("ParsedCredentialAssertionData.Verify() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -2,16 +2,16 @@ package passkey
 
 import (
 	"context"
+	"errors"
 
-	"git.nugg.xyz/go-sdk/errors"
-	"git.nugg.xyz/go-sdk/x"
-
-	"git.nugg.xyz/webauthn/pkg/cognito"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/credential"
-	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/cognito"
+	"github.com/walteh/webauthn/pkg/errd"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/indexable"
+	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
+	"github.com/walteh/webauthn/pkg/webauthn/credential"
+	"github.com/walteh/webauthn/pkg/webauthn/providers"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 type PasskeyAttestationInput struct {
@@ -25,7 +25,23 @@ type PasskeyAttestationOutput struct {
 	AccessToken         string
 }
 
-func Attest(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cognito.Client, assert PasskeyAttestationInput) (PasskeyAttestationOutput, error) {
+var (
+	ErrPasskeyAttestInvalidInput = errors.New("ErrPasskeyAttestInvalidInput")
+
+	ErrPasskeyAttestInvalidSessionID = errors.New("ErrPasskeyAttestInvalidSessionID")
+
+	ErrPasskeyAttestInvalidCredentialID = errors.New("ErrPasskeyAttestInvalidCredentialID")
+
+	ErrPasskeyAttestInvalidChallenge = errors.New("ErrPasskeyAttestInvalidChallenge")
+
+	ErrPasskeyAttestJWTGeneration = errors.New("ErrPasskeyAttestJWTGeneration")
+
+	ErrPasskeyAttestDataRead = errors.New("ErrPasskeyAttestDataRead")
+
+	ErrPasskeyAttestDataWrite = errors.New("ErrPasskeyAttestDataWrite")
+)
+
+func Attest(ctx context.Context, dynamoClient indexable.DynamoDBAPI, cognitoClient cognito.Client, assert PasskeyAttestationInput) (PasskeyAttestationOutput, error) {
 	var err error
 
 	parsedResponse := types.AttestationInput{
@@ -44,7 +60,7 @@ func Attest(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cogni
 
 	err = dynamoClient.TransactGet(ctx, cerem)
 	if err != nil {
-		return PasskeyAttestationOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestDataRead)
 	}
 
 	cred, invalidErr := credential.VerifyAttestationInput(ctx, types.VerifyAttestationInputArgs{
@@ -58,25 +74,23 @@ func Attest(ctx context.Context, dynamoClient x.DynamoDBAPI, cognitoClient cogni
 	})
 
 	if invalidErr != nil {
-		return PasskeyAttestationOutput{401, ""}, errors.NewError(0x99).WithMessage("invalid attestation").WithRoot(invalidErr).WithCaller()
+		return PasskeyAttestationOutput{401, ""}, invalidErr
 	}
 
 	z, err := cognitoClient.GetDevCreds(ctx, cerem.CredentialID)
 	if err != nil {
-		return PasskeyAttestationOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling cognito").WithRoot(err).WithCaller()
+		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestJWTGeneration)
 	}
 
 	// put
-	credput := x.IndexablePut(cred, false)
+	credput := indexable.IndexablePut(cred, false)
 
 	// should be a delete
-	ceremput := x.IndexablePut(cerem, true)
-
-	x.N
+	ceremput := indexable.IndexablePut(cerem, true)
 
 	err = dynamoClient.TransactWrite(ctx, *credput, *ceremput)
 	if err != nil {
-		return PasskeyAttestationOutput{502, ""}, errors.NewError(0x99).WithMessage("problem calling dynamo").WithRoot(err).WithCaller()
+		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestDataWrite)
 	}
 
 	return PasskeyAttestationOutput{204, *z.Token}, nil

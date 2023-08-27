@@ -2,11 +2,11 @@ package passkey_test
 
 import (
 	dynamodb_mock "git.nugg.xyz/go-sdk/dynamo/mock"
-	"git.nugg.xyz/go-sdk/invocation"
-	"git.nugg.xyz/webauthn/pkg/cognito"
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/passkey"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"git.nugg.xyz/pkg/invocation"
+	"github.com/walteh/webauthn/pkg/cognito"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/passkey"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 
 	"testing"
 

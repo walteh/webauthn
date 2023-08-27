@@ -6,16 +6,16 @@ import (
 	"git.nugg.xyz/go-sdk/errors"
 	"github.com/rs/zerolog"
 
-	"git.nugg.xyz/webauthn/pkg/constants"
-	"git.nugg.xyz/webauthn/pkg/dynamo"
-	cerrors "git.nugg.xyz/webauthn/pkg/errors"
+	"github.com/walteh/webauthn/pkg/constants"
+	"github.com/walteh/webauthn/pkg/dynamo"
+	cerrors "github.com/walteh/webauthn/pkg/errors"
 
-	"git.nugg.xyz/webauthn/pkg/hex"
-	"git.nugg.xyz/webauthn/pkg/webauthn/assertion"
-	"git.nugg.xyz/webauthn/pkg/webauthn/clientdata"
-	"git.nugg.xyz/webauthn/pkg/webauthn/extensions"
-	"git.nugg.xyz/webauthn/pkg/webauthn/providers"
-	"git.nugg.xyz/webauthn/pkg/webauthn/types"
+	"github.com/walteh/webauthn/pkg/hex"
+	"github.com/walteh/webauthn/pkg/webauthn/assertion"
+	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
+	"github.com/walteh/webauthn/pkg/webauthn/extensions"
+	"github.com/walteh/webauthn/pkg/webauthn/providers"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 type DeviceCheckAssertionInput struct {
