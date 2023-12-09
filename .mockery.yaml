@@ -8,7 +8,11 @@
     mockname: "Mock{{.InterfaceName}}_{{.PackageName}}",
     packages:
         {
-            github.com/walteh/webauthn/pkg/accesstoken/cognito:
-                { interfaces: { AWSCognitoClient: {} } },
+            github.com/walteh/webauthn/pkg/accesstoken:
+                { interfaces: { Provider: {} } },
+            github.com/walteh/webauthn/pkg/relyingparty:
+                { interfaces: { Provider: {} } },
+            github.com/walteh/webauthn/pkg/storage:
+                { interfaces: { Provider: {} } },
         },
 }

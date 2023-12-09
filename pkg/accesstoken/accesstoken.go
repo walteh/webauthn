@@ -2,6 +2,6 @@ package accesstoken
 
 import "context"
 
-type AccessTokenProvider interface {
+type Provider interface {
 	AccessTokenForUserID(ctx context.Context, userID string) (string, error)
 }

@@ -3,6 +3,7 @@ package cognito
 import (
 	"context"
 
+	"github.com/walteh/webauthn/pkg/accesstoken"
 	"github.com/walteh/webauthn/pkg/hex"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -10,11 +11,29 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentity"
 )
 
-type AWSCognitoClient interface {
-	GetId(ctx context.Context, params *cognitoidentity.GetIdInput, optFns ...func(*cognitoidentity.Options)) (*cognitoidentity.GetIdOutput, error)
-	GetCredentialsForIdentity(ctx context.Context, params *cognitoidentity.GetCredentialsForIdentityInput, optFns ...func(*cognitoidentity.Options)) (*cognitoidentity.GetCredentialsForIdentityOutput, error)
-	GetOpenIdTokenForDeveloperIdentity(ctx context.Context, params *cognitoidentity.GetOpenIdTokenForDeveloperIdentityInput, optFns ...func(*cognitoidentity.Options)) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error)
+var (
+	_ accesstoken.Provider = (*DefaultClient)(nil)
+)
+
+func NewAccessTokenProvider(config aws.Config, poolName string, providerName string) accesstoken.Provider {
+	return NewClient(config, poolName, providerName)
 }
+
+func (c *DefaultClient) AccessTokenForUserID(ctx context.Context, userID string) (string, error) {
+
+	resp, err := c.GetDevCreds(ctx, hex.HexToHash(userID))
+	if err != nil {
+		return "", err
+	}
+
+	return *resp.Token, nil
+}
+
+// type AWSCognitoClient interface {
+// 	GetId(ctx context.Context, params *cognitoidentity.GetIdInput, optFns ...func(*cognitoidentity.Options)) (*cognitoidentity.GetIdOutput, error)
+// 	GetCredentialsForIdentity(ctx context.Context, params *cognitoidentity.GetCredentialsForIdentityInput, optFns ...func(*cognitoidentity.Options)) (*cognitoidentity.GetCredentialsForIdentityOutput, error)
+// 	GetOpenIdTokenForDeveloperIdentity(ctx context.Context, params *cognitoidentity.GetOpenIdTokenForDeveloperIdentityInput, optFns ...func(*cognitoidentity.Options)) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error)
+// }
 
 type Client interface {
 	GetDevCreds(ctx context.Context, nuggId hex.Hash) (*cognitoidentity.GetOpenIdTokenForDeveloperIdentityOutput, error)
@@ -29,7 +48,7 @@ type DefaultClient struct {
 	ProviderName string
 }
 
-func NewClient(config aws.Config, poolName string, providerName string) Client {
+func NewClient(config aws.Config, poolName string, providerName string) *DefaultClient {
 	return &DefaultClient{
 		Client:       cognitoidentity.NewFromConfig(config),
 		PoolName:     poolName,
