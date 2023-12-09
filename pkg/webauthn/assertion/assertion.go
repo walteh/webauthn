@@ -8,11 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/authdata"
 	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
-	"github.com/walteh/webauthn/pkg/webauthn/webauthncose"
 
 	"github.com/rs/zerolog"
 	"github.com/ugorji/go/codec"

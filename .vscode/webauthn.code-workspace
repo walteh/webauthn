@@ -30,10 +30,12 @@
 		"material-icon-theme.files.associations": {
 			".buildrc": "auto",
 			"*.bats": "tune",
-			"justfile": "makefile",
+			"justfile": "Makefile",
 		},
 		"files.exclude": {
+			"terraform/": true,
 			".plan": true,
+			"**/.git": true,
 		},
 		"files.associations": {
 			".buildrc": "yaml",
@@ -41,11 +43,8 @@
 		/* //////////////////////////////////////////////
 							  GO
 		////////////////////////////////////////////// */
-		"go.testTimeout": "90s",
-		"go.alternateTools": {
-			// https://github.com/golang/vscode-go/issues/971
-			"go": "/opt/homebrew/bin/go"
-		},
+		"go.testTimeout": "30s",
+		"go.enableCodeLens": {},
 		/* //////////////////////////////////////////////
 							YAML
 		////////////////////////////////////////////// */
@@ -67,36 +66,22 @@
 		"terraform.languageServer.enable": true,
 		"terraform.experimentalFeatures.validateOnSave": true,
 		"[terraform]": {
-			"editor.defaultFormatter": "hashicorp.terraform",
-			"editor.formatOnSave": false,
-			"editor.codeActionsOnSave": {
-				"source.formatAll.terraform": false
-			},
-		},
-		"[terraform-vars]": {
-			"editor.defaultFormatter": "hashicorp.terraform",
-			"editor.formatOnSave": false,
-			"editor.codeActionsOnSave": {
-				"source.formatAll.terraform": true
-			},
-		},
-		/* //////////////////////////////////////////////
-							PROTO
-		////////////////////////////////////////////// */
-		"[proto3]": {
 			"editor.formatOnSave": false,
 		},
-		"emeraldwalk.runonsave": {
-			"commands": [
-				{
-					"match": "\\.tf$|\\.tfvars$|\\.hcl$|\\.hclvars$|\\.hcl2$",
-					"cmd": "~/.tftab/tftab hcl \"${file}\""
-				},
-				{
-					"match": "\\.proto$|\\.proto3$",
-					"cmd": "~/.tftab/tftab buf \"${file}\""
-				},
-			]
+		// "emeraldwalk.runonsave": {
+		// 	"commands": [
+		// 		{
+		// 			"match": "\\.tf$|\\.tfvars$|\\.hcl$|\\.hclvars$|\\.hcl2$",
+		// 			"cmd": "~/.retab/retab hcl \"${file}\""
+		// 		},
+		// 		{
+		// 			"match": "\\.proto$|\\.proto3$",
+		// 			"cmd": "~/.retab/retab buf \"${file}\""
+		// 		}
+		// 	]
+		// },
+		"[dockerfile]": {
+			"editor.semanticHighlighting.enabled": false,
 		},
 	}
 }

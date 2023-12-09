@@ -8,10 +8,10 @@ import (
 	"errors"
 	"log"
 
+	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
 	"github.com/rs/zerolog"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
-	"github.com/walteh/webauthn/pkg/webauthn/webauthncbor"
 )
 
 const (

@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/walteh/webauthn/pkg/webauthn/webauthncose"
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 )
 
 // From §8.2. https://www.w3.org/TR/webauthn/#packed-attestation

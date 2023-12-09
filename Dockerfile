@@ -1,179 +1,276 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:labs
 
-ARG GO_VERSION=1.21.0
-ARG XX_VERSION=1.2.1
+##################################################################
+# SETUP
+##################################################################
 
-ARG DOCKER_VERSION=24.0.2
-ARG GOTESTSUM_VERSION=v1.9.0
-ARG REGISTRY_VERSION=2.8.0
-ARG BUILDKIT_VERSION=v0.11.6
+ARG GO_VERSION=
+ARG XX_VERSION=
+ARG GOTESTSUM_VERSION=
+ARG BUILDRC_VERSION=
+ARG BIN_NAME=
+ARG DART_VERSION=
 
-# xx is a helper for cross-compilation
 FROM --platform=$BUILDPLATFORM tonistiigi/xx:${XX_VERSION} AS xx
-
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS golatest
-
-FROM --platform=$BUILDPLATFORM walteh/buildrc:4.0.1 as buildrc
+FROM --platform=$BUILDPLATFORM walteh/buildrc:${BUILDRC_VERSION} as buildrc
+FROM --platform=$BUILDPLATFORM alpine:latest AS alpinelatest
+FROM --platform=$BUILDPLATFORM busybox:musl AS musl
+FROM --platform=$BUILDPLATFORM dart:${DART_VERSION} as dart
 
 FROM golatest AS gobase
 COPY --from=xx / /
-COPY --from=buildrc /usr/bin/buildrc /usr/bin/buildrc
-RUN apk add --no-cache file git bash jq
+# COPY --from=buildrc /usr/bin/ /usr/bin/
+RUN apk add --no-cache file git bash
 ENV GOFLAGS=-mod=vendor
 ENV CGO_ENABLED=0
 WORKDIR /src
 
-FROM registry:$REGISTRY_VERSION AS registry
+##################################################################
+# BUILD
+##################################################################
 
-FROM moby/buildkit:$BUILDKIT_VERSION AS buildkit
+FROM gobase AS metarc
+ARG TARGETPLATFORM BUILDPLATFORM BIN_NAME
+RUN --mount=type=bind,target=/src,readonly <<SHELL
 
-FROM docker/buildx-bin:latest AS buildx-bin
+	mkdir -p /meta
 
-FROM gobase AS meta
-ARG TARGETPLATFORM
-RUN --mount=type=bind,target=/src,rw <<EOT
-    set -e
-	buildrc full --git-dir=/src --files-dir=/meta
-EOT
+	echo "$(git rev-list HEAD -1)" > /meta/revision
+
+	git symbolic-ref HEAD &>/dev/null
+	if [ $? -ne 0 ]; then
+	    echo "Detached HEAD"
+		echo "$(git rev-list HEAD -2 | tail -n 1)" > /meta/revision
+	fi
+
+	echo "$(git describe "$(cat /meta/revision)" --tags || echo "v0.0.0-local+$(git rev-parse --short HEAD)")$(git diff --quiet || echo '.dirty')" > /meta/version
+	echo "${BIN_NAME}_$(cat /meta/version)_${TARGETPLATFORM}" | sed -e 's|/|-|g' > /meta/artifact
+	echo "${BIN_NAME}" > /meta/executable
+	echo "$(go list -m)" > /meta/go-pkg
+
+	# if target contains  windows, then add .exe
+	if [ "$(echo ${TARGETPLATFORM} | grep -i windows)" != "" ]; then
+		echo "$(cat /meta/executable).exe" > /meta/executable
+	fi
+
+	echo "========== [meta] =========="
+	cat /meta/*
+SHELL
+FROM scratch AS meta
+COPY --link --from=metarc /meta /
 
 FROM gobase AS builder
 ARG TARGETPLATFORM
+COPY --link --from=meta . /meta
 RUN --mount=type=bind,target=. \
 	--mount=type=cache,target=/root/.cache \
-	--mount=type=cache,target=/go/pkg/mod \
-	--mount=type=bind,from=meta,source=/meta,target=/meta,readonly <<EOT
-  set -e
-  if [ -z "${TARGETPLATFORM}" ]; then echo "TARGETPLATFORM is not set" && exit 1; fi
-  xx-go --wrap
-  DESTDIR=/usr/bin GO_PKG=$(cat /meta/go-pkg) BIN_NAME=$(cat /meta/name) BIN_VERSION=$(cat /meta/version) BIN_REVISION=$(cat /meta/revision) GO_EXTRA_LDFLAGS="-s -w" ./hack/build
-  xx-verify --static /usr/bin/$(cat /meta/name)
-EOT
+	--mount=type=cache,target=/go/pkg/mod  <<SHELL
+	#!/bin/sh
+	set -e -o pipefail
 
-FROM scratch AS binaries-unix
-ARG BIN_NAME
-COPY --link --from=builder /usr/bin/${BIN_NAME} /${BIN_NAME}
+	export CGO_ENABLED=0
+ 	xx-go --wrap;
+	GO_PKG=$(cat /meta/go-pkg);
+	LDFLAGS="-s -w -X ${GO_PKG}/version.Version=$(cat /meta/version) -X ${GO_PKG}/version.Revision=$(cat /meta/revision) -X ${GO_PKG}/version.Package=${GO_PKG}";
+	go build -mod vendor -trimpath -ldflags "$LDFLAGS" -o /out/$(cat /meta/executable) ./cmd;
+  	xx-verify --static /out/$(cat /meta/executable);
+SHELL
 
-FROM binaries-unix AS binaries-darwin
-FROM binaries-unix AS binaries-linux
+FROM musl AS symlink
+COPY --link --from=meta . /meta
+RUN <<SHELL
+	#!/bin/sh
+	set -e -o pipefail
 
-FROM scratch AS binaries-windows
-ARG BIN_NAME
-COPY --link --from=builder /usr/bin/${BIN_NAME} /${BIN_NAME}.exe
+	mkdir -p /out/symlink
+	ln -s ../$(cat /meta/executable) /out/symlink/executable
+SHELL
 
-FROM binaries-$TARGETOS AS binaries
+FROM scratch AS build-unix
+COPY --from=builder /out /
+COPY --from=symlink /out /
+
+FROM build-unix AS build-darwin
+FROM build-unix AS build-linux
+FROM build-unix AS build-freebsd
+FROM build-unix AS build-openbsd
+FROM build-unix AS build-netbsd
+FROM build-unix AS build-ios
+
+FROM scratch AS build-windows
+COPY --from=builder /out/ /
+COPY --from=symlink /out /
+
+FROM build-$TARGETOS AS build
 # enable scanning for this stage
 ARG BUILDKIT_SBOM_SCAN_STAGE=true
+COPY --from=metarc /meta/artifact /artifact
 
-FROM binaries AS entry
-ARG BIN_NAME
-ENV BIN_NAME=${BIN_NAME}
-COPY --link --from=builder /usr/bin/${BIN_NAME} /usr/bin/${BIN_NAME}
-ENTRYPOINT [ "/usr/bin/${BIN_NAME}" ]
 
 ##################################################################
 # TESTING
 ##################################################################
 
+FROM gobase AS test2json
+ARG GOTESTSUM_VERSION
+ENV GOFLAGS=
+RUN --mount=target=/root/.cache,type=cache <<SHELL
+	#!/bin/sh
+	set -e -o pipefail
+
+	CGO_ENABLED=0 go build -o /out/test2json -ldflags="-s -w" cmd/test2json
+SHELL
+
 FROM gobase AS gotestsum
 ARG GOTESTSUM_VERSION
 ENV GOFLAGS=
-RUN --mount=target=/root/.cache,type=cache <<EOT
-	GOBIN=/out/ go install "gotest.tools/gotestsum@${GOTESTSUM_VERSION}" &&
-	/out/gotestsum --version
-EOT
+RUN --mount=target=/root/.cache,type=cache \
+	go install gotest.tools/gotestsum@${GOTESTSUM_VERSION}
 
-FROM gobase AS test
-ENV SKIP_INTEGRATION_TESTS=1
+FROM gobase AS test-builder
+ARG BIN_NAME
+ENV CGO_ENABLED=1
+RUN apk add --no-cache gcc musl-dev libc6-compat
+RUN mkdir -p /out
 RUN --mount=type=bind,target=. \
 	--mount=type=cache,target=/root/.cache \
-	--mount=type=cache,target=/go/pkg/mod <<EOT
-	go test -v -coverprofile=/tmp/coverage.txt -covermode=atomic ./... &&
-	go tool cover -func=/tmp/coverage.txt
-EOT
+	--mount=type=cache,target=/go/pkg/mod <<SHELL
+	#!/bin/sh
+	set -e -o pipefail
 
-FROM scratch AS test-coverage
-COPY --from=test /tmp/coverage.txt /coverage.txt
+	for dir in $(go list -test -f '{{if or .ForTest}}{{.Dir}}{{end}}' ./...); do
+		pkg=$(echo $dir | sed -e 's/.*\///')
+		echo "========== [pkg:${pkg}] =========="
+		go test -c -v -cover -fuzz -race -vet='' -covermode=atomic -mod=vendor "$dir" -o /out;
+	done
+SHELL
 
-FROM gobase AS docker
-ARG TARGETPLATFORM
-ARG DOCKER_VERSION
-WORKDIR /opt/docker
-RUN <<EOT
-CASE=${TARGETPLATFORM:-linux/amd64}
-DOCKER_ARCH=$(
-	case ${CASE} in
-	"linux/amd64") echo "x86_64" ;;
-	"linux/arm/v6") echo "armel" ;;
-	"linux/arm/v7") echo "armhf" ;;
-	"linux/arm64/v8") echo "aarch64" ;;
-	"linux/arm64") echo "aarch64" ;;
-	"linux/ppc64le") echo "ppc64le" ;;
-	"linux/s390x") echo "s390x" ;;
-	*) echo "" ;; esac
-)
-echo "DOCKER_ARCH=$DOCKER_ARCH" &&
-wget -qO- "https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-${DOCKER_VERSION}.tgz" | tar xvz --strip 1
-EOT
-RUN ./dockerd --version && ./containerd --version && ./ctr --version && ./runc --version
+FROM scratch AS test-build
+COPY --from=test-builder /out /tests
+COPY --from=test2json /out /bins
+COPY --from=gotestsum /go/bin /bins
 
-FROM gobase AS integration-test-base
-ARG BIN_NAME
-# https://github.com/docker/docker/blob/master/project/PACKAGERS.md#runtime-dependencies
-RUN apk add --no-cache \
-	btrfs-progs \
-	e2fsprogs \
-	e2fsprogs-extra \
-	ip6tables \
-	iptables \
-	openssl \
-	shadow-uidmap \
-	xfsprogs \
-	xz
-COPY --link --from=gotestsum /out/gotestsum /usr/bin/
-COPY --link --from=registry /bin/registry /usr/bin/
-COPY --link --from=docker /opt/docker/* /usr/bin/
-COPY --link --from=buildkit /usr/bin/buildkitd /usr/bin/
-COPY --link --from=buildkit /usr/bin/buildctl /usr/bin/
-COPY --link --from=binaries /${BIN_NAME} /usr/bin/
-COPY --link --from=buildx-bin /buildx /usr/libexec/docker/cli-plugins/docker-buildx
+FROM docker:dind AS test
+ARG CASE_INFOS
+RUN	apk add --no-cache jq
+RUN mkdir -p /dat/case_info
+RUN echo "${CASE_INFOS}" | jq -r '.[] | @base64' | while read case; do \
+	echo ${case} | base64 -d > /dat/case_info/$(echo ${case} | base64 -d | jq -r '.name'); \
+	done
+COPY --from=test-build /tests /usr/bin/
+COPY --from=test-build /bins /usr/bin/
+COPY --from=build . /usr/bin/
 
-FROM integration-test-base AS integration-test
-COPY . .
+COPY <<-"SHELL" /xxx/run
+	#!/bin/sh
+	set -e -o pipefail
+
+	GOVERSION=$1
+	PKGS=$2
+	CASES=$3
+
+	# if pkgs = "empty" then use default
+	if [ "${PKGS}" = "empty" ]; then
+		# find all executables in /usr/bin that end with .test, remove the .test
+		PKGS=$(find /usr/bin -maxdepth 1 -type f -name '*.test' -exec basename {} \; | sed -e 's/\.test//g' | sort | uniq | jq -R . | jq -s .)
+	fi
+
+	# if cases = "empty" then use default
+	if [ "${CASES}" = "empty" ]; then
+		# find all the non executable files in /dat/case_info
+		CASES=all
+		echo "{\"name\":\"all\",\"args\":\"\"}" > "/dat/case_info/all"
+	fi
+
+	for CASE in $(echo "${CASES}" | jq -r '.[]' || echo "$CASES"); do
+
+		case_info=$(cat /dat/case_info/${CASE})
+
+		if [ "${case_info}" = "" ]; then
+			echo "case not found"
+			exit 1
+		fi
+
+		export NAME=$(echo "${case_info}" | jq -r '.name' > /dat/name)
+		export ARGS=$(echo "${case_info}" | jq -r '.args' > /dat/args)
+
+		for PKG in $(echo "${PKGS}" | jq -r '.[]' || echo "$PKGS"); do
+			name=$(cat /dat/name)
+			funcs=$(if [ "${name}" = "fuzz" ]; then "/usr/bin/${PKG}.test" -test.list=Fuzz 2> /dev/null; else echo "-"; fi)
+			for FUNC in $funcs; do
+				echo ""
+				if [ "${name}" = "fuzz" ] && [ "${FUNC}" = "-" ]; then continue; fi
+				n=$(if [ "${name}" = "fuzz" ]; then echo "[fuzz:${FUNC}] "; else echo ""; fi)
+				echo "========= [pkg:${PKG}] [case:$(cat /dat/name)] $n=========="
+
+				filename=$(if [ "${name}" = "fuzz" ]; then echo "${PKG}-fuzz-${FUNC}"; else echo "${PKG}-${name}"; fi)
+
+				fuzzfunc=$(if [ "${name}" = "fuzz" ]; then echo "-test.fuzz=${FUNC} -test.run=${FUNC}"; fi)
+
+				/usr/bin/gotestsum --format=standard-verbose \
+					--jsonfile=/out/go-test-report-${filename}.json \
+					--junitfile=/out/junit-report-${filename}.xml \
+					--raw-command -- /usr/bin/test2json -t -p ${PKG}  /usr/bin/${PKG}.test $(cat /dat/args) -test.bench=. -test.timeout=10m  ${fuzzfunc} \
+					-test.v=test2json -test.coverprofile=/out/coverage-report-${filename}.txt \
+					-test.outputdir=/out;
+			done;
+		done;
+	done;
+
+	echo ""
+SHELL
+RUN chmod +x /xxx/run
+ARG GO_VERSION
+ENV GOVERSION=${GO_VERSION}
+ENV PKGS=empty CASES=empty
+ENTRYPOINT /xxx/run "${GOVERSION}" "${PKGS}" ${CASES}
 
 ##################################################################
 # RELEASE
 ##################################################################
 
-FROM --platform=$BUILDPLATFORM alpine:latest AS releaser
-WORKDIR /work
-ARG TARGETPLATFORM
-RUN --mount=from=binaries \
-	--mount=type=bind,from=meta,source=/meta,target=/meta <<EOT
-	set -e
+FROM alpinelatest AS packager
+RUN apk add --no-cache file tar jq
+COPY --link --from=build . /src/
+RUN <<SHELL
+	#!/bin/sh
+	set -e -o pipefail
+
+	if [ -f /src/artifact ]; then
+		searchdir="/src/"
+	else
+		searchdir="/src/*/"
+	fi
 	mkdir -p /out
-	cp "$(cat /meta/name)"* "/out/$(cat /meta/executable)"
-EOT
+	for pdir in ${searchdir}; do
+		(
+			cd "${pdir}"
+			artifact="$(cat ./artifact)"
+			tar -czvf "/out/${artifact}.tar.gz" .
+		)
+	done
 
-# FROM --platform=$BUILDPLATFORM alpine:latest AS meta-json
-# RUN --mount=type=bind,from=meta,source=/meta,target=/meta,readonly \
-# 	--mount=type=bind,target=/src <<EOT
-# 	set -e
-# 	mkdir -p /out
-# 	echo '{' > /out/meta.json
-# 	for file in /meta/*; do
-# 		key=$(basename $file)
-# 		value=$(cat $file)
-# 		echo "	\"$key\": \"$value\"," >> /out/meta.json
-# 	done
-# 	sed -i '$ s/,$//' /out/meta.json # Remove trailing comma from last line
-# 	echo '}' >> /out/meta.json
-# EOT
+	(
+		cd /out
+		find . -type f \( -name '*.tar.gz' \) -exec sha256sum -b {} \; >./checksums.txt
+		sha256sum -c checksums.txt
+	)
+SHELL
 
-FROM scratch AS meta-out
-COPY --from=meta /meta/ /
+FROM scratch AS package
+COPY --link --from=packager /out/ /
 
-FROM scratch AS release
-COPY --from=releaser /out/ /
-COPY --from=meta /meta/buildrc.json /buildrc.json
+##################################################################
+# IMAGE
+##################################################################
 
-FROM binaries
+FROM scratch AS entry
+ARG BUILDKIT_SBOM_SCAN_STAGE=true
+ARG TARGETOS TARGETARCH TARGETVARIANT BIN_NAME
+ARG TGT=${TARGETOS}_${TARGETARCH}*${TARGETVARIANT}
+COPY --from=build /symlink* /usr/bin/symlink/
+COPY --from=build /${BIN_NAME}* /usr/bin/
+COPY --from=build /*.json /usr/bin/
+COPY --from=build /${TGT} /usr/bin/
+ENTRYPOINT ["/usr/bin/symlink/executable"]

@@ -9,12 +9,11 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/pkg/errors"
 	"github.com/walteh/webauthn/pkg/hex"
-	"github.com/walteh/webauthn/pkg/webauthn/types"
-	"github.com/walteh/webauthn/pkg/webauthn/webauthncose"
-
 	"github.com/walteh/webauthn/pkg/webauthn/googletpm"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
 
 func init() {
@@ -97,7 +96,7 @@ func (me *TpmAttestationProvider) Handler(att types.AttestationObject, clientDat
 	}
 	switch key := key.(type) {
 	case webauthncose.EC2PublicKeyData:
-		if pubArea.ECCParameters.CurveID != key.TPMCurveID() ||
+		if pubArea.ECCParameters.CurveID != googletpm.EllipticCurve(key.TPMCurveID()) ||
 			pubArea.ECCParameters.Point.X.Cmp(new(big.Int).SetBytes(key.XCoord)) != 0 ||
 			pubArea.ECCParameters.Point.Y.Cmp(new(big.Int).SetBytes(key.YCoord)) != 0 {
 			return nil, "", nil, errors.Wrap(ErrTPM, "Mismatch between ECCParameters in pubArea and credentialPublicKey")

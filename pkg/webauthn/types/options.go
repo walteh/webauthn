@@ -1,8 +1,8 @@
 package types
 
 import (
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/walteh/webauthn/pkg/hex"
-	"github.com/walteh/webauthn/pkg/webauthn/webauthncose"
 )
 
 type CredentialCreationOptions struct {

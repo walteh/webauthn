@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 	"github.com/pkg/errors"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
-	"github.com/walteh/webauthn/pkg/webauthn/webauthncose"
 )
 
 type AppleAttestationProvider struct{}

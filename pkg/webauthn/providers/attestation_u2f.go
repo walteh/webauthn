@@ -11,7 +11,7 @@ import (
 	"github.com/walteh/webauthn/pkg/webauthn/types"
 	"github.com/walteh/webauthn/pkg/webauthn/webauthncbor"
 
-	"github.com/walteh/webauthn/pkg/webauthn/webauthncose"
+	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 )
 
 type U2FAttestationProvider struct{}
