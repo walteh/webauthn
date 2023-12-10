@@ -3,6 +3,7 @@ package devicecheck
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/walteh/webauthn/pkg/errd"
@@ -20,6 +21,9 @@ type DeviceCheckAttestationInput struct {
 	UTF8ClientDataJSON   string
 	RawCredentialID      hex.Hash
 	RawSessionID         hex.Hash
+	Production           bool
+	Time                 *time.Time
+	RootCert             string
 }
 
 type DeviceCheckAttestationOutput struct {
@@ -62,7 +66,7 @@ func Attest(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return DeviceCheckAttestationOutput{400, false}, errd.Wrap(ctx, ErrDeviceCheckAttestInvalidInput)
 	}
 
-	cer, err := dynamoClient.GetExistingCeremony(ctx, cd.Challenge.String())
+	cer, _, err := dynamoClient.GetExisting(ctx, cd.Challenge.String(), "")
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to transact get")
 		return DeviceCheckAttestationOutput{502, false}, errd.Wrap(ctx, ErrDeviceCheckAttestDataRead)
@@ -72,8 +76,21 @@ func Attest(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return DeviceCheckAttestationOutput{401, false}, errd.Mismatch(ctx, ErrDeviceCheckAttestInvalidSessionID, cer.SessionID.Hex(), input.RawSessionID.Hex())
 	}
 
+	prov := providers.NewAppAttestSandbox()
+	if input.Production {
+		prov = providers.NewAppAttestProduction()
+	}
+
+	if input.Time != nil {
+		prov = prov.WithTime(*input.Time)
+	}
+
+	if input.RootCert != "" {
+		prov = prov.WithRootCert(input.RootCert)
+	}
+
 	pk, err := credential.VerifyAttestationInput(ctx, types.VerifyAttestationInputArgs{
-		Provider:           providers.NewAppAttestSandbox(),
+		Provider:           prov,
 		Input:              parsedResponse,
 		SessionId:          cer.SessionID,
 		StoredChallenge:    cer.ChallengeID,

@@ -9,7 +9,6 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/authdata"
 	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
@@ -195,7 +194,9 @@ func VerifyAttestationInput(ctx context.Context, args types.VerifyAttestationInp
 	// Since there is not an active registry yet, we'll check it against our internal
 	// Supported types.
 
-	now := types.Now()
+	// now := types.Now()
+
+	tme := args.Provider.Time()
 
 	abc := &types.Credential{
 		PublicKey:       attestationObject.AuthData.AttData.CredentialPublicKey,
@@ -205,10 +206,10 @@ func VerifyAttestationInput(ctx context.Context, args types.VerifyAttestationInp
 		AAGUID:          attestationObject.AuthData.AttData.AAGUID,
 		SignCount:       attestationObject.AuthData.Counter,
 		CloneWarning:    false,
-		CreatedAt:       now,
-		UpdatedAt:       now,
-		SessionId:       hex.Hash{},
-		Receipt:         hex.Hash{},
+		CreatedAt:       uint64(tme.Unix()),
+		UpdatedAt:       uint64(tme.Unix()),
+		SessionId:       nil,
+		Receipt:         nil,
 	}
 
 	// But first let's make sure attestation is present. If it isn't, we don't need to handle

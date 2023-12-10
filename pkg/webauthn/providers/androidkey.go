@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"fmt"
+	"time"
 
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
 
@@ -27,6 +28,10 @@ func (me *AndroidKey) ID() string {
 var (
 	ErrAndroidKey = errors.New("ErrAndroidKey")
 )
+
+func (me *AndroidKey) Time() time.Time {
+	return time.Now()
+}
 
 var _ types.AttestationProvider = (*AndroidKey)(nil)
 

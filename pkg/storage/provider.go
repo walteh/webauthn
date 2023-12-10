@@ -12,5 +12,5 @@ type Provider interface {
 	GetExisting(ctx context.Context, challenge string, credid string) (*types.Ceremony, *types.Credential, error)
 	GetExistingCredential(ctx context.Context, credid string) (*types.Credential, error)
 	WriteNewCredential(ctx context.Context, crm *types.Ceremony, cred *types.Credential) error
-	IncrementExistingCredential(ctx context.Context, challenge string, credid string) error
+	IncrementExistingCredential(ctx context.Context, crm *types.Ceremony, credid string) error
 }

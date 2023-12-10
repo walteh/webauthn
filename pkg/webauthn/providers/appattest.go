@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/walteh/webauthn/pkg/hex"
@@ -27,20 +28,45 @@ import (
 //			x5c: [ credCert: bytes, * (caCert: bytes) ]
 //	  }
 
+var _ types.AttestationProvider = (*AppAttest)(nil)
+
+func (me *AppAttest) Time() time.Time {
+	if me.time == nil {
+		return time.Now()
+	}
+	return *me.time
+}
+
 type AppAttest struct {
 	production bool
+	time       *time.Time
+	rootCert   string
 }
 
 func NewAppAttestSandbox() *AppAttest {
 	return &AppAttest{
 		production: false,
+		time:       nil,
+		rootCert:   Apple_App_Attestation_Root_CA____EXP_LATER,
 	}
 }
 
 func NewAppAttestProduction() *AppAttest {
 	return &AppAttest{
 		production: true,
+		time:       nil,
+		rootCert:   Apple_App_Attestation_Root_CA____EXP_LATER,
 	}
+}
+
+func (me *AppAttest) WithTime(t time.Time) *AppAttest {
+	me.time = &t
+	return me
+}
+
+func (me *AppAttest) WithRootCert(rootCert string) *AppAttest {
+	me.rootCert = rootCert
+	return me
 }
 
 func (me *AppAttest) ID() string {
@@ -74,7 +100,7 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	intermediates := x509.NewCertPool()
 
 	// Add Apple root Cert
-	ok := roots.AppendCertsFromPEM([]byte(APPLE_ROOT_CERT))
+	ok := roots.AppendCertsFromPEM([]byte(me.rootCert))
 	if !ok {
 		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error adding root certificate to pool.")
 	}
@@ -117,6 +143,10 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	verifyOptions := x509.VerifyOptions{
 		Roots:         roots,
 		Intermediates: intermediates,
+	}
+
+	if me.time != nil {
+		verifyOptions.CurrentTime = *me.time
 	}
 
 	// 1. Verify that the x5c array contains the intermediate and leaf certificates for App Attest,
@@ -179,7 +209,22 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 // 	Nonce []byte `asn1:"tag:1,explicit"`
 // }
 
-const APPLE_ROOT_CERT = `-----BEGIN CERTIFICATE-----
+const Apple_App_Attestation_Root_CA____DEC2022_to_JULY2023 = `-----BEGIN CERTIFICATE-----
+MIICITCCAaegAwIBAgIQC/O+DvHN0uD7jG5yH2IXmDAKBggqhkjOPQQDAzBSMSYw
+JAYDVQQDDB1BcHBsZSBBcHAgQXR0ZXN0YXRpb24gUm9vdCBDQTETMBEGA1UECgwK
+QXBwbGUgSW5jLjETMBEGA1UECAwKQ2FsaWZvcm5pYTAeFw0yMDAzMTgxODMyNTNa
+Fw00NTAzMTUwMDAwMDBaMFIxJjAkBgNVBAMMHUFwcGxlIEFwcCBBdHRlc3RhdGlv
+biBSb290IENBMRMwEQYDVQQKDApBcHBsZSBJbmMuMRMwEQYDVQQIDApDYWxpZm9y
+bmlhMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAERTHhmLW07ATaFQIEVwTtT4dyctdh
+NbJhFs/Ii2FdCgAHGbpphY3+d8qjuDngIN3WVhQUBHAoMeQ/cLiP1sOUtgjqK9au
+Yen1mMEvRq9Sk3Jm5X8U62H+xTD3FE9TgS41o0IwQDAPBgNVHRMBAf8EBTADAQH/
+MB0GA1UdDgQWBBSskRBTM72+aEH/pwyp5frq5eWKoTAOBgNVHQ8BAf8EBAMCAQYw
+CgYIKoZIzj0EAwMDaAAwZQIwQgFGnByvsiVbpTKwSga0kP0e8EeDS4+sQmTvb7vn
+53O5+FRXgeLhpJ06ysC5PrOyAjEAp5U4xDgEgllF7En3VcE3iexZZtKeYnpqtijV
+oyFraWVIyd/dganmrduC1bmTBGwD
+-----END CERTIFICATE-----`
+
+const Apple_App_Attestation_Root_CA____EXP_LATER = `-----BEGIN CERTIFICATE-----
 MIICITCCAaegAwIBAgIQC/O+DvHN0uD7jG5yH2IXmDAKBggqhkjOPQQDAzBSMSYw
 JAYDVQQDDB1BcHBsZSBBcHAgQXR0ZXN0YXRpb24gUm9vdCBDQTETMBEGA1UECgwK
 QXBwbGUgSW5jLjETMBEGA1UECAwKQ2FsaWZvcm5pYTAeFw0yMDAzMTgxODMyNTNa

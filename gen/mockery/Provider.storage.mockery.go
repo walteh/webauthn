@@ -198,13 +198,13 @@ func (_c *MockProvider_storage_GetExistingCredential_Call) RunAndReturn(run func
 	return _c
 }
 
-// IncrementExistingCredential provides a mock function with given fields: ctx, challenge, credid
-func (_m *MockProvider_storage) IncrementExistingCredential(ctx context.Context, challenge string, credid string) error {
-	ret := _m.Called(ctx, challenge, credid)
+// IncrementExistingCredential provides a mock function with given fields: ctx, crm, credid
+func (_m *MockProvider_storage) IncrementExistingCredential(ctx context.Context, crm *types.Ceremony, credid string) error {
+	ret := _m.Called(ctx, crm, credid)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, challenge, credid)
+	if rf, ok := ret.Get(0).(func(context.Context, *types.Ceremony, string) error); ok {
+		r0 = rf(ctx, crm, credid)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -219,15 +219,15 @@ type MockProvider_storage_IncrementExistingCredential_Call struct {
 
 // IncrementExistingCredential is a helper method to define mock.On call
 //   - ctx context.Context
-//   - challenge string
+//   - crm *types.Ceremony
 //   - credid string
-func (_e *MockProvider_storage_Expecter) IncrementExistingCredential(ctx interface{}, challenge interface{}, credid interface{}) *MockProvider_storage_IncrementExistingCredential_Call {
-	return &MockProvider_storage_IncrementExistingCredential_Call{Call: _e.mock.On("IncrementExistingCredential", ctx, challenge, credid)}
+func (_e *MockProvider_storage_Expecter) IncrementExistingCredential(ctx interface{}, crm interface{}, credid interface{}) *MockProvider_storage_IncrementExistingCredential_Call {
+	return &MockProvider_storage_IncrementExistingCredential_Call{Call: _e.mock.On("IncrementExistingCredential", ctx, crm, credid)}
 }
 
-func (_c *MockProvider_storage_IncrementExistingCredential_Call) Run(run func(ctx context.Context, challenge string, credid string)) *MockProvider_storage_IncrementExistingCredential_Call {
+func (_c *MockProvider_storage_IncrementExistingCredential_Call) Run(run func(ctx context.Context, crm *types.Ceremony, credid string)) *MockProvider_storage_IncrementExistingCredential_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(*types.Ceremony), args[2].(string))
 	})
 	return _c
 }
@@ -237,7 +237,7 @@ func (_c *MockProvider_storage_IncrementExistingCredential_Call) Return(_a0 erro
 	return _c
 }
 
-func (_c *MockProvider_storage_IncrementExistingCredential_Call) RunAndReturn(run func(context.Context, string, string) error) *MockProvider_storage_IncrementExistingCredential_Call {
+func (_c *MockProvider_storage_IncrementExistingCredential_Call) RunAndReturn(run func(context.Context, *types.Ceremony, string) error) *MockProvider_storage_IncrementExistingCredential_Call {
 	_c.Call.Return(run)
 	return _c
 }

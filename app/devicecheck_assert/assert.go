@@ -1,4 +1,4 @@
-package devicecheck
+package devicecheck_assert
 
 import (
 	"context"
@@ -88,7 +88,7 @@ func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return DeviceCheckAssertionOutput{401, false}, validError
 	}
 
-	err = dynamoClient.IncrementExistingCredential(ctx, cd.Challenge.String(), parsed.CredentialID.String())
+	err = dynamoClient.IncrementExistingCredential(ctx, cerem, parsed.CredentialID.String())
 	if err != nil {
 		return DeviceCheckAssertionOutput{502, false}, err
 	}

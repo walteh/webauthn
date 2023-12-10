@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"time"
 
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/extensions"
@@ -94,6 +95,7 @@ type AttestationObject struct {
 type AttestationProvider interface {
 	Attest(AttestationObject, []byte) (hex.Hash, string, []interface{}, error)
 	ID() string
+	Time() time.Time
 }
 
 func (me CredentialIdentifier) Verify() error {
