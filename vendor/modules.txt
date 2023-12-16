@@ -128,7 +128,7 @@ github.com/cenkalti/backoff/v4
 # github.com/containerd/continuity v0.4.1
 ## explicit; go 1.19
 github.com/containerd/continuity/pathdriver
-# github.com/cpuguy83/go-md2man/v2 v2.0.2
+# github.com/cpuguy83/go-md2man/v2 v2.0.3
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/davecgh/go-spew v1.1.1
@@ -165,9 +165,6 @@ github.com/fatih/color
 # github.com/fxamacker/cbor/v2 v2.5.0
 ## explicit; go 1.12
 github.com/fxamacker/cbor/v2
-# github.com/go-faster/errors v0.7.0
-## explicit; go 1.20
-github.com/go-faster/errors
 # github.com/go-webauthn/webauthn v0.9.4
 ## explicit; go 1.21
 github.com/go-webauthn/webauthn/protocol/webauthncbor
@@ -216,7 +213,7 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.20
 ## explicit; go 1.15
 github.com/mattn/go-isatty
-# github.com/mattn/go-runewidth v0.0.13
+# github.com/mattn/go-runewidth v0.0.15
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
 # github.com/mitchellh/mapstructure v1.5.0
@@ -269,10 +266,10 @@ github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 ## explicit
 github.com/pmezard/go-difflib/difflib
-# github.com/rivo/uniseg v0.2.0
-## explicit; go 1.12
+# github.com/rivo/uniseg v0.4.4
+## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/rs/zerolog v1.30.0
+# github.com/rs/zerolog v1.31.0
 ## explicit; go 1.15
 github.com/rs/zerolog
 github.com/rs/zerolog/internal/cbor
@@ -283,7 +280,7 @@ github.com/russross/blackfriday/v2
 # github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# github.com/spf13/cobra v1.7.0
+# github.com/spf13/cobra v1.8.0
 ## explicit; go 1.15
 github.com/spf13/cobra
 github.com/spf13/cobra/doc
@@ -306,10 +303,10 @@ github.com/ugorji/go/codec
 github.com/walteh/buildrc/integration
 github.com/walteh/buildrc/integration/aws
 github.com/walteh/buildrc/integration/dynamodb
-# github.com/walteh/snake v0.8.2
-## explicit; go 1.21.0
+# github.com/walteh/snake v0.40.0
+## explicit; go 1.21.4
 github.com/walteh/snake
-# github.com/walteh/terrors v0.6.0
+# github.com/walteh/terrors v0.9.0
 ## explicit; go 1.21.4
 github.com/walteh/terrors
 # github.com/x448/float16 v0.8.4
@@ -368,3 +365,4 @@ gopkg.in/yaml.v2
 gopkg.in/yaml.v3
 # gotest.tools/v3 v3.5.0
 ## explicit; go 1.17
+# github.com/walteh/snake/szerolog => ../snake/szerolog

@@ -4,97 +4,15 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
-	"fmt"
-	"log"
 
 	"github.com/rs/zerolog"
 
+	"github.com/walteh/terrors"
 	"github.com/walteh/webauthn/pkg/webauthn/authdata"
 	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
 	"github.com/walteh/webauthn/pkg/webauthn/webauthncbor"
 )
-
-// func VerifyAttestationInput(args types.VerifyAttestationInputArgs) (*types.Credential, error) {
-
-// 	attestationObject, err := ParseAttestationInput(args.Input)
-// 	if err != nil {
-// 		return nil, errors.ErrParsingData.WithMessage("Error parsing attestation object").WithRoot(err).WithCaller()
-// 	}
-
-// 	// Handles steps 3 through 6 - Verifying the Client Data against the Relying Party's stored data
-// 	verifyError := clientdata.Verify(attestationObject.ClientData, args.StoredChallenge, types.CreateCeremony, args.RelyingPartyOrigin)
-// 	if verifyError != nil {
-// 		return nil, verifyError
-// 	}
-
-// 	// Step 7. Compute the hash of response.clientDataJSON using SHA-256.
-// 	clientDataHash := sha256.Sum256([]byte(args.Input.UTF8ClientDataJSON))
-
-// 	// Step 8. Perform CBOR decoding on the attestationObject field of the AuthenticatorAttestationResponse
-// 	// structure to obtain the attestation statement format fmt, the authenticator data authData, and the
-// 	// attestation statement attStmt. is handled while
-
-// 	// We do the above step while parsing and decoding the CredentialCreationResponse
-// 	// Handle steps 9 through 14 - This verifies the attestaion object and
-// 	pk, verifyError := verify(args.Provider, attestationObject, args.RelyingPartyID, clientDataHash[:], args.VerifyUser, true)
-// 	if verifyError != nil {
-// 		return nil, verifyError
-// 	}
-
-// 	// Step 15. If validation is successful, obtain a list of acceptable trust anchors (attestation root
-// 	// certificates or ECDAA-Issuer public keys) for that attestation type and attestation statement
-// 	// format fmt, from a trusted source or from policy. For example, the FIDO Metadata Service provides
-// 	// one way to obtain such information, using the aaguid in the attestedCredentialData in authData.
-// 	// [https://fidoalliance.org/specs/fido-v2.0-id-20180227/fido-metadata-service-v2.0-id-20180227.html]
-
-// 	// TODO: There are no valid AAGUIDs yet or trust sources supported. We could implement policy for the RP in
-// 	// the future, however.
-
-// 	// Step 16. Assess the attestation trustworthiness using outputs of the verification procedure in step 14, as follows:
-// 	// - If self attestation was used, check if self attestation is acceptable under Relying Party policy.
-// 	// - If ECDAA was used, verify that the identifier of the ECDAA-Issuer public key used is included in
-// 	//   the set of acceptable trust anchors obtained in step 15.
-// 	// - Otherwise, use the X.509 certificates returned by the verification procedure to verify that the
-// 	//   attestation public key correctly chains up to an acceptable root certificate.
-
-// 	// TODO: We're not supporting trust anchors, self-attestation policy, or acceptable root certs yet
-
-// 	// Step 17. Check that the credentialId is not yet registered to any other user. If registration is
-// 	// requested for a credential that is already registered to a different user, the Relying Party SHOULD
-// 	// fail this registration ceremony, or it MAY decide to accept the registration, e.g. while deleting
-// 	// the older registration.
-
-// 	// TODO: We can't support this in the code's current form, the Relying Party would need to check for this
-// 	// against their database
-
-// 	// Step 18 If the attestation statement attStmt verified successfully and is found to be trustworthy, then
-// 	// register the new credential with the account that was denoted in the options.user passed to create(), by
-// 	// associating it with the credentialId and credentialPublicKey in the attestedCredentialData in authData, as
-// 	// appropriate for the Relying Party's system.
-
-// 	// Step 19. If the attestation statement attStmt successfully verified but is not trustworthy per step 16 above,
-// 	// the Relying Party SHOULD fail the registration ceremony.
-
-// 	// TODO: Not implemented for the reasons mentioned under Step 16
-
-// 	// z := &SavedCredential{
-// 	// 	AAGUID: pcc.Response.AttestationObject.AuthData.AttData.AAGUID,
-// 	// 	// AttestationType: pcc.Response.AttestationObject.AuthData.,
-// 	// 	RawID:           pcc.Response.AttestationObject.AuthData.AttData.CredentialID,
-// 	// 	SignCount:       pcc.Response.AttestationObject.AuthData.Counter,
-// 	// 	PublicKey:       pk,
-// 	// 	Type:            "public-key",
-// 	// 	AttestationType: (pcc.Response.AttestationObject.Format),
-// 	// 	Receipt:         r,
-// 	// 	CloneWarning:    false,
-// 	// 	CreatedAt:       uint64(time.Now().Unix()),
-// 	// 	UpdatedAt:       uint64(time.Now().Unix()),
-// 	// 	SessionId:       sessionId,
-// 	// }
-
-// 	return pk, nil
-// }
 
 // Parse the values returned in the authenticator response and perform attestation verification
 // Step 8. This returns a fully decoded struct with the data put into a format that can be
@@ -111,8 +29,7 @@ func ParseAttestationInput(ctx context.Context, ccr types.AttestationInput) (*ty
 
 	err = webauthncbor.Unmarshal(ccr.AttestationObject, &p)
 	if err != nil {
-		zerolog.Ctx(ctx).Error().Err(err).Msg("Error unmarshalling cbor attestation object")
-		return nil, err
+		return nil, terrors.Wrap(err, "error unmarshalling cbor attestation object")
 	}
 
 	// p.RawAuthData = hex.Hash(p.RawAuthData)
@@ -122,8 +39,7 @@ func ParseAttestationInput(ctx context.Context, ccr types.AttestationInput) (*ty
 	// the attestation statement attStmt.
 	dat, err := authdata.ParseAuthenticatorData(ctx, p.RawAuthData)
 	if err != nil {
-		log.Println("Error unmarshalling cbor auth data", err)
-		return nil, fmt.Errorf("error decoding auth data: %v", err)
+		return nil, terrors.Wrap(err, "error unmarshalling cbor auth data")
 	}
 
 	p.AuthData = dat
@@ -131,7 +47,7 @@ func ParseAttestationInput(ctx context.Context, ccr types.AttestationInput) (*ty
 	p.Extensions = ccr.ClientExtensions
 
 	if !p.AuthData.Flags.HasAttestedCredentialData() {
-		return nil, errors.New("Attestation missing attested credential data flag")
+		return nil, terrors.New("Attestation missing attested credential data flag")
 	}
 
 	return &p, nil

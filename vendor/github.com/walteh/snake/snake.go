@@ -2,112 +2,213 @@ package snake
 
 import (
 	"context"
-	"fmt"
+	"io"
+	"reflect"
 
-	"github.com/spf13/cobra"
+	"github.com/walteh/terrors"
 )
 
-type Snakeable interface {
-	ParseArguments(ctx context.Context, cmd *cobra.Command, args []string) error
-	BuildCommand(ctx context.Context) *cobra.Command
+type NewSnakeOpts struct {
+	Resolvers            []Resolver
+	OverrideEnumResolver EnumResolverFunc
 }
 
-var (
-	ErrMissingBinding   = fmt.Errorf("snake.ErrMissingBinding")
-	ErrMissingRun       = fmt.Errorf("snake.ErrMissingRun")
-	ErrInvalidRun       = fmt.Errorf("snake.ErrInvalidRun")
-	ErrInvalidArguments = fmt.Errorf("snake.ErrInvalidArguments")
-)
+type Snake interface {
+	ResolverNames() []string
+	Resolve(string) Resolver
+	Enums() []Enum
+	Resolvers() []Resolver
+	DependantsOf(string) []string
+}
 
-func NewRootCommand(ctx context.Context, snk Snakeable) *cobra.Command {
+type defaultSnake struct {
+	resolvers  map[string]Resolver
+	dependants map[string][]string
+}
 
-	cmd := snk.BuildCommand(ctx)
+func (me *defaultSnake) ResolverNames() []string {
+	names := make([]string, 0)
+	for k := range me.resolvers {
+		names = append(names, k)
+	}
+	return names
+}
 
-	cmd.SilenceErrors = true
+func (me *defaultSnake) Resolve(name string) Resolver {
+	return me.resolvers[name]
+}
 
-	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if err := cmd.ParseFlags(args); err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
+type SnakeImplementationTyped[X any] interface {
+	Decorate(context.Context, X, Snake, []Input, []Middleware) error
+	SnakeImplementation
+}
+
+type SnakeImplementation interface {
+	ManagedResolvers(context.Context) []Resolver
+	OnSnakeInit(context.Context, Snake) error
+	ResolveEnum(string, []string) (string, error)
+	ProvideContextResolver() Resolver
+}
+
+func NewSnake[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], res ...Resolver) (Snake, error) {
+	return NewSnakeWithOpts(ctx, impl, &NewSnakeOpts{
+		Resolvers: res,
+	})
+}
+
+func snakeManagedResolvers() []Resolver {
+	return []Resolver{
+		NewNoopMethod[Chan](),
+		NewNoopMethod[io.Writer](),
+		NewNoopMethod[io.Reader](),
+		NewNoopMethod[Stdin](),
+		NewNoopMethod[Stdout](),
+		NewNoopMethod[Stderr](),
+	}
+}
+
+func NewSnakeWithOpts[M NamedMethod](ctx context.Context, impl SnakeImplementationTyped[M], opts *NewSnakeOpts) (Snake, error) {
+	var err error
+
+	snk := &defaultSnake{
+		resolvers:  make(map[string]Resolver),
+		dependants: make(map[string][]string),
+	}
+
+	enums := make([]Enum, 0)
+
+	named := make(map[string]TypedResolver[M])
+
+	inputResolvers := make([]Resolver, 0)
+
+	if opts.Resolvers != nil {
+		inputResolvers = append(inputResolvers, opts.Resolvers...)
+	}
+
+	inputResolvers = append(inputResolvers, newSimpleResolver[EnumResolverFunc](impl.ResolveEnum))
+
+	con := impl.ProvideContextResolver()
+	if con != nil {
+		inputResolvers = append(inputResolvers, con)
+	}
+
+	inputResolvers = append(inputResolvers, impl.ManagedResolvers(ctx)...)
+
+	inputResolvers = append(inputResolvers, snakeManagedResolvers()...)
+
+	for _, runner := range inputResolvers {
+
+		if nmd, ok := runner.(TypedResolver[M]); ok {
+			named[nmd.TypedRef().Name()] = nmd
+			continue
 		}
 
-		err := snk.ParseArguments(cmd.Context(), cmd, args)
+		retrn := ListOfReturns(runner)
+
+		// every return value marks this runner as the resolver for that type
+		for _, r := range retrn {
+			if r.Kind().String() == "error" {
+				continue
+			}
+			snk.resolvers[reflectTypeString(r)] = runner
+		}
+
+		// enum options are also resolvers so they are passed here
+		if mp, ok := runner.(Enum); ok {
+			resolver := opts.OverrideEnumResolver
+			if resolver == nil {
+				resolver = impl.ResolveEnum
+			}
+			err := mp.ApplyResolver(resolver)
+			if err != nil {
+				return nil, err
+			}
+			enums = append(enums, mp)
+		}
+
+	}
+
+	for name, runner := range named {
+		snk.resolvers[name] = runner
+
+		inpts, err := DependancyInputs(name, snk.Resolve, enums...)
 		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
+			return nil, err
 		}
 
-		return nil
-	}
+		mw := make([]Middleware, 0)
 
-	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		err := snk.ParseArguments(cmd.Context(), cmd, args)
+		if mwd, ok := runner.(MiddlewareProvider); ok {
+			mw = append(mw, mwd.Middlewares()...)
+
+			for _, m := range mwd.Middlewares() {
+
+				mwin, err := InputsFor(NewMiddlewareResolver(m), enums...)
+				if err != nil {
+					return nil, err
+				}
+
+				inpts = append(inpts, mwin...)
+			}
+		}
+
+		err = impl.Decorate(ctx, runner.TypedRef(), snk, inpts, mw)
 		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
+			return nil, err
 		}
-		return nil
+
 	}
 
-	cmd.SetContext(ctx)
+	for name := range snk.resolvers {
 
-	return cmd
+		deps, err := DependanciesOf(name, snk.Resolve)
+		if err != nil {
+			return nil, terrors.Wrapf(err, "failed to find dependancies of %q", name)
+		}
 
-}
+		for _, dep := range deps {
+			methd := MethodName(snk.Resolve(dep))
 
-func NewGroup(ctx context.Context, cmd *cobra.Command, name string, description string) *cobra.Command {
+			if _, ok := snk.dependants[methd]; !ok {
+				snk.dependants[methd] = make([]string, 0)
+			}
 
-	grp := &cobra.Command{
-		Use:   name,
-		Short: description,
+			// fmt.Println("adding dependant", name, "to", methd)
+			snk.dependants[methd] = append(snk.dependants[methd], name)
+		}
 	}
 
-	cmd.AddCommand(grp)
-
-	return grp
-}
-
-func MustNewCommand(ctx context.Context, cbra *cobra.Command, name string, snk Snakeable) {
-	err := NewCommand(ctx, cbra, name, snk)
+	err = impl.OnSnakeInit(ctx, snk)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
+	return snk, nil
+
 }
 
-func NewCommand(ctx context.Context, cbra *cobra.Command, name string, snk Snakeable) error {
+func buildMiddlewareName(name string, m Middleware) string {
+	return name + "_" + reflectTypeString(reflect.TypeOf(m))
+}
 
-	cmd := snk.BuildCommand(ctx)
-
-	method := getRunMethod(snk)
-
-	tpe, err := validateRunMethod(snk, method)
-	if err != nil {
-		return err
-	}
-
-	cmd.PreRunE = func(cmd *cobra.Command, args []string) error {
-
-		if err := cmd.ParseFlags(args); err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
+func (me *defaultSnake) Enums() []Enum {
+	enums := make([]Enum, 0)
+	for _, name := range me.resolvers {
+		if mp, ok := name.(Enum); ok {
+			enums = append(enums, mp)
 		}
-
-		err := snk.ParseArguments(cmd.Context(), cmd, args)
-		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
-		}
-		return nil
 	}
+	return enums
+}
 
-	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		err := callRunMethod(cmd, method, tpe)
-		if err != nil {
-			return HandleErrorByPrintingToConsole(cmd, err)
-		}
-		return nil
+func (me *defaultSnake) Resolvers() []Resolver {
+	abc := make([]Resolver, 0)
+	for _, name := range me.resolvers {
+		abc = append(abc, name)
 	}
+	return abc
+}
 
-	if name != "" {
-		cmd.Use = name
-	}
-
-	cbra.AddCommand(cmd)
-
-	return nil
+func (me *defaultSnake) DependantsOf(name string) []string {
+	return me.dependants[name]
 }

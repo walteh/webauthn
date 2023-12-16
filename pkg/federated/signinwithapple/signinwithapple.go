@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+
+	"github.com/walteh/terrors"
 )
 
 var (
@@ -69,7 +71,7 @@ func (me *Client) ValidateRefreshToken(ctx context.Context, pk string, refreshTo
 
 	if resp.Error != "" {
 		fmt.Printf("apple returned an error: %s - %s\n", resp.Error, resp.ErrorDescription)
-		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
+		return nil, terrors.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
 	return resp, nil
@@ -104,7 +106,7 @@ func (me *Client) ValidateWebToken(ctx context.Context, pk string, authorization
 
 	if resp.Error != "" {
 		fmt.Printf("apple returned an error: %s - %s\n", resp.Error, resp.ErrorDescription)
-		return nil, fmt.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
+		return nil, terrors.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
 	return resp, nil

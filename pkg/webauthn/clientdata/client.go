@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/walteh/terrors"
 	"github.com/walteh/webauthn/pkg/errd"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
@@ -55,7 +56,8 @@ func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 	// log.Println(abc)
 
 	if subtle.ConstantTimeCompare(expected.StoredChallenge, r.Challenge) != 1 {
-		return errd.Mismatch(ctx, ErrChallengeMismatch, string(expected.StoredChallenge), string(r.Challenge))
+		return terrors.Mismatch(expected.StoredChallenge.Ref().Hex(), r.Challenge.Ref().Hex())
+		// return errd.Mismatch(ctx, ErrChallengeMismatch, expected.StoredChallenge.Ref().Hex(), string(r.Challenge.Ref().Hex()))
 	}
 
 	// Registration Step 5 & Assertion Step 9. Verify that the value of C.origin matches
@@ -66,7 +68,8 @@ func Verify(ctx context.Context, expected types.VerifyClientDataArgs) error {
 	}
 
 	if !strings.EqualFold(types.FullyQualifiedOrigin(clientDataOrigin), expected.RelyingPartyOrigin) {
-		return errd.Mismatch(ctx, ErrOriginMismatch, expected.RelyingPartyOrigin, types.FullyQualifiedOrigin(clientDataOrigin))
+		return terrors.Mismatch(expected.RelyingPartyOrigin, types.FullyQualifiedOrigin(clientDataOrigin))
+		// return terrors.Mismatch(ctx, ErrOriginMismatch, expected.RelyingPartyOrigin, types.FullyQualifiedOrigin(clientDataOrigin))
 	}
 
 	// Registration Step 6 and Assertion Step 10. Verify that the value of C.tokenBinding.status

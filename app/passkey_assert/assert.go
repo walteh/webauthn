@@ -49,18 +49,6 @@ func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return PasskeyAssertionOutput{400, ""}, err
 	}
 
-	// cred := structure.NewCredentialQueryable(input.CredentialID.Hex())
-	// cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
-
-	// if err = dynamoClient.TransactGet(ctx, cred, cerem); err != nil {
-	// 	return PasskeyAssertionOutput{502, ""}, err
-	// }
-
-	// if cred.RawID.Hex() != cerem.CredentialID.Hex() {
-	// 	log.Println(cred.RawID.Hex(), cerem.CredentialID.Hex())
-	// 	return PasskeyAssertionOutput{401, ""}, errors.NewError(0x67).WithMessage("credential id does not match").WithCaller()
-	// }
-
 	z, err := cognitoClient.GetDevCreds(ctx, input.CredentialID)
 	if err != nil {
 		return PasskeyAssertionOutput{502, ""}, errd.Wrap(ctx, err)

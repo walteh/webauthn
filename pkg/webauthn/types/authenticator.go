@@ -46,8 +46,8 @@ type AuthenticatorData struct {
 }
 
 type AttestedCredentialData struct {
-	AAGUID       hex.Hash `json:"aaguid"`
-	CredentialID hex.Hash `json:"credential_id"`
+	AAGUID       hex.Hash     `json:"aaguid"`
+	CredentialID CredentialID `json:"credential_id"`
 	// The raw credential public key bytes received from the attestation data
 	CredentialPublicKey hex.Hash `json:"public_key"`
 }

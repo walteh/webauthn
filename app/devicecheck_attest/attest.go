@@ -19,7 +19,7 @@ import (
 type DeviceCheckAttestationInput struct {
 	RawAttestationObject hex.Hash
 	UTF8ClientDataJSON   string
-	RawCredentialID      hex.Hash
+	RawCredentialID      types.CredentialID
 	RawSessionID         hex.Hash
 	Production           bool
 	Time                 *time.Time
@@ -50,7 +50,7 @@ var (
 func Attest(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.Provider, input DeviceCheckAttestationInput) (DeviceCheckAttestationOutput, error) {
 	var err error
 
-	if input.RawAttestationObject.IsZero() || input.UTF8ClientDataJSON == "" || input.RawCredentialID.IsZero() {
+	if input.RawAttestationObject.IsZero() || input.UTF8ClientDataJSON == "" || input.RawCredentialID.Ref().IsZero() {
 		return DeviceCheckAttestationOutput{400, false}, errd.Wrap(ctx, ErrDeviceCheckAttestInvalidInput)
 	}
 	parsedResponse := types.AttestationInput{
@@ -66,7 +66,7 @@ func Attest(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return DeviceCheckAttestationOutput{400, false}, errd.Wrap(ctx, ErrDeviceCheckAttestInvalidInput)
 	}
 
-	cer, _, err := dynamoClient.GetExisting(ctx, cd.Challenge.String(), "")
+	cer, _, err := dynamoClient.GetExisting(ctx, cd.Challenge, nil)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to transact get")
 		return DeviceCheckAttestationOutput{502, false}, errd.Wrap(ctx, ErrDeviceCheckAttestDataRead)
@@ -103,11 +103,11 @@ func Attest(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return DeviceCheckAttestationOutput{401, false}, errd.Wrap(ctx, err)
 	}
 
-	if !input.RawCredentialID.Equals(pk.RawID) {
-		return DeviceCheckAttestationOutput{401, false}, errd.Mismatch(ctx, ErrDeviceCheckAttestInvalidCredentialID, input.RawCredentialID.Hex(), pk.RawID.Hex())
+	if !input.RawCredentialID.Ref().Equals(pk.RawID.Ref()) {
+		return DeviceCheckAttestationOutput{401, false}, errd.Mismatch(ctx, ErrDeviceCheckAttestInvalidCredentialID, input.RawCredentialID.Ref().Hex(), pk.RawID.Ref().Hex())
 	}
 
-	err = dynamoClient.WriteNewCredential(ctx, cer, pk)
+	err = dynamoClient.WriteNewCredential(ctx, cer.ChallengeID, pk)
 	if err != nil {
 		zerolog.Ctx(ctx).Error().Err(err).Msg("failed to write new credential")
 		return DeviceCheckAttestationOutput{502, false}, errd.Wrap(ctx, ErrDeviceCheckAttestDataWrite)

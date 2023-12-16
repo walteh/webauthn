@@ -3,9 +3,10 @@ package googletpm
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"reflect"
+
+	"github.com/walteh/terrors"
 )
 
 // From github.com/google/go-tpm
@@ -50,7 +51,7 @@ func UnpackBuf(buf io.Reader, elts ...interface{}) error {
 		v := reflect.ValueOf(e)
 		k := v.Kind()
 		if k != reflect.Ptr {
-			return fmt.Errorf("all values passed to Unpack must be pointers, got %v", k)
+			return terrors.Errorf("all values passed to Unpack must be pointers, got %v", k)
 		}
 
 		if v.IsNil() {
@@ -93,7 +94,7 @@ func UnpackBuf(buf io.Reader, elts ...interface{}) error {
 				}
 				size = int(tmpSize)
 			default:
-				return fmt.Errorf("lengthPrefixSize is %d, must be either 2 or 4", lengthPrefixSize)
+				return terrors.Errorf("lengthPrefixSize is %d, must be either 2 or 4", lengthPrefixSize)
 			}
 
 			// A zero size is used by the TPM to signal that certain elements
@@ -117,7 +118,7 @@ func UnpackBuf(buf io.Reader, elts ...interface{}) error {
 					*b = append(*b, make([]Handle, size-len(*b))...)
 				}
 			default:
-				return fmt.Errorf("can't fill pointer to %T, only []byte or []Handle slices", e)
+				return terrors.Errorf("can't fill pointer to %T, only []byte or []Handle slices", e)
 			}
 
 			if err := binary.Read(buf, binary.BigEndian, e); err != nil {

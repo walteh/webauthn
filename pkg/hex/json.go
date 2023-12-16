@@ -19,10 +19,11 @@ package hex
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"reflect"
 	"strconv"
+
+	"github.com/walteh/terrors"
 )
 
 var (
@@ -87,7 +88,7 @@ func (b *Bytes) UnmarshalGraphQL(input interface{}) error {
 		}
 		*b = data
 	default:
-		err = fmt.Errorf("unexpected type %T for Bytes", input)
+		err = terrors.Errorf("unexpected type %T for Bytes", input)
 	}
 	return err
 }
@@ -112,7 +113,7 @@ func UnmarshalFixedText(typname string, input []byte, out []byte) error {
 	}
 	if len(raw)/2 != len(out) {
 
-		return fmt.Errorf("hex string has length %d, want %d for %s", len(raw), len(out)*2, typname)
+		return terrors.Errorf("hex string has length %d, want %d for %s", len(raw), len(out)*2, typname)
 	}
 	// Pre-verify syntax before modifying out.
 	for _, b := range raw {
@@ -164,7 +165,7 @@ func UnmarshalFixedUnprefixedText(typname string, input, out []byte) error {
 		return err
 	}
 	if len(raw)/2 != len(out) {
-		return fmt.Errorf("hex string has length %d, want %d for %s", len(raw), len(out)*2, typname)
+		return terrors.Errorf("hex string has length %d, want %d for %s", len(raw), len(out)*2, typname)
 	}
 	// Pre-verify syntax before modifying out.
 	for _, b := range raw {
@@ -253,7 +254,7 @@ func (b *Big) UnmarshalGraphQL(input interface{}) error {
 		num.SetInt64(int64(input))
 		*b = Big(num)
 	default:
-		err = fmt.Errorf("unexpected type %T for BigInt", input)
+		err = terrors.Errorf("unexpected type %T for BigInt", input)
 	}
 	return err
 }
@@ -317,7 +318,7 @@ func (b *Uint64) UnmarshalGraphQL(input interface{}) error {
 	case int32:
 		*b = Uint64(input)
 	default:
-		err = fmt.Errorf("unexpected type %T for Long", input)
+		err = terrors.Errorf("unexpected type %T for Long", input)
 	}
 	return err
 }

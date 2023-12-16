@@ -11,10 +11,20 @@ import (
 	"github.com/walteh/webauthn/pkg/webauthn/challenge"
 )
 
+type CeremonyID hex.Hash
+
+func (s CeremonyID) Ref() hex.Hash {
+	return hex.Hash(s)
+}
+
+func (s CeremonyID) MarshalText() ([]byte, error) {
+	return s.Ref().MarshalText()
+}
+
 type Ceremony struct {
-	ChallengeID  hex.Hash     `dynamodbav:"challenge_id" json:"challenge_id"`
+	ChallengeID  CeremonyID   `dynamodbav:"challenge_id" json:"challenge_id"`
 	SessionID    hex.Hash     `dynamodbav:"session_id" json:"session_id"`
-	CredentialID hex.Hash     `dynamodbav:"credential_id,omitempty" json:"credential_id,omitempty"`
+	CredentialID CredentialID `dynamodbav:"credential_id,omitempty" json:"credential_id,omitempty"`
 	CeremonyType CeremonyType `dynamodbav:"ceremony_type" json:"ceremony_type"`
 	CreatedAt    uint64       `dynamodbav:"created_at" json:"created_at"`
 	Ttl          uint64       `dynamodbav:"ttl" json:"ttl"`
@@ -27,9 +37,9 @@ type Ceremony struct {
 func (s Ceremony) MarshalDynamoDBAttributeValue() (*types.AttributeValueMemberM, error) {
 	av := types.AttributeValueMemberM{}
 	av.Value = make(map[string]types.AttributeValue)
-	av.Value["challenge_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()}
+	av.Value["challenge_id"] = &types.AttributeValueMemberS{Value: s.ChallengeID.Ref().Hex()}
 	av.Value["session_id"] = &types.AttributeValueMemberS{Value: s.SessionID.Hex()}
-	av.Value["credential_id"] = &types.AttributeValueMemberS{Value: s.CredentialID.Hex()}
+	av.Value["credential_id"] = &types.AttributeValueMemberS{Value: s.CredentialID.Ref().Hex()}
 	av.Value["ceremony_type"] = &types.AttributeValueMemberS{Value: string(s.CeremonyType)}
 	av.Value["created_at"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.CreatedAt)}
 	av.Value["ttl"] = &types.AttributeValueMemberN{Value: fmt.Sprintf("%d", s.Ttl)}
@@ -46,16 +56,20 @@ func (s *Ceremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMembe
 		return errors.New("empty attribute value")
 	}
 
-	if s.ChallengeID, err = GetSHashNotZero(av, "challenge_id"); err != nil {
+	if chal, err := GetSHashNotZero(av, "challenge_id"); err != nil {
 		return err
+	} else {
+		s.ChallengeID = CeremonyID(chal)
 	}
 
 	if s.SessionID, err = GetSHashNotZero(av, "session_id"); err != nil {
 		return err
 	}
 
-	if s.CredentialID, err = GetSHash(av, "credential_id"); err != nil {
+	if cred, err := GetSHash(av, "credential_id"); err != nil {
 		return err
+	} else {
+		s.CredentialID = CredentialID(cred)
 	}
 
 	if r, err := GetS(av, "ceremony_type"); err != nil {
@@ -75,7 +89,7 @@ func (s *Ceremony) UnmarshalDynamoDBAttributeValue(av *types.AttributeValueMembe
 	return nil
 }
 
-func NewCeremony(credentialID hex.Hash, sessionId hex.Hash, ceremonyType CeremonyType) *Ceremony {
+func NewCeremony(credentialID CredentialID, sessionId hex.Hash, ceremonyType CeremonyType) *Ceremony {
 
 	chal, err := challenge.CreateChallenge()
 	if err != nil {
@@ -85,7 +99,7 @@ func NewCeremony(credentialID hex.Hash, sessionId hex.Hash, ceremonyType Ceremon
 	cer := &Ceremony{
 		CredentialID: credentialID,
 		SessionID:    sessionId,
-		ChallengeID:  chal,
+		ChallengeID:  CeremonyID(chal),
 		CeremonyType: ceremonyType,
 		CreatedAt:    Now(),
 		Ttl:          Now() + 300,
@@ -98,23 +112,23 @@ func Now() uint64 {
 	return uint64(time.Now().Unix())
 }
 
-func (s Ceremony) Get() *types.Get {
-	return &types.Get{
-		Key: map[string]types.AttributeValue{
-			"challenge_id": &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()},
-		},
-	}
-}
+// func (s Ceremony) Get() *types.Get {
+// 	return &types.Get{
+// 		Key: map[string]types.AttributeValue{
+// 			"challenge_id": &types.AttributeValueMemberS{Value: s.ChallengeID.Hex()},
+// 		},
+// 	}
+// }
 
 func (s Ceremony) WasGot() bool {
 	return s.CreatedAt != 0
 }
 
-func NewUnsafeGettableCeremony(id hex.Hash) *Ceremony {
-	return &Ceremony{
-		ChallengeID: id,
-	}
-}
+// func NewUnsafeGettableCeremony(id hex.Hash) *Ceremony {
+// 	return &Ceremony{
+// 		ChallengeID: id,
+// 	}
+// }
 
 func (s Ceremony) Put() (*types.Put, error) {
 

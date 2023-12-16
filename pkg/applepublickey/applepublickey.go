@@ -5,13 +5,13 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math/big"
 	"net/http"
 	"net/url"
 	"time"
 
+	"github.com/walteh/terrors"
 	"golang.org/x/net/context/ctxhttp"
 )
 
@@ -74,7 +74,7 @@ func fetchPublicKeys(ctx context.Context, url string) (*PublicKeyResponse, error
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", response.StatusCode)
+		return nil, terrors.Errorf("unexpected status code: %d", response.StatusCode)
 	}
 
 	appleKeys := PublicKeyResponse{}

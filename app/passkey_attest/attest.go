@@ -57,9 +57,7 @@ func Attest(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return PasskeyAttestationOutput{400, ""}, err
 	}
 
-	// cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
-
-	cerem, err := dynamoClient.GetExistingCeremony(ctx, cd.Challenge.String())
+	cerem, _, err := dynamoClient.GetExisting(ctx, cd.Challenge.String(), "")
 	if err != nil {
 		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestDataRead)
 	}
@@ -83,18 +81,7 @@ func Attest(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestJWTGeneration)
 	}
 
-	// z, err := cognitoClient.GetDevCreds(ctx, cerem.CredentialID)
-	// if err != nil {
-	// 	return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestJWTGeneration)
-	// }
-
-	// // put
-	// credput := indexable.IndexablePut(cred, false)
-
-	// // should be a delete
-	// ceremput := indexable.IndexablePut(cerem, true)
-
-	err = dynamoClient.IncrementExistingCredential(ctx, string(cerem.ChallengeID), string(cred.RawID))
+	err = dynamoClient.IncrementExistingCredential(ctx, cerem, string(cred.RawID))
 
 	if err != nil {
 		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestDataWrite)

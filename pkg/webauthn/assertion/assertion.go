@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"github.com/go-webauthn/webauthn/protocol/webauthncose"
+	"github.com/walteh/terrors"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/authdata"
 	"github.com/walteh/webauthn/pkg/webauthn/clientdata"
@@ -132,9 +133,7 @@ func VerifyAssertionInput(ctx context.Context, args types.VerifyAssertionInputAr
 		// 3. Use the public key that you stored from the attestation object to verify that the assertion’s signature is valid for nonce.
 		x, y := elliptic.Unmarshal(elliptic.P256(), args.CredentialPublicKey)
 		if x == nil {
-			err := errors.New("error parsing the public key")
-			zerolog.Ctx(ctx).Error().Err(err).Send()
-			return err
+			return terrors.New("error parsing the public key")
 		}
 
 		pubkey := &ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}
@@ -142,32 +141,30 @@ func VerifyAssertionInput(ctx context.Context, args types.VerifyAssertionInputAr
 
 		valid := ecdsa.VerifyASN1(pubkey, nonceHash[:], asserter.Signature)
 		if !valid {
-			err := errors.New("error validating the assertion signature")
-			zerolog.Ctx(ctx).Error().Err(err).Send()
-			return err
+			return terrors.New("terror validating the assertion signature")
 		}
 	} else {
 		if appID == "" {
 			key, err = webauthncose.ParsePublicKey(args.CredentialPublicKey)
+			if err != nil {
+				return terrors.Wrap(err, "error parsing the public key")
+			}
 		} else {
 			key, err = webauthncose.ParseFIDOPublicKey(args.CredentialPublicKey)
-		}
-
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Msg("Error parsing the assertion public key")
-			return err
+			if err != nil {
+				return terrors.Wrap(err, "error parsing the fido public key")
+			}
 		}
 
 		valid, err := webauthncose.VerifySignature(key, sigData[:], asserter.Signature)
 		if !valid || err != nil {
-			err := errors.New("error validating the assertion signature")
-			zerolog.Ctx(ctx).Error().Err(err).
-				Bool("valid", valid).
-				Any("key", key).
-				Str("signature", asserter.Signature.Hex()).
-				Str("sigData", sigData.Hex()).
-				Str("appID", appID)
-			return err
+			return terrors.Wrap(err, "error validating the assertion signature").Event(func(e *zerolog.Event) *zerolog.Event {
+				return e.Bool("valid", valid).
+					Any("key", key).
+					Str("signature", asserter.Signature.Hex()).
+					Str("sigData", sigData.Hex()).
+					Str("appID", appID)
+			})
 
 		}
 	}
@@ -180,7 +177,7 @@ type AssertionResponse struct {
 	AssertionObject    hex.Hash `json:"assertion_object"`
 	SessionID          hex.Hash `json:"session_id"`
 	Provider           string   `json:"provider"`
-	CredentialID       hex.Hash `json:"credential_id"`
+	CredentialID       hex.Hash `json:"credential_id"` // not set to types.CredentialID so it can be decoded from JSON (otherwise we get - illegal base64 data at input byte 64)
 }
 
 func ParseNotFidoAssertionInput(ctx context.Context, response []byte) (types.AssertionInput, error) {
@@ -201,7 +198,7 @@ func ParseAssertionInput(ctx context.Context, response []byte, attestationType t
 
 	abc := types.AssertionInput{
 		UserID:            parsed.SessionID,
-		CredentialID:      parsed.CredentialID,
+		CredentialID:      types.CredentialID(parsed.CredentialID),
 		RawClientDataJSON: parsed.UTF8ClientDataJSON,
 		// RawAuthenticatorData: nil,
 		RawAssertionObject: parsed.AssertionObject,
@@ -235,13 +232,13 @@ func ParseAssertionObject(ctx context.Context, input hex.Hash) (types.AssertionO
 
 	// ad, err := authdata.ParseAuthenticatorData(a.RawAuthenticatorData)
 	// if err != nil {
-	// 	return a, fmt.Errorf("error decoding auth data: %v", err)
+	// 	return a, terrors.Errorf("error decoding auth data: %v", err)
 	// }
 
 	// a.AuthenticatorData = ad
 
 	// if err := json.Unmarshal(aar.RawClientData, &aar.ClientDataJSON); err != nil {
-	// 	return nil, fmt.Errorf("error decoding client data: %v", err)
+	// 	return nil, terrors.Errorf("error decoding client data: %v", err)
 	// }
 
 	return b, nil

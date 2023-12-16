@@ -43,22 +43,16 @@ func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return DeviceCheckAssertionOutput{400, false}, err
 	}
 
-	cerem, cred, err := dynamoClient.GetExisting(ctx, cd.Challenge.String(), parsed.CredentialID.String())
+	cerem, cred, err := dynamoClient.GetExisting(ctx, cd.Challenge, parsed.CredentialID)
 	if err != nil {
 		return DeviceCheckAssertionOutput{502, false}, err
 	}
 
-	// cerem, err := dynamoClient.GetExistingCeremony(ctx, cd.Challenge.String())
-	// if err != nil {
-	// 	return DeviceCheckAssertionOutput{502, false}, err
-	// }
-
-	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
-
+	if cred.RawID.Ref().Hex() != cerem.CredentialID.Ref().Hex() {
 		return DeviceCheckAssertionOutput{401, false}, terrors.Errorf("credential id does not match ceremony id")
 	}
 
-	if !cerem.ChallengeID.Equals(cd.Challenge) {
+	if !cerem.ChallengeID.Ref().Equals(cd.Challenge.Ref()) {
 		// err :=
 		// zerolog.Ctx(ctx).Error().Err(err).Msg("assertion failed")
 		return DeviceCheckAssertionOutput{401, false}, terrors.Errorf("challenge ids do not match")
@@ -88,7 +82,7 @@ func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		return DeviceCheckAssertionOutput{401, false}, validError
 	}
 
-	err = dynamoClient.IncrementExistingCredential(ctx, cerem, parsed.CredentialID.String())
+	err = dynamoClient.IncrementExistingCredential(ctx, cerem.ChallengeID, parsed.CredentialID)
 	if err != nil {
 		return DeviceCheckAssertionOutput{502, false}, err
 	}
