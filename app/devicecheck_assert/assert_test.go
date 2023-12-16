@@ -4,11 +4,13 @@ package devicecheck_assert_test
 
 import (
 	"context"
-	"reflect"
+	"fmt"
 	"testing"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/walteh/terrors"
 	"github.com/walteh/webauthn/gen/mockery"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
@@ -22,9 +24,9 @@ const SampleReceiptA = `0x308006092a864886f70d010702a0803080020101310f300d060960
 
 type TestObject struct {
 	name                string
-	input               devicecheck_assert.DeviceCheckAssertionInput
+	input               *devicecheck_assert.DeviceCheckAssertionInput
 	body                hex.Hash
-	want                devicecheck_assert.DeviceCheckAssertionOutput
+	want                *devicecheck_assert.DeviceCheckAssertionOutput
 	existingCredentials *types.Credential
 	existingCeremony    *types.Ceremony
 	endingCeremony      *types.Ceremony
@@ -34,13 +36,12 @@ type TestObject struct {
 
 var testA = TestObject{
 	name: "A",
-	input: devicecheck_assert.DeviceCheckAssertionInput{
+	input: &devicecheck_assert.DeviceCheckAssertionInput{
 		RawAssertionObject:   hex.HexToHash(SampleAssertionA),
 		ClientDataToValidate: hex.MustBase64ToHash("aGk="),
 	},
-	want: devicecheck_assert.DeviceCheckAssertionOutput{
-		SuggestedStatusCode: 204,
-		OK:                  true,
+	want: &devicecheck_assert.DeviceCheckAssertionOutput{
+		OK: true,
 	},
 	existingCredentials: &types.Credential{
 		CreatedAt:       1669414368,
@@ -125,23 +126,17 @@ func TestHandler_Invoke(t *testing.T) {
 			rpp.EXPECT().RPOrigin().Return("https://nugg.xyz")
 
 			got, err := devicecheck_assert.Assert(ctx, stgp, rpp, tt.input)
-			if err != nil && !tt.wantErr {
-				require.NoError(t, err)
-				// t.Errorf("handler.Invoke() - error should always be nil - error = %v", err)
+			if tt.wantErr {
+				require.Error(t, err)
 				return
+			} else {
+				if err != nil {
+					fmt.Println(terrors.ExtractErrorDetail(err))
+					require.NoError(t, err)
+				}
 			}
 
-			if got.SuggestedStatusCode != 204 {
-				if !tt.wantErr {
-					t.Errorf("Handler.Invoke() error = %v, wantErr %v", err, tt.wantErr)
-				}
-
-				if got.SuggestedStatusCode != tt.want.SuggestedStatusCode {
-					t.Errorf("Handler.Invoke() got = %v, want %v", got, tt.want)
-				}
-			} else if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Handler.Invoke() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 
 			stgp.AssertExpectations(t)
 			rpp.AssertExpectations(t)

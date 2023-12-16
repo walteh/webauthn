@@ -1,4 +1,4 @@
-package devicecheck
+package devicecheck_attest
 
 import (
 	"context"
@@ -25,15 +25,14 @@ type DeviceCheckAttestationInput struct {
 }
 
 type DeviceCheckAttestationOutput struct {
-	SuggestedStatusCode int
-	OK                  bool
+	OK bool
 }
 
-func Attest(ctx context.Context, store storage.Provider, rp relyingparty.Provider, input DeviceCheckAttestationInput) (DeviceCheckAttestationOutput, error) {
+func Attest(ctx context.Context, store storage.Provider, rp relyingparty.Provider, input *DeviceCheckAttestationInput) (*DeviceCheckAttestationOutput, error) {
 	var err error
 
 	if input.RawAttestationObject.IsZero() || input.UTF8ClientDataJSON == "" || input.RawCredentialID.Ref().IsZero() {
-		return DeviceCheckAttestationOutput{400, false}, terrors.New("invalid input")
+		return nil, terrors.New("invalid input").WithCode(400)
 	}
 
 	parsedResponse := types.AttestationInput{
@@ -46,7 +45,7 @@ func Attest(ctx context.Context, store storage.Provider, rp relyingparty.Provide
 
 	cd, err := clientdata.ParseClientData(parsedResponse.UTF8ClientDataJSON)
 	if err != nil {
-		return DeviceCheckAttestationOutput{400, false}, terrors.Wrap(err, "failed to parse client data")
+		return nil, terrors.Wrap(err, "failed to parse client data").WithCode(400)
 	}
 
 	// cer, _, err := store.GetExisting(ctx, cd.Challenge, nil)
@@ -83,17 +82,17 @@ func Attest(ctx context.Context, store storage.Provider, rp relyingparty.Provide
 	})
 
 	if err != nil {
-		return DeviceCheckAttestationOutput{401, false}, terrors.Wrap(err, "failed to verify attestation input")
+		return nil, terrors.Wrap(err, "failed to verify attestation input").WithCode(401)
 	}
 
 	if !input.RawCredentialID.Ref().Equals(pk.RawID.Ref()) {
-		return DeviceCheckAttestationOutput{401, false}, terrors.Mismatch(input.RawCredentialID.Ref().Hex(), pk.RawID.Ref().Hex())
+		return nil, terrors.Mismatch(input.RawCredentialID.Ref().Hex(), pk.RawID.Ref().Hex()).WithCode(401)
 	}
 
 	err = store.WriteNewCredential(ctx, cd.Challenge, pk)
 	if err != nil {
-		return DeviceCheckAttestationOutput{502, false}, terrors.Wrap(err, "failed to write new credential")
+		return nil, terrors.Wrap(err, "failed to write new credential").WithCode(502)
 	}
 
-	return DeviceCheckAttestationOutput{204, true}, nil
+	return &DeviceCheckAttestationOutput{true}, nil
 }

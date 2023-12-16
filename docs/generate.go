@@ -7,14 +7,16 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra/doc"
-	"github.com/walteh/snake"
 	"github.com/walteh/webauthn/cmd/root"
 )
 
 func run(ctx context.Context, ref string) error {
 	log.SetFlags(0)
 
-	cmd := snake.NewRootCommand(ctx, &root.Root{})
+	cmd, err := root.Build(ctx)
+	if err != nil {
+		return err
+	}
 
 	cmd.DisableAutoGenTag = true
 
@@ -24,7 +26,7 @@ func run(ctx context.Context, ref string) error {
 		return err
 	}
 
-	err := doc.GenMarkdownTree(cmd, mdpath)
+	err = doc.GenMarkdownTree(cmd, mdpath)
 	if err != nil {
 		return err
 	}

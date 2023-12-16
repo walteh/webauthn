@@ -1,8 +1,8 @@
-package devicecheck
+package devicecheck_attest_test
 
 import (
 	"context"
-	"reflect"
+	"fmt"
 	"testing"
 	"time"
 
@@ -10,6 +10,9 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"github.com/walteh/terrors"
+	"github.com/walteh/webauthn/app/devicecheck_attest"
 	"github.com/walteh/webauthn/gen/mockery"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/providers"
@@ -28,8 +31,8 @@ const SampleReceiptB = `0x308006092a864886f70d010702a0803080020101310f300d060960
 
 type AttestTestObject struct {
 	name              string
-	input             DeviceCheckAttestationInput
-	want              DeviceCheckAttestationOutput
+	input             *devicecheck_attest.DeviceCheckAttestationInput
+	want              *devicecheck_attest.DeviceCheckAttestationOutput
 	existingCeremony  *types.Ceremony
 	endingCredentials *types.Credential
 	wantErr           bool
@@ -37,7 +40,7 @@ type AttestTestObject struct {
 
 var attestTestA = AttestTestObject{
 	name: "A",
-	input: DeviceCheckAttestationInput{
+	input: &devicecheck_attest.DeviceCheckAttestationInput{
 		RootCert:             providers.Apple_App_Attestation_Root_CA____DEC2022_to_JULY2023,
 		Time:                 aws.Time(validTestTime),
 		Production:           false,
@@ -46,9 +49,8 @@ var attestTestA = AttestTestObject{
 		RawCredentialID:      types.CredentialID(hex.HexToHash("0x71d091b418c1c76f2e5969a46a9c96a5665b90170bf8218e2e165e505e110489")),
 		RawSessionID:         hex.HexToHash("0x3a298ca21194c5ee7920d2ffc5247d6fa0f330a038cf3933e138602660430b8d"),
 	},
-	want: DeviceCheckAttestationOutput{
-		SuggestedStatusCode: 204,
-		OK:                  true,
+	want: &devicecheck_attest.DeviceCheckAttestationOutput{
+		OK: true,
 	},
 	existingCeremony: &types.Ceremony{
 		ChallengeID:  types.CeremonyID(hex.MustBase64ToHash("HaUwnocK8Yal0iz17SbtSgtvxcZLO46isdqTTAdDGd0")),
@@ -77,7 +79,7 @@ var attestTestA = AttestTestObject{
 
 var attestTestB = AttestTestObject{
 	name: "B",
-	input: DeviceCheckAttestationInput{
+	input: &devicecheck_attest.DeviceCheckAttestationInput{
 		Production:           false,
 		RootCert:             providers.Apple_App_Attestation_Root_CA____DEC2022_to_JULY2023,
 		Time:                 aws.Time(validTestTime),
@@ -86,9 +88,8 @@ var attestTestB = AttestTestObject{
 		RawCredentialID:      types.CredentialID(hex.HexToHash("0xfb1fd0ac98dca2891761baf97a486c75726900d3a94105afa598575f89c47295")),
 		RawSessionID:         hex.HexToHash("0x3a298ca21194c5ee7920d2ffc5247d6fa0f330a038cf3933e138602660430b8d"),
 	},
-	want: DeviceCheckAttestationOutput{
-		SuggestedStatusCode: 204,
-		OK:                  true,
+	want: &devicecheck_attest.DeviceCheckAttestationOutput{
+		OK: true,
 	},
 	existingCeremony: &types.Ceremony{
 		ChallengeID:  types.CeremonyID(hex.MustBase64ToHash("CcB74F8PT10Lordu5qtl4vFuQfOpRGhQZmCO9Z3cj48")),
@@ -137,25 +138,19 @@ func TestAttest(t *testing.T) {
 			rpp.EXPECT().RPID().Return("4497QJSAD3.xyz.nugg.app")
 			rpp.EXPECT().RPOrigin().Return("https://nugg.xyz")
 
-			got, err := Attest(ctx, stgp, rpp, tt.input)
-			if err != nil && !tt.wantErr {
-				t.Errorf("handler.Invoke() - error should always be nil - error = %v", err)
+			got, err := devicecheck_attest.Attest(ctx, stgp, rpp, tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
 				return
+			} else {
+				if err != nil {
+					fmt.Println(terrors.ExtractErrorDetail(err))
+					require.NoError(t, err)
+				}
 			}
 
-			if got.SuggestedStatusCode != 204 {
-				if !tt.wantErr {
-					t.Errorf("Handler.Invoke() error = %v, wantErr %v", err, tt.wantErr)
-				}
+			assert.Equal(t, tt.want, got)
 
-				if got.SuggestedStatusCode != tt.want.SuggestedStatusCode {
-					t.Errorf("Handler.Invoke() got = %v, want %v", got, tt.want)
-				}
-			} else if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Handler.Invoke() = %v, want %v", got, tt.want)
-			}
-
-			// dynamo.MockBatchCheck(t, client, tt.checks)
 			rpp.AssertExpectations(t)
 			stgp.AssertExpectations(t)
 		})
