@@ -65,7 +65,7 @@ func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 	}
 
 	// Handle steps 4 through 16
-	if validError := assertion.VerifyAssertionInput(ctx, types.VerifyAssertionInputArgs{
+	if validError := assertion.VerifyAssertionInput(ctx, &types.VerifyAssertionInputArgs{
 		Input:                          parsed,
 		StoredChallenge:                cerem.ChallengeID,
 		RelyingPartyID:                 rp.RPID(),

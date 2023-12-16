@@ -33,6 +33,10 @@ func (me *AndroidKey) Time() time.Time {
 	return time.Now()
 }
 
+func (me *AndroidKey) AAGUID() hex.Hash {
+	return make([]byte, 16)
+}
+
 var _ types.AttestationProvider = (*AndroidKey)(nil)
 
 // From §8.4. https://www.w3.org/TR/webauthn/#android-key-attestation

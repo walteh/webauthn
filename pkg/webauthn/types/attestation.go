@@ -96,6 +96,7 @@ type AttestationProvider interface {
 	Attest(AttestationObject, []byte) (hex.Hash, string, []interface{}, error)
 	ID() string
 	Time() time.Time
+	AAGUID() hex.Hash
 }
 
 func (me CredentialIdentifier) Verify() error {

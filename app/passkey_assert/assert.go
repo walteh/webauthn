@@ -3,8 +3,8 @@ package passkey_assert
 import (
 	"context"
 
-	"github.com/walteh/webauthn/pkg/accesstoken/cognito"
-	"github.com/walteh/webauthn/pkg/errd"
+	"github.com/walteh/terrors"
+	"github.com/walteh/webauthn/pkg/accesstoken"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/relyingparty"
 	"github.com/walteh/webauthn/pkg/storage"
@@ -13,6 +13,7 @@ import (
 	"github.com/walteh/webauthn/pkg/webauthn/extensions"
 	"github.com/walteh/webauthn/pkg/webauthn/providers"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
+	"golang.org/x/sync/errgroup"
 )
 
 type PasskeyAssertionInput struct {
@@ -21,20 +22,19 @@ type PasskeyAssertionInput struct {
 	UTF8ClientDataJSON   string   `json:"rawClientDataJSON"`
 	RawAuthenticatorData hex.Hash `json:"rawAuthenticatorData"`
 	RawSignature         hex.Hash `json:"signature"`
-	PublicKey            hex.Hash `json:"publicKey"`
-	AAGUID               hex.Hash `json:"aaguid"`
+	// PublicKey            hex.Hash `json:"publicKey"`
+	// AAGUID               hex.Hash `json:"aaguid"`
 }
 
 type PasskeyAssertionOutput struct {
-	SuggestedStatusCode int
-	AccessToken         string
+	AccessToken string
 }
 
-func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.Provider, cognitoClient cognito.Client, assert PasskeyAssertionInput) (PasskeyAssertionOutput, error) {
+func Assert(ctx context.Context, store storage.Provider, rp relyingparty.Provider, tknp accesstoken.Provider, assert *PasskeyAssertionInput) (*PasskeyAssertionOutput, error) {
 	var err error
 
 	input := types.AssertionInput{
-		CredentialID:       assert.CredentialID,
+		CredentialID:       types.CredentialID(assert.CredentialID),
 		RawAssertionObject: hex.Hash{},
 		AssertionObject: &types.AssertionObject{
 			RawAuthenticatorData: assert.RawAuthenticatorData,
@@ -46,62 +46,63 @@ func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 
 	cd, err := clientdata.ParseClientData(input.RawClientDataJSON)
 	if err != nil {
-		return PasskeyAssertionOutput{400, ""}, err
+		return nil, err
 	}
 
-	z, err := cognitoClient.GetDevCreds(ctx, input.CredentialID)
+	cer, cred, err := store.GetExisting(ctx, cd.Challenge, input.CredentialID)
 	if err != nil {
-		return PasskeyAssertionOutput{502, ""}, errd.Wrap(ctx, err)
+		return nil, terrors.Wrap(err, "failed to get existing ceremony").WithCode(502)
 	}
 
 	// Handle steps 4 through 16
-	if validError := assertion.VerifyAssertionInput(ctx, types.VerifyAssertionInputArgs{
+	if validError := assertion.VerifyAssertionInput(ctx, &types.VerifyAssertionInputArgs{
 		Input:                          input,
-		StoredChallenge:                cd.Challenge,
+		StoredChallenge:                cer.ChallengeID,
 		RelyingPartyID:                 rp.RPID(),
 		RelyingPartyOrigin:             rp.RPOrigin(),
 		CredentialAttestationType:      types.NotFidoAttestationType,
 		AttestationProvider:            providers.NewNoneAttestationProvider(),
-		AAGUID:                         assert.AAGUID,
+		AAGUID:                         cred.AAGUID,
 		VerifyUser:                     false,
-		CredentialPublicKey:            assert.PublicKey,
+		CredentialPublicKey:            cred.PublicKey,
 		Extensions:                     extensions.ClientInputs{},
 		DataSignedByClient:             hex.Hash([]byte(input.RawClientDataJSON)),
 		UseSavedAttestedCredentialData: false,
 	}); validError != nil {
-		return PasskeyAssertionOutput{401, ""}, validError
+		return nil, validError
 	}
 
-	// verify the aaguid matches
-	// verify the public key matches
+	grp, ctx := errgroup.WithContext(ctx)
 
-	err = dynamoClient.IncrementExistingCredential(ctx, cd.Challenge.Hex(), input.CredentialID.Hex())
+	grp.SetLimit(2)
+
+	var tkn string
+
+	grp.Go(func() error {
+		tknd, err := tknp.AccessTokenForUserID(ctx, assert.SessionID.Hex())
+		if err != nil {
+			return terrors.Wrap(err, "failed to generate access token")
+		}
+
+		tkn = tknd
+
+		return nil
+	})
+
+	grp.Go(func() error {
+		// verify the aaguid matches
+		// verify the public key matches
+		err := store.IncrementExistingCredential(ctx, cd.Challenge, input.CredentialID)
+		if err != nil {
+			return terrors.Wrap(err, "failed to increment credential")
+		}
+		return nil
+	})
+
+	err = grp.Wait()
 	if err != nil {
-		return PasskeyAssertionOutput{502, ""}, err
+		return nil, terrors.Wrap(err, "failed to write data")
 	}
 
-	// // add session to list of sessions for this credential
-	// txs := indexable.IndexableIncrement(ctx, cred, indexable.NewCustomLastModifier(0, false), indexable.N(1))
-
-	// // make sure the ceremony has not expired
-	// // we should have some sort of ttl on it - need to make sure of that
-	// // in our indexable increment or append of the session to a list, we will validate the ceremony has not been used
-	// // tx2 := x.Ind
-
-	// credentialUpdate, err := cred.UpdateIncreasingCounter(dynamoClient.MustCredentialTableName())
-	// if err != nil {
-	// 	return PasskeyAssertionOutput{500, ""}, err
-	// }
-
-	// ceremonyDelete, err := dynamoClient.BuildDelete(cerem)
-	// if err != nil {
-	// 	return PasskeyAssertionOutput{500, ""}, err
-	// }
-
-	// err = dynamoClient.TransactWrite(ctx, *credentialUpdate, *ceremonyDelete)
-	// if err != nil {
-	// 	return PasskeyAssertionOutput{502, ""}, err
-	// }
-
-	return PasskeyAssertionOutput{204, *z.Token}, nil
+	return &PasskeyAssertionOutput{AccessToken: tkn}, nil
 }

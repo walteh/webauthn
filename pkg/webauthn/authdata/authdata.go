@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-webauthn/webauthn/protocol/webauthncbor"
 	"github.com/rs/zerolog"
+	"github.com/walteh/terrors"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
@@ -56,15 +57,12 @@ func ParseAuthenticatorDataSavedAttestedCredential(ctx context.Context, rawAuthD
 			attDataLen := len(a.AttData.AAGUID) + 2 + len(a.AttData.CredentialID) + len(a.AttData.CredentialPublicKey)
 			remaining = remaining - attDataLen
 		} else if !savedAttestedCredentials {
-			err := errors.New("attested credential flag set but data is missing")
-			zerolog.Ctx(ctx).Error().Err(err).Send()
-			return a, err
+			return a, terrors.New("attested credential flag set but data is missing")
 		}
 	} else {
 		if !a.Flags.HasExtensions() && len(byt) != 37 {
-			err := errors.New("attested credential flag not set")
-			zerolog.Ctx(ctx).Error().Err(err).Send()
-			return a, err
+
+			return a, terrors.New("attested credential flag not set")
 		}
 	}
 
@@ -73,16 +71,12 @@ func ParseAuthenticatorDataSavedAttestedCredential(ctx context.Context, rawAuthD
 			a.ExtData = byt[len(byt)-remaining:]
 			remaining -= len(a.ExtData)
 		} else {
-			err := errors.New("extensions flag set but extensions data is missing")
-			zerolog.Ctx(ctx).Error().Err(err).Send()
-			return a, err
+			return a, terrors.New("extensions flag set but extensions data is missing")
 		}
 	}
 
 	if remaining != 0 {
-		err := errors.New("leftover bytes decoding authenticatordata")
-		zerolog.Ctx(ctx).Error().Err(err).Send()
-		return a, err
+		return a, terrors.New("leftover bytes decoding authenticatordata")
 	}
 
 	return a, nil
@@ -158,39 +152,32 @@ func VerifyAuenticatorData(ctx context.Context, args types.VerifyAuenticatorData
 	// Verify that the RP ID hash in authData is indeed the SHA-256
 	// hash of the RP ID expected by the RP.
 	if !bytes.Equal(data.RPIDHash, rpIDHash[:]) && !bytes.Equal(data.RPIDHash[:], appIDHash[:]) {
-		err := errors.New("rp hash mismatch")
-
-		zerolog.Ctx(ctx).Error().Err(err).
-			Str("data.RPIDHash", data.RPIDHash.Hex()).
-			Str("rpIDHash[:]", hex.Bytes2Hex(rpIDHash[:])).
-			Str("appIDHash[:]", hex.Bytes2Hex(appIDHash[:])).
-			Msg("RP Hash mismatch")
-
-		return err
+		return terrors.Wrap(err, "rp hash mismatch").Event(func(e *zerolog.Event) *zerolog.Event {
+			return e.Str("data.RPIDHash", hex.Bytes2Hex(data.RPIDHash)).
+				Str("rpIDHash[:]", hex.Bytes2Hex(rpIDHash[:])).
+				Str("appIDHash[:]", hex.Bytes2Hex(appIDHash[:])).
+				Str("args.RelyingPartyID", args.RelyingPartyID).
+				Str("args.AppId", args.AppId)
+		})
 	}
 
 	// Registration Step 10 & Assertion Step 12
 	// Verify that the User Present bit of the flags in authData is set.
 	if args.RequireUserPresence && !data.Flags.UserPresent() {
-		err := errors.New("user presence flag not set by authenticator")
-		zerolog.Ctx(ctx).Error().Err(err).Send()
-		return err
+		return terrors.New("user presence flag not set by authenticator")
+
 	}
 
 	// Registration Step 11 & Assertion Step 13
 	// If user verification is required for this assertion, verify that
 	// the User Verified bit of the flags in authData is set.
 	if args.RequireUserVerification && !data.Flags.UserVerified() {
-		err := errors.New("user verification required but flag not set by authenticator")
-		zerolog.Ctx(ctx).Error().Err(err).Send()
-		return err
+		return terrors.New("user verification required but flag not set by authenticator")
 
 	}
 
 	if data.Counter < args.LastSignCount {
-		err := errors.New("counter value too low")
-		zerolog.Ctx(ctx).Error().Err(err).Uint64("data.Counter", data.Counter).Uint64("args.LastSignCount", args.LastSignCount).Msg("Counter value too low")
-		return err
+		return terrors.Errorf("counter value too low, %d < %d", args.LastSignCount, data.Counter)
 	}
 
 	// Registration Step 12 & Assertion Step 14

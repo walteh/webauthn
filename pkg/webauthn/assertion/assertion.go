@@ -1,6 +1,7 @@
 package assertion
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -22,7 +23,7 @@ import (
 // Follow the remaining steps outlined in §7.2 Verifying an authentication assertion
 // (https://www.w3.org/TR/webauthn/#verifying-assertion) and return an error if there
 // is a failure during each step.
-func VerifyAssertionInput(ctx context.Context, args types.VerifyAssertionInputArgs) error {
+func VerifyAssertionInput(ctx context.Context, args *types.VerifyAssertionInputArgs) error {
 	// Steps 4 through 6 in verifying the assertion data (https://www.w3.org/TR/webauthn/#verifying-assertion) are
 	// "assertive" steps, i.e "Let JSONtext be the result of running UTF-8 decode on the value of cData."
 	// We handle these steps in part as we verify but also beforehand
@@ -31,6 +32,10 @@ func VerifyAssertionInput(ctx context.Context, args types.VerifyAssertionInputAr
 		err      error
 		asserter types.AssertionObject
 	)
+
+	if !bytes.Equal(args.AAGUID, args.AttestationProvider.AAGUID()) {
+		return terrors.Errorf("AAGUID mismatch %s != %s", args.AAGUID.String(), args.AttestationProvider.AAGUID().String())
+	}
 
 	if args.Input.AssertionObject == nil && !args.Input.RawAssertionObject.IsZero() {
 		asserter, err = ParseAssertionObject(ctx, args.Input.RawAssertionObject)
@@ -147,7 +152,9 @@ func VerifyAssertionInput(ctx context.Context, args types.VerifyAssertionInputAr
 		if appID == "" {
 			key, err = webauthncose.ParsePublicKey(args.CredentialPublicKey)
 			if err != nil {
-				return terrors.Wrap(err, "error parsing the public key")
+				return terrors.Wrap(err, "error parsing the public key").Event(func(e *zerolog.Event) *zerolog.Event {
+					return e.Str("credPubKey", args.CredentialPublicKey.Hex())
+				})
 			}
 		} else {
 			key, err = webauthncose.ParseFIDOPublicKey(args.CredentialPublicKey)

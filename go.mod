@@ -23,9 +23,10 @@ require (
 	github.com/ugorji/go/codec v1.2.11
 	github.com/walteh/buildrc v0.18.1
 	github.com/walteh/snake v0.40.0
-	github.com/walteh/terrors v0.9.0
+	github.com/walteh/terrors v0.10.0
 	golang.org/x/crypto v0.16.0
 	golang.org/x/net v0.15.0
+	golang.org/x/sync v0.5.0
 )
 
 require (
