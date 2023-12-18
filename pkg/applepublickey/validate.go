@@ -12,7 +12,7 @@ type SafeJwtToken struct {
 
 func (client *PublicKeyResponse) BuildKeyFunc() (jwt.Keyfunc, error) {
 
-	return func(t *jwt.Token) (interface{}, error) {
+	return func(t *jwt.Token) (any, error) {
 
 		// check the signing method
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {

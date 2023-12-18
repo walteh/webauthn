@@ -2,31 +2,20 @@ package signinwithapple
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/url"
 
 	"github.com/walteh/terrors"
 )
-
-var (
-	ErrInvalidGrant = errors.New("invalid_grant")
-)
-
-func IsInvalidGrant(err error) bool {
-	return errors.Is(err, ErrInvalidGrant)
-}
 
 func (me *Client) ValidateRegistrationCode(ctx context.Context, pk string, registrationCode string) (*ValidationResponse, error) {
 
 	// Generate the client secret used to authenticate with Apple's validation servers
 	secret, err := me.config.GenerateClientSecret(pk)
 	if err != nil {
-		fmt.Println("error generating secret: " + err.Error())
-		return nil, err
+		return nil, terrors.Wrap(err, "error generating secret")
 	}
 
-	vReq := AppValidationTokenRequest{
+	vReq := &AppValidationTokenRequest{
 		ClientID:     me.config.ClientID,
 		ClientSecret: secret,
 		Code:         registrationCode,
@@ -35,12 +24,11 @@ func (me *Client) ValidateRegistrationCode(ctx context.Context, pk string, regis
 	// Do the verification
 	resp, err := me.VerifyAppToken(ctx, vReq)
 	if err != nil {
-		fmt.Println("error verifying: " + err.Error())
-		return nil, err
+		return nil, terrors.Wrap(err, "error verifying")
 	}
 
 	if resp.Error != "" {
-		return nil, ErrInvalidGrant
+		return nil, terrors.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
 	return resp, nil
@@ -52,11 +40,10 @@ func (me *Client) ValidateRefreshToken(ctx context.Context, pk string, refreshTo
 	// Generate the client secret used to authenticate with Apple's validation servers
 	secret, err := me.config.GenerateClientSecret(pk)
 	if err != nil {
-		fmt.Println("error generating secret: " + err.Error())
-		return nil, err
+		return nil, terrors.Wrap(err, "error generating secret")
 	}
 
-	vReq := ValidationRefreshRequest{
+	vReq := &ValidationRefreshRequest{
 		ClientID:     me.config.ClientID,
 		ClientSecret: secret,
 		RefreshToken: refreshToken,
@@ -65,12 +52,10 @@ func (me *Client) ValidateRefreshToken(ctx context.Context, pk string, refreshTo
 	// Do the verification
 	resp, err := me.VerifyRefreshToken(ctx, vReq)
 	if err != nil {
-		fmt.Println("error verifying: " + err.Error())
-		return nil, err
+		return nil, terrors.Wrap(err, "error verifying")
 	}
 
 	if resp.Error != "" {
-		fmt.Printf("apple returned an error: %s - %s\n", resp.Error, resp.ErrorDescription)
 		return nil, terrors.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 
@@ -86,11 +71,10 @@ func (me *Client) ValidateWebToken(ctx context.Context, pk string, authorization
 	// Generate the client secret used to authenticate with Apple's validation servers
 	secret, err := me.config.GenerateClientSecret(pk)
 	if err != nil {
-		fmt.Println("error generating secret: " + err.Error())
-		return nil, err
+		return nil, terrors.Wrap(err, "error generating secret")
 	}
 
-	vReq := WebValidationTokenRequest{
+	vReq := &WebValidationTokenRequest{
 		ClientID:     me.config.ClientID,
 		ClientSecret: secret,
 		Code:         authorizationCode,
@@ -100,12 +84,10 @@ func (me *Client) ValidateWebToken(ctx context.Context, pk string, authorization
 	// Do the verification
 	resp, err := me.VerifyWebToken(ctx, vReq)
 	if err != nil {
-		fmt.Println("error verifying: " + err.Error())
-		return nil, err
+		return nil, terrors.Wrap(err, "error verifying")
 	}
 
 	if resp.Error != "" {
-		fmt.Printf("apple returned an error: %s - %s\n", resp.Error, resp.ErrorDescription)
 		return nil, terrors.Errorf("apple returned an error: %s - %s", resp.Error, resp.ErrorDescription)
 	}
 

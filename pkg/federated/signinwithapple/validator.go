@@ -22,9 +22,9 @@ const (
 
 // ValidationClient is an interface to call the validation API
 type ValidationClient interface {
-	VerifyWebToken(ctx context.Context, reqBody WebValidationTokenRequest, result interface{}) error
-	VerifyAppToken(ctx context.Context, reqBody AppValidationTokenRequest, result interface{}) error
-	VerifyRefreshToken(ctx context.Context, reqBody ValidationRefreshRequest, result interface{}) error
+	VerifyWebToken(ctx context.Context, reqBody *WebValidationTokenRequest, result any) error
+	VerifyAppToken(ctx context.Context, reqBody *AppValidationTokenRequest, result any) error
+	VerifyRefreshToken(ctx context.Context, reqBody *ValidationRefreshRequest, result any) error
 }
 
 // Client implements ValidationClient
@@ -60,7 +60,7 @@ func newClientWithUrlString(url string, teamId string, serviceId string, keyId s
 // NewWithURL creates a Client object with a custom URL provided
 
 // VerifyWebToken sends the WebValidationTokenRequest and gets validation result
-func (c *Client) VerifyWebToken(ctx context.Context, reqBody WebValidationTokenRequest) (res *ValidationResponse, err error) {
+func (c *Client) VerifyWebToken(ctx context.Context, reqBody *WebValidationTokenRequest) (res *ValidationResponse, err error) {
 	data := url.Values{}
 	data.Set("client_id", reqBody.ClientID)
 	data.Set("client_secret", reqBody.ClientSecret)
@@ -74,7 +74,7 @@ func (c *Client) VerifyWebToken(ctx context.Context, reqBody WebValidationTokenR
 }
 
 // VerifyAppToken sends the AppValidationTokenRequest and gets validation result
-func (c *Client) VerifyAppToken(ctx context.Context, reqBody AppValidationTokenRequest) (res *ValidationResponse, err error) {
+func (c *Client) VerifyAppToken(ctx context.Context, reqBody *AppValidationTokenRequest) (res *ValidationResponse, err error) {
 	data := url.Values{}
 	data.Set("client_id", reqBody.ClientID)
 	data.Set("client_secret", reqBody.ClientSecret)
@@ -87,7 +87,7 @@ func (c *Client) VerifyAppToken(ctx context.Context, reqBody AppValidationTokenR
 }
 
 // VerifyRefreshToken sends the WebValidationTokenRequest and gets validation result
-func (c *Client) VerifyRefreshToken(ctx context.Context, reqBody ValidationRefreshRequest) (res *RefreshResponse, err error) {
+func (c *Client) VerifyRefreshToken(ctx context.Context, reqBody *ValidationRefreshRequest) (res *RefreshResponse, err error) {
 	data := url.Values{}
 	data.Set("client_id", reqBody.ClientID)
 	data.Set("client_secret", reqBody.ClientSecret)
@@ -99,7 +99,7 @@ func (c *Client) VerifyRefreshToken(ctx context.Context, reqBody ValidationRefre
 	return
 }
 
-func doRequest(ctx context.Context, client *http.Client, result interface{}, url string, data url.Values) error {
+func doRequest(ctx context.Context, client *http.Client, result any, url string, data url.Values) error {
 	req, err := http.NewRequestWithContext(ctx, "POST", url, strings.NewReader(data.Encode()))
 	if err != nil {
 		return err

@@ -20,8 +20,10 @@ type DeviceCheckAttestationInput struct {
 	RawCredentialID      types.CredentialID
 	RawSessionID         hex.Hash
 	Production           bool
-	Time                 *time.Time
-	RootCert             string
+
+	// should not come from the client
+	Time     *time.Time
+	RootCert string
 }
 
 type DeviceCheckAttestationOutput struct {
@@ -47,16 +49,6 @@ func Attest(ctx context.Context, store storage.Provider, rp relyingparty.Provide
 	if err != nil {
 		return nil, terrors.Wrap(err, "failed to parse client data").WithCode(400)
 	}
-
-	// cer, _, err := store.GetExisting(ctx, cd.Challenge, nil)
-	// if err != nil {
-	// 	zerolog.Ctx(ctx).Error().Err(err).Msg("failed to transact get")
-	// 	return DeviceCheckAttestationOutput{502, false}, terrors.Wrap(err, "failed to transact get")
-	// }
-
-	// if !cer.SessionID.Equals(input.RawSessionID) {
-	// 	return DeviceCheckAttestationOutput{401, false}, terrors.Mismatch(cer.SessionID.Hex(), input.RawSessionID.Hex())
-	// }
 
 	prov := providers.NewAppAttestSandbox()
 	if input.Production {

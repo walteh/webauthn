@@ -137,7 +137,7 @@ func TestDoRequestNewRequestFail(t *testing.T) {
 }
 
 func TestVerifyAppToken(t *testing.T) {
-	req := AppValidationTokenRequest{
+	req := &AppValidationTokenRequest{
 		ClientID:     "123",
 		ClientSecret: "foo",
 		Code:         "bar",
@@ -149,7 +149,7 @@ func TestVerifyAppToken(t *testing.T) {
 }
 
 func TestVerifyNonAppToken(t *testing.T) {
-	req := WebValidationTokenRequest{
+	req := &WebValidationTokenRequest{
 		ClientID:     "123",
 		ClientSecret: "foo",
 		Code:         "bar",
@@ -163,7 +163,7 @@ func TestVerifyNonAppToken(t *testing.T) {
 }
 
 func TestVerifyRefreshToken(t *testing.T) {
-	req := ValidationRefreshRequest{
+	req := &ValidationRefreshRequest{
 		ClientID:     "123",
 		ClientSecret: "foo",
 		RefreshToken: "bar",

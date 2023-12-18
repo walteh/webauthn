@@ -52,8 +52,6 @@ func Assert(ctx context.Context, store storage.Provider, rp relyingparty.Provide
 	}
 
 	if !cerem.ChallengeID.Ref().Equals(cd.Challenge.Ref()) {
-		// err :=
-		// zerolog.Ctx(ctx).Error().Err(err).Msg("assertion failed")
 		return nil, terrors.Errorf("challenge ids do not match").WithCode(401)
 	}
 
