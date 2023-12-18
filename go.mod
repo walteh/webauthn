@@ -5,10 +5,13 @@ go 1.21.5
 replace github.com/walteh/snake/szerolog => ../snake/szerolog
 
 require (
+	github.com/aws/aws-cdk-go/awscdk/v2 v2.115.0
 	github.com/aws/aws-sdk-go-v2 v1.21.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.37
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.16.5
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.21.5
+	github.com/aws/constructs-go/constructs/v10 v10.3.0
+	github.com/aws/jsii-runtime-go v1.93.0
 	github.com/fxamacker/cbor/v2 v2.5.0
 	github.com/go-webauthn/webauthn v0.9.4
 	github.com/go-webauthn/x v0.1.5
@@ -23,14 +26,18 @@ require (
 	github.com/ugorji/go/codec v1.2.11
 	github.com/walteh/terrors v0.10.0
 	golang.org/x/crypto v0.16.0
-	golang.org/x/net v0.15.0
+	golang.org/x/net v0.19.0
 	golang.org/x/sync v0.5.0
 )
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.41 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.35 // indirect
 	github.com/aws/smithy-go v1.14.2 // indirect
+	github.com/cdklabs/awscdk-asset-awscli-go/awscliv1/v2 v2.2.201 // indirect
+	github.com/cdklabs/awscdk-asset-kubectl-go/kubectlv20/v2 v2.1.2 // indirect
+	github.com/cdklabs/awscdk-asset-node-proxy-agent-go/nodeproxyagentv6/v2 v2.0.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.16.0 // indirect
@@ -46,7 +53,11 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
+	github.com/yuin/goldmark v1.4.13 // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
+	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/tools v0.16.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
