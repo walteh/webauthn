@@ -4,6 +4,15 @@ github.com/Masterminds/semver/v3
 # github.com/aws/aws-cdk-go/awscdk/v2 v2.115.0
 ## explicit; go 1.18
 github.com/aws/aws-cdk-go/awscdk/v2
+github.com/aws/aws-cdk-go/awscdk/v2/assertions
+github.com/aws/aws-cdk-go/awscdk/v2/awscloudwatch
+github.com/aws/aws-cdk-go/awscdk/v2/awscloudwatch/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsiam
+github.com/aws/aws-cdk-go/awscdk/v2/awsiam/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awskms
+github.com/aws/aws-cdk-go/awscdk/v2/awskms/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awssqs
+github.com/aws/aws-cdk-go/awscdk/v2/awssqs/internal
 github.com/aws/aws-cdk-go/awscdk/v2/cloudassemblyschema
 github.com/aws/aws-cdk-go/awscdk/v2/cxapi
 github.com/aws/aws-cdk-go/awscdk/v2/internal
