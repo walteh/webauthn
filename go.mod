@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.21.5
 	github.com/aws/constructs-go/constructs/v10 v10.3.0
 	github.com/aws/jsii-runtime-go v1.93.0
+	github.com/cdklabs/cdk-pipelines-github-go/cdkpipelinesgithub v0.4.106
 	github.com/fxamacker/cbor/v2 v2.5.0
 	github.com/go-webauthn/webauthn v0.9.4
 	github.com/go-webauthn/x v0.1.5

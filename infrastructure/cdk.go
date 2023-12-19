@@ -2,9 +2,10 @@ package main
 
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awssqs"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsecr"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/constructs-go/constructs/v10"
-	"github.com/aws/jsii-runtime-go"
+	jsii "github.com/aws/jsii-runtime-go"
 )
 
 type CdkStackProps struct {
@@ -20,9 +21,22 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 
 	// The code that defines your stack goes here
 
-	// example resource
-	_ = awssqs.NewQueue(stack, jsii.String("CdkQueue"), &awssqs.QueueProps{
-		VisibilityTimeout: awscdk.Duration_Seconds(jsii.Number(300)),
+	// // example resource
+	// _ = lambda.NewGoFunction(stack, jsii.String("Funcd"), &lambda.GoFunctionProps{
+	// 	Entry:                 jsii.String("../cmd"),
+	// 	CurrentVersionOptions: &awslambda.VersionOptions{},
+	// 	Architecture:          awslambda.Architecture_ARM_64(),
+	// 	Runtime:               awslambda.Runtime_PROVIDED_AL2023(),
+	// })
+
+	repo := awsecr.NewRepository(stack, jsii.String("Repo"), &awsecr.RepositoryProps{
+		RepositoryName: jsii.String("my-repo"),
+	})
+
+	awslambda.NewFunction(stack, jsii.String("Funcd"), &awslambda.FunctionProps{
+		Code:    awslambda.AssetCode_FromEcrImage(repo, nil),
+		Handler: awslambda.Handler_FROM_IMAGE(),
+		Runtime: awslambda.Runtime_FROM_IMAGE(),
 	})
 
 	return stack
@@ -33,7 +47,7 @@ func main() {
 
 	app := awscdk.NewApp(nil)
 
-	NewCdkStack(app, "CdkStack", &CdkStackProps{
+	NewCdkStack(app, "CdkStackd", &CdkStackProps{
 		awscdk.StackProps{
 			Env: env(),
 		},
