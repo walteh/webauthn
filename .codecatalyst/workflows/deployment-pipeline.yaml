@@ -79,6 +79,9 @@
                                             Steps:
                                                 [
                                                     {
+                                                        Run: "yum install -y go",
+                                                    },
+                                                    {
                                                         Run: "go run gotest.tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
@@ -115,6 +118,9 @@
                                         {
                                             Steps:
                                                 [
+                                                    {
+                                                        Run: "yum install -y go",
+                                                    },
                                                     {
                                                         Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
