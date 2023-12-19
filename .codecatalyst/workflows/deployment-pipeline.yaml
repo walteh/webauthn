@@ -115,11 +115,13 @@
                                         {
                                             Container:
                                                 {
-                                                    Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                    {
+                                                        Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                    },
+                                                    {
+                                                        Run: "cdk synth --output cdk.out",
+                                                    },
                                                 },
-                                            {
-                                                Run: "cdk synth --output cdk.out",
-                                            },
                                         },
                                     Compute: { Type: Lambda },
                                 },
