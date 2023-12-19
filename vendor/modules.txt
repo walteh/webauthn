@@ -5,18 +5,80 @@ github.com/Masterminds/semver/v3
 ## explicit; go 1.18
 github.com/aws/aws-cdk-go/awscdk/v2
 github.com/aws/aws-cdk-go/awscdk/v2/assertions
+github.com/aws/aws-cdk-go/awscdk/v2/awsacmpca
+github.com/aws/aws-cdk-go/awscdk/v2/awsacmpca/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsapplicationautoscaling
+github.com/aws/aws-cdk-go/awscdk/v2/awsapplicationautoscaling/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsautoscaling
+github.com/aws/aws-cdk-go/awscdk/v2/awsautoscaling/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awscertificatemanager
+github.com/aws/aws-cdk-go/awscdk/v2/awscertificatemanager/internal
 github.com/aws/aws-cdk-go/awscdk/v2/awscloudwatch
 github.com/aws/aws-cdk-go/awscdk/v2/awscloudwatch/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awscodebuild
+github.com/aws/aws-cdk-go/awscdk/v2/awscodebuild/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awscodecommit
+github.com/aws/aws-cdk-go/awscdk/v2/awscodecommit/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awscodedeploy
+github.com/aws/aws-cdk-go/awscdk/v2/awscodedeploy/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awscodeguruprofiler
+github.com/aws/aws-cdk-go/awscdk/v2/awscodeguruprofiler/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awscodepipeline
+github.com/aws/aws-cdk-go/awscdk/v2/awscodepipeline/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awscodepipelineactions
+github.com/aws/aws-cdk-go/awscdk/v2/awscodepipelineactions/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awscodestarnotifications
+github.com/aws/aws-cdk-go/awscdk/v2/awscodestarnotifications/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsec2
+github.com/aws/aws-cdk-go/awscdk/v2/awsec2/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsecr
+github.com/aws/aws-cdk-go/awscdk/v2/awsecr/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsecrassets
+github.com/aws/aws-cdk-go/awscdk/v2/awsecrassets/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsecs
+github.com/aws/aws-cdk-go/awscdk/v2/awsecs/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsefs
+github.com/aws/aws-cdk-go/awscdk/v2/awsefs/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awselasticloadbalancing
+github.com/aws/aws-cdk-go/awscdk/v2/awselasticloadbalancing/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awselasticloadbalancingv2
+github.com/aws/aws-cdk-go/awscdk/v2/awselasticloadbalancingv2/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsevents
+github.com/aws/aws-cdk-go/awscdk/v2/awsevents/internal
 github.com/aws/aws-cdk-go/awscdk/v2/awsiam
 github.com/aws/aws-cdk-go/awscdk/v2/awsiam/internal
 github.com/aws/aws-cdk-go/awscdk/v2/awskms
 github.com/aws/aws-cdk-go/awscdk/v2/awskms/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awslambda
+github.com/aws/aws-cdk-go/awscdk/v2/awslambda/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awslogs
+github.com/aws/aws-cdk-go/awscdk/v2/awslogs/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsroute53
+github.com/aws/aws-cdk-go/awscdk/v2/awsroute53/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awss3
+github.com/aws/aws-cdk-go/awscdk/v2/awss3/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awss3assets
+github.com/aws/aws-cdk-go/awscdk/v2/awss3assets/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager
+github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsservicediscovery
+github.com/aws/aws-cdk-go/awscdk/v2/awsservicediscovery/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awssigner
+github.com/aws/aws-cdk-go/awscdk/v2/awssigner/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awssns
+github.com/aws/aws-cdk-go/awscdk/v2/awssns/internal
 github.com/aws/aws-cdk-go/awscdk/v2/awssqs
 github.com/aws/aws-cdk-go/awscdk/v2/awssqs/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsssm
+github.com/aws/aws-cdk-go/awscdk/v2/awsssm/internal
+github.com/aws/aws-cdk-go/awscdk/v2/awsstepfunctions
+github.com/aws/aws-cdk-go/awscdk/v2/awsstepfunctions/internal
 github.com/aws/aws-cdk-go/awscdk/v2/cloudassemblyschema
 github.com/aws/aws-cdk-go/awscdk/v2/cxapi
 github.com/aws/aws-cdk-go/awscdk/v2/internal
 github.com/aws/aws-cdk-go/awscdk/v2/jsii
+github.com/aws/aws-cdk-go/awscdk/v2/pipelines
+github.com/aws/aws-cdk-go/awscdk/v2/pipelines/internal
 # github.com/aws/aws-sdk-go-v2 v1.21.0
 ## explicit; go 1.15
 github.com/aws/aws-sdk-go-v2/aws
@@ -95,6 +157,11 @@ github.com/cdklabs/awscdk-asset-kubectl-go/kubectlv20/v2/jsii
 # github.com/cdklabs/awscdk-asset-node-proxy-agent-go/nodeproxyagentv6/v2 v2.0.1
 ## explicit; go 1.18
 github.com/cdklabs/awscdk-asset-node-proxy-agent-go/nodeproxyagentv6/v2/jsii
+# github.com/cdklabs/cdk-pipelines-github-go/cdkpipelinesgithub v0.4.106
+## explicit; go 1.18
+github.com/cdklabs/cdk-pipelines-github-go/cdkpipelinesgithub
+github.com/cdklabs/cdk-pipelines-github-go/cdkpipelinesgithub/internal
+github.com/cdklabs/cdk-pipelines-github-go/cdkpipelinesgithub/jsii
 # github.com/cpuguy83/go-md2man/v2 v2.0.3
 ## explicit; go 1.11
 github.com/cpuguy83/go-md2man/v2/md2man
