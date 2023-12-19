@@ -74,13 +74,8 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration: {
-                                            # Container:
-                                            #     {
-                                            #         Registry: DockerHub,
-                                            #         Image: golang:alpine,
-                                            #     },
-                                            Compute: { Type: Lambda },
+                                    Configuration:
+                                        {
                                             Steps:
                                                 [
                                                     {
@@ -91,6 +86,7 @@
                                                     },
                                                 ],
                                         },
+                                    Compute: { Type: Lambda },
                                 },
                             Synth:
                                 {
@@ -116,15 +112,16 @@
                                                 ],
                                         },
                                     Configuration:
-                                        { Compute: { Type: Lambda }, Container:
-                                                #     {
-                                                #         Registry: DockerHub,
-                                                #         Image: golang:alpine,
-                                                #     },, Steps: [
-                                                # { Run: "go install go" },
+                                        {
+                                            Container:
                                                 {
                                                     Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
-                                                }, { Run: "cdk synth --output cdk.out" } },
+                                                },
+                                            {
+                                                Run: "cdk synth --output cdk.out",
+                                            },
+                                        },
+                                    Compute: { Type: Lambda },
                                 },
                         },
                 },
