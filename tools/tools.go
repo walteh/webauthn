@@ -15,4 +15,9 @@ import (
 	_ "gotest.tools/gotestsum"
 
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+
+	// mockery
+	_ "github.com/vektra/mockery/v2/cmd"
+	// buf
+	_ "github.com/bufbuild/buf/cmd/buf"
 )
