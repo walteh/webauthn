@@ -2,8 +2,7 @@ Name: deployment-pipeline
 SchemaVersion: "1.0"
 Triggers:
     - Type: PUSH
-      Branches:
-          - main
+      Branches: [revamp, main]
 Actions:
     Build:
         Actions:

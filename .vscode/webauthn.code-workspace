@@ -56,6 +56,7 @@
 		},
 		"yaml.style.flowSequence": "allow",
 		"yaml.style.flowMapping": "allow",
+		"yaml.format.bracketSpacing": true,
 		"yaml.format.proseWrap": "preserve",
 		"yaml.format.singleQuote": false,
 		"yaml.extension.recommendations": true,
