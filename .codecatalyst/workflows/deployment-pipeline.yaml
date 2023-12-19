@@ -79,7 +79,7 @@
                                             Container:
                                                 {
                                                     Registry: DockerHub,
-                                                    Image: golang:latest-alpine,
+                                                    Image: golang:alpine,
                                                 },
                                             Steps:
                                                 [
