@@ -76,7 +76,11 @@
                                         },
                                     Configuration:
                                         {
-                                            Image: "docker.io/library/golang:latest-alpine",
+                                            Container:
+                                                {
+                                                    Registry: DockerHub,
+                                                    Image: golang:latest-alpine,
+                                                },
                                             Steps:
                                                 [
                                                     {
