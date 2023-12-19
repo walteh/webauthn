@@ -113,15 +113,15 @@
                                         },
                                     Configuration:
                                         {
-                                            Container:
-                                                {
+                                            Steps:
+                                                [
                                                     {
                                                         Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
                                                         Run: "cdk synth --output cdk.out",
                                                     },
-                                                },
+                                                ],
                                         },
                                     Compute: { Type: Lambda },
                                 },
