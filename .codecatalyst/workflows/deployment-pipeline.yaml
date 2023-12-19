@@ -74,13 +74,13 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration:
-                                        {
-                                            Container:
-                                                {
-                                                    Registry: DockerHub,
-                                                    Image: golang:alpine,
-                                                },
+                                    Configuration: {
+                                            # Container:
+                                            #     {
+                                            #         Registry: DockerHub,
+                                            #         Image: golang:alpine,
+                                            #     },
+                                            Compute: { Type: Lambda },
                                             Steps:
                                                 [
                                                     {
@@ -116,23 +116,15 @@
                                                 ],
                                         },
                                     Configuration:
-                                        {
-                                            Container:
+                                        { Compute: { Type: Lambda }, Container:
+                                                #     {
+                                                #         Registry: DockerHub,
+                                                #         Image: golang:alpine,
+                                                #     },, Steps: [
+                                                # { Run: "go install go" },
                                                 {
-                                                    Registry: DockerHub,
-                                                    Image: golang:alpine,
-                                                },
-                                            Steps:
-                                                [
-                                                    { Run: "go install go" },
-                                                    {
-                                                        Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
-                                                    },
-                                                    {
-                                                        Run: "cdk synth --output cdk.out",
-                                                    },
-                                                ],
-                                        },
+                                                    Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                }, { Run: "cdk synth --output cdk.out" } },
                                 },
                         },
                 },
