@@ -2,7 +2,6 @@
     Name: "deployment-pipeline",
     SchemaVersion: "1.0",
     Triggers: [{ Type: "PUSH", Branches: ["revamp", "main"] }],
-    Compute: { Type: Lambda },
     Actions:
         {
             Build:
@@ -35,9 +34,11 @@
                                             Steps:
                                                 [
                                                     { Run: "go version" },
+
                                                     {
-                                                        Run: "./.codecatalyst/scripts/upgrade-go.sh",
+                                                        Run: "yum install -y go",
                                                     },
+
                                                     { Run: "go version" },
                                                     {
                                                         Run: "go run gotest.tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
@@ -48,7 +49,8 @@
                                                 ],
                                         },
                                 },
-                            Synth: {
+                            Synth:
+                                {
                                     Identifier: "aws/build@v1",
                                     Inputs: { Sources: ["WorkflowSource"] },
                                     Outputs:
@@ -77,8 +79,9 @@
                                                     { Run: "go version" },
 
                                                     {
-                                                        Run: "./.codecatalyst/scripts/upgrade-go.sh",
+                                                        Run: "yum install -y go",
                                                     },
+
                                                     { Run: "go version" },
 
                                                     {
@@ -89,7 +92,6 @@
                                                     },
                                                 ],
                                         },
-                                    # Compute: { Type: Lambda },
                                 },
                         },
                 },
