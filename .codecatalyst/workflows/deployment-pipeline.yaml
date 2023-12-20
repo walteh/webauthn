@@ -76,16 +76,10 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration: { Steps: [
-                                                    # {
-                                                    #     Run: "export GOPATH=/tmp/golang",
-                                                    # },
-                                                    # {
-                                                    #     Run: "go install golang.org/dl/go1.21.5@latest && /tmp/golang/bin/go1.21.5 download",
-                                                    # },
-                                                    # {
-                                                    #     Run: "cd tools && GOWORK=off /tmp/golang/bin/go1.21.5 build -mod=vendor -o=gotestsum gotest.tools/gotestsum",
-                                                    # },
+                                    Configuration:
+                                        {
+                                            Steps:
+                                                [
                                                     {
                                                         Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd - && goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
@@ -102,9 +96,10 @@
                                                         Run: "cd ./infrastructure && gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
-                                                        Run: "cdk synth --output cdk.out",
+                                                        Run: "cd ./infrastructure && go run cdk.go",
                                                     },
-                                                ] },
+                                                ],
+                                        },
                                     Compute:
                                         { Type: EC2, Fleet: Linux.Arm64.Large },
                                 },

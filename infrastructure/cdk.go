@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsecr"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
+	"github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -17,26 +17,21 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	if props != nil {
 		sprops = props.StackProps
 	}
+
 	stack := awscdk.NewStack(scope, &id, &sprops)
 
 	// The code that defines your stack goes here
 
 	// // example resource
-	// _ = lambda.NewGoFunction(stack, jsii.String("Funcd"), &lambda.GoFunctionProps{
-	// 	Entry:                 jsii.String("../cmd"),
-	// 	CurrentVersionOptions: &awslambda.VersionOptions{},
-	// 	Architecture:          awslambda.Architecture_ARM_64(),
-	// 	Runtime:               awslambda.Runtime_PROVIDED_AL2023(),
-	// })
-
-	repo := awsecr.NewRepository(stack, jsii.String("Repo"), &awsecr.RepositoryProps{
-		RepositoryName: jsii.String("my-repo"),
-	})
-
-	awslambda.NewFunction(stack, jsii.String("Funcd"), &awslambda.FunctionProps{
-		Code:    awslambda.AssetCode_FromEcrImage(repo, nil),
-		Handler: awslambda.Handler_FROM_IMAGE(),
-		Runtime: awslambda.Runtime_FROM_IMAGE(),
+	_ = awscdklambdagoalpha.NewGoFunction(stack, jsii.String("MyGoFunc"), &awscdklambdagoalpha.GoFunctionProps{
+		Entry:                 jsii.String("../cmd"),
+		CurrentVersionOptions: &awslambda.VersionOptions{},
+		Architecture:          awslambda.Architecture_ARM_64(),
+		Runtime:               awslambda.Runtime_PROVIDED_AL2023(),
+		AdotInstrumentation: &awslambda.AdotInstrumentationConfig{
+			ExecWrapper:  awslambda.AdotLambdaExecWrapper_REGULAR_HANDLER,
+			LayerVersion: awslambda.AdotLayerVersion_FromGenericLayerVersion(awslambda.AdotLambdaLayerGenericVersion_LATEST()),
+		},
 	})
 
 	return stack
@@ -47,7 +42,7 @@ func main() {
 
 	app := awscdk.NewApp(nil)
 
-	NewCdkStack(app, "CdkStackd", &CdkStackProps{
+	NewCdkStack(app, "CdkStack", &CdkStackProps{
 		awscdk.StackProps{
 			Env: env(),
 		},

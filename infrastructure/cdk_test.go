@@ -20,7 +20,9 @@ func TestCdkStack(t *testing.T) {
 	// THEN
 	template := assertions.Template_FromStack(stack, nil)
 
-	template.HasResourceProperties(jsii.String("AWS::SQS::Queue"), map[string]interface{}{
-		"VisibilityTimeout": 300,
+	template.HasResourceProperties(jsii.String("AWS::Lambda::Function"), map[string]interface{}{
+		"Architectures": []interface{}{
+			"arm64",
+		},
 	})
 }

@@ -4,6 +4,9 @@
 			"path": "..",
 			"name": "root"
 		},
+		{
+			"path": "../infrastructure"
+		}
 	],
 	"settings": {
 		/* //////////////////////////////////////////////
@@ -45,6 +48,12 @@
 		////////////////////////////////////////////// */
 		"go.testTimeout": "30s",
 		"go.enableCodeLens": {},
+		"go.testFlags": [
+			"-mod=vendor"
+		],
+		"go.testEnvVars": {
+			"GOWORK": "off",
+		},
 		/* //////////////////////////////////////////////
 							YAML
 		////////////////////////////////////////////// */
@@ -84,5 +93,7 @@
 		"[dockerfile]": {
 			"editor.semanticHighlighting.enabled": false,
 		},
+		"editor.codeActionsOnSave": {},
+		""
 	}
 }
