@@ -81,13 +81,13 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "go install golang.org/dl/1.21.5@latest",
+                                                        Run: "go install -o=/tmp/go golang.org/dl/go1.21.5@latest",
                                                     },
                                                     {
-                                                        Run: "cd tools && go build -o=gotestsum gotest.tools/gotestsum",
+                                                        Run: "cd tools && /tmp/go build -o=gotestsum gotest.tools/gotestsum",
                                                     },
                                                     {
-                                                        Run: "cd intrastructure && ../tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                        Run: "cd ../intrastructure && ../tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
                                                         Run: "npm install -g aws-cdk && cdk synth --output cdk.out",
