@@ -34,16 +34,16 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
+                                                        Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd - && goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
-                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
+                                                        Run: "export GOFLAGS=-mod=vendor && export GOWORK=off",
                                                     },
                                                     {
-                                                        Run: "cd tools && GOWORK=off go build -mod=vendor -o=gotestsum gotest.tools/gotestsum && cd ..",
+                                                        Run: "cd tools && go install gotest.tools/gotestsum && cd ..",
                                                     },
                                                     {
-                                                        Run: "GOWORK=off ./tools/gotestsum --junitfile test-reports/junit.xml -- -mod=vendor -v -coverprofile=coverage.out -coverpkg=./...",
+                                                        Run: "gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
                                                         Run: "go build -o ./bin/out ./cmd",
@@ -87,16 +87,16 @@
                                                     #     Run: "cd tools && GOWORK=off /tmp/golang/bin/go1.21.5 build -mod=vendor -o=gotestsum gotest.tools/gotestsum",
                                                     # },
                                                     {
-                                                        Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
+                                                        Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd - && goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
-                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
+                                                        Run: "export GOFLAGS=-mod=vendor && export GOWORK=off",
                                                     },
                                                     {
-                                                        Run: "cd tools && GOWORK=off go build -mod=vendor -o=gotestsum gotest.tools/gotestsum && cd ..",
+                                                        Run: "cd tools && go install gotest.tools/gotestsum && cd ..",
                                                     },
                                                     {
-                                                        Run: "cd ./infrastructure && GOWORK=off ./tools/gotestsum --junitfile test-reports/junit.xml -- -mod=vendor -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                        Run: "cd ./infrastructure && gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
                                                         Run: "npm install -g aws-cdk && cdk synth --output cdk.out",
