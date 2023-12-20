@@ -36,7 +36,7 @@
                                                     { Run: "go version" },
 
                                                     {
-                                                        Run: "yum install -y go",
+                                                        Run: "./.codecatalyst/scripts/upgrade-go.sh",
                                                     },
 
                                                     { Run: "go version" },
@@ -79,7 +79,7 @@
                                                     { Run: "go version" },
 
                                                     {
-                                                        Run: "yum install -y go",
+                                                        Run: "./.codecatalyst/scripts/upgrade-go.sh",
                                                     },
 
                                                     { Run: "go version" },
