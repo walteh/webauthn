@@ -72,7 +72,10 @@
                                                 [
                                                     {
                                                         Name: "synth",
-                                                        Files: ["cdk.out/**/*"],
+                                                        Files:
+                                                            [
+                                                                "infrastructure/cdk.out/**/*",
+                                                            ],
                                                     },
                                                 ],
                                         },
