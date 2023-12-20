@@ -36,7 +36,7 @@
                                                     { Run: "go version" },
 
                                                     {
-                                                        Run: "./.codecatalyst/scripts/upgrade-go.sh",
+                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
 
                                                     { Run: "go version" },
@@ -79,7 +79,7 @@
                                                     { Run: "go version" },
 
                                                     {
-                                                        Run: "./.codecatalyst/scripts/upgrade-go.sh",
+                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
 
                                                     { Run: "go version" },
