@@ -29,16 +29,13 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration:
-                                        {
-                                            Steps:
-                                                [
-                                                    {
-                                                        Run: "goenv install --list",
-                                                    },
+                                    Configuration: { Steps: [
+                                                    # {
+                                                    #     Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
+                                                    # },
 
                                                     {
-                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
+                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0",
                                                     },
 
                                                     { Run: "go version" },
@@ -48,8 +45,7 @@
                                                     {
                                                         Run: "go build -o ./bin/out ./cmd",
                                                     },
-                                                ],
-                                        },
+                                                ] },
                                 },
                             Synth:
                                 {
@@ -74,16 +70,12 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration:
-                                        {
-                                            Steps:
-                                                [
+                                    Configuration: { Steps: [
+                                                    # {
+                                                    #     Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
+                                                    # },
                                                     {
-                                                        Run: "goenv install --list",
-                                                    },
-
-                                                    {
-                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
+                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0",
                                                     },
 
                                                     { Run: "go version" },
@@ -94,8 +86,7 @@
                                                     {
                                                         Run: "cdk synth --output cdk.out",
                                                     },
-                                                ],
-                                        },
+                                                ] },
                                 },
                         },
                 },
