@@ -76,18 +76,24 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration:
-                                        {
-                                            Steps:
-                                                [
+                                    Configuration: { Steps: [
+                                                    # {
+                                                    #     Run: "export GOPATH=/tmp/golang",
+                                                    # },
+                                                    # {
+                                                    #     Run: "go install golang.org/dl/go1.21.5@latest && /tmp/golang/bin/go1.21.5 download",
+                                                    # },
+                                                    # {
+                                                    #     Run: "cd tools && GOWORK=off /tmp/golang/bin/go1.21.5 build -mod=vendor -o=gotestsum gotest.tools/gotestsum",
+                                                    # },
                                                     {
-                                                        Run: "export GOPATH=/tmp/golang",
+                                                        Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
                                                     },
                                                     {
-                                                        Run: "go install golang.org/dl/go1.21.5@latest && /tmp/golang/bin/go1.21.5 download",
+                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
-                                                        Run: "cd tools && GOWORK=off /tmp/golang/bin/go1.21.5 build -mod=vendor -o=gotestsum gotest.tools/gotestsum",
+                                                        Run: "cd tools && GOWORK=off go build -mod=vendor -o=gotestsum gotest.tools/gotestsum",
                                                     },
                                                     {
                                                         Run: "cd ../infrastructure && ../tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
@@ -95,8 +101,7 @@
                                                     {
                                                         Run: "npm install -g aws-cdk && cdk synth --output cdk.out",
                                                     },
-                                                ],
-                                        },
+                                                ] },
                                     Compute:
                                         {
                                             Type: Lambda,
