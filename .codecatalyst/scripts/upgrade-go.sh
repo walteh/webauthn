@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 version=$(go version | cut -d' ' -f 3)
-release=$(wget -qO- "https://golang.org/VERSION?m=text")
+release=$(wget -qO- "https://go.dev/VERSION?m=text" | head -1)
 
 if [[ $version == "$release" ]]; then
 	echo "The local Go version ${release} is up-to-date."
