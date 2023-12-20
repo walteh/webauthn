@@ -95,9 +95,7 @@
                                                     {
                                                         Run: "cd ./infrastructure && gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
-                                                    {
-                                                        Run: "cd ./infrastructure && go run cdk.go",
-                                                    },
+                                                    { Run: "cdk synth" },
                                                 ],
                                         },
                                     Compute:
