@@ -34,7 +34,10 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0 && go version",
+                                                        Run: "goenv install --list",
+                                                    },
+                                                    {
+                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0",
                                                     },
                                                     {
                                                         Run: "cd tools && go build -o=gotestsum gotest.tools/gotestsum",
