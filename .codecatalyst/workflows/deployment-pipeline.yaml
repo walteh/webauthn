@@ -29,11 +29,10 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration: { Steps: [
-                                                    # {
-                                                    #     Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
-                                                    # },
-
+                                    Configuration:
+                                        {
+                                            Steps:
+                                                [
                                                     {
                                                         Run: "goenv install 1.21.0 && goenv global 1.21.0",
                                                     },
@@ -45,7 +44,8 @@
                                                     {
                                                         Run: "go build -o ./bin/out ./cmd",
                                                     },
-                                                ] },
+                                                ],
+                                        },
                                 },
                             Synth:
                                 {
@@ -70,10 +70,10 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration: { Steps: [
-                                                    # {
-                                                    #     Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
-                                                    # },
+                                    Configuration:
+                                        {
+                                            Steps:
+                                                [
                                                     {
                                                         Run: "goenv install 1.21.0 && goenv global 1.21.0",
                                                     },
@@ -81,12 +81,13 @@
                                                     { Run: "go version" },
 
                                                     {
-                                                        Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                        Run: "go run gotest.tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
-                                                        Run: "cdk synth --output cdk.out",
+                                                        Run: "npx cdk synth --output cdk.out",
                                                     },
-                                                ] },
+                                                ],
+                                        },
                                 },
                         },
                 },
