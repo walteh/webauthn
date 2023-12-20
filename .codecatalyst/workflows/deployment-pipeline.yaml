@@ -95,7 +95,10 @@
                                                 ],
                                         },
                                     Compute:
-                                        { Type: Lambda, Fleet: Linux.Arm64 },
+                                        {
+                                            Type: Lambda,
+                                            Fleet: Linux.Arm64.Large,
+                                        },
                                 },
                         },
                 },
