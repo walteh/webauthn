@@ -84,7 +84,7 @@
                                                         Run: "export GOPATH=/tmp/golang",
                                                     },
                                                     {
-                                                        Run: "go install golang.org/dl/go1.21.5@latest",
+                                                        Run: "go install golang.org/dl/go1.21.5@latest && /tmp/golang/bin/go1.21.5 download",
                                                     },
                                                     {
                                                         Run: "cd tools && /tmp/golang/bin/go1.21.5 build -o=gotestsum gotest.tools/gotestsum",
