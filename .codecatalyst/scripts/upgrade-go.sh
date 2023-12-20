@@ -13,18 +13,22 @@ fi
 release_file="${release}.linux-amd64.tar.gz"
 
 tmp=$(mktemp -d)
-cd $tmp || exit 1
+cd "$tmp" || exit 1
 
 echo "Downloading https://go.dev/dl/$release_file ..."
-curl -OL https://go.dev/dl/$release_file
+curl -OL "https://go.dev/dl/$release_file"
 
-rm -f ${HOME}/apps/go 2>/dev/null
+goloc=$(which go)
 
-tar -C ${HOME}/apps -xzf $release_file
-rm -rf $tmp
+tmp=$(mktemp -d)
 
-mv ${HOME}/apps/go ${HOME}/apps/$release
-ln -sf ${HOME}/apps/$release ${HOME}/apps/go
+rm -f "$goloc" 2>/dev/null
+
+tar -C "$tmp" -xzf "$release_file"
+rm -rf "$tmp"
+
+mv "$goloc" "$tmp"/"$release"
+ln -sf "$tmp"/"$release" "$goloc"
 
 version=$(go version | cut -d' ' -f 3)
 echo "Now, local Go version is $version"
