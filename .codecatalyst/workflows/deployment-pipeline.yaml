@@ -34,10 +34,10 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "goenv install --list",
+                                                        Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
                                                     },
                                                     {
-                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0",
+                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
                                                         Run: "cd tools && go build -o=gotestsum gotest.tools/gotestsum",
@@ -81,7 +81,10 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0 && go version",
+                                                        Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
+                                                    },
+                                                    {
+                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
                                                         Run: "cd tools && go build -o=gotestsum gotest.tools/gotestsum",
