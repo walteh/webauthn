@@ -78,13 +78,15 @@
                                                         Run: "goenv install 1.21.0 && goenv global 1.21.0",
                                                     },
 
-                                                    { Run: "go version" },
+                                                    {
+                                                        Run: "go version &&  cd infrastructure ",
+                                                    },
 
                                                     {
                                                         Run: "go run gotest.tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
-                                                        Run: "npm install -g aws-cdk && cdk synth --output cdk.out",
+                                                        Run: "npm install -g aws-cdk &&cdk synth --output cdk.out",
                                                     },
                                                 ],
                                         },
