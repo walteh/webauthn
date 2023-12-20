@@ -2,58 +2,15 @@
     Name: "deployment-pipeline",
     SchemaVersion: "1.0",
     Triggers: [{ Type: "PUSH", Branches: ["revamp", "main"] }],
+    Compute: { Type: Lambda },
     Actions:
         {
             Build:
                 {
                     Actions:
                         {
-                            SCA:
+                            Package:
                                 {
-                                    Identifier: "aws/github-actions-runner@v1",
-                                    Inputs: { Sources: ["WorkflowSource"] },
-                                    Configuration:
-                                        {
-                                            Steps:
-                                                [
-                                                    {
-                                                        name: "Trivy Vulnerability Scanner",
-                                                        uses: "aquasecurity/trivy-action@master",
-                                                        with:
-                                                            {
-                                                                scan-type: "fs",
-                                                                ignore-unfixed: true,
-                                                                format: "sarif",
-                                                                output: "report.sarif",
-                                                                security-checks: "vuln,config,secret",
-                                                            },
-                                                    },
-                                                ],
-                                        },
-                                    Outputs:
-                                        {
-                                            Reports:
-                                                {
-                                                    SCA:
-                                                        {
-                                                            Format: "SARIFSCA",
-                                                            IncludePaths:
-                                                                [
-                                                                    "report.sarif",
-                                                                ],
-                                                            SuccessCriteria:
-                                                                {
-                                                                    ? Vulnerabilities
-                                                                    : {
-                                                                          Severity: "HIGH",
-                                                                          Number: 0,
-                                                                      },
-                                                                },
-                                                        },
-                                                },
-                                        },
-                                },
-                            Package: {
                                     Identifier: "aws/build@v1",
                                     Inputs: { Sources: ["WorkflowSource"] },
                                     Outputs:
@@ -88,7 +45,6 @@
                                                     },
                                                 ],
                                         },
-                                    # Compute: { Type: Lambda },
                                 },
                             Synth: {
                                     Identifier: "aws/build@v1",
