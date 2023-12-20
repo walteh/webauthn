@@ -84,7 +84,7 @@
                                                         Run: "go run gotest.tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
-                                                        Run: "npx cdk synth --output cdk.out",
+                                                        Run: "npm install -g aws-cdk && cdk synth --output cdk.out",
                                                     },
                                                 ],
                                         },
