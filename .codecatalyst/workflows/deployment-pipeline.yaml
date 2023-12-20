@@ -87,7 +87,7 @@
                                                         Run: "go install golang.org/dl/go1.21.5@latest",
                                                     },
                                                     {
-                                                        Run: "cd tools && go1.21.5 build -o=gotestsum gotest.tools/gotestsum",
+                                                        Run: "cd tools && /tmp/golang/bin/go1.21.5 build -o=gotestsum gotest.tools/gotestsum",
                                                     },
                                                     {
                                                         Run: "cd ../intrastructure && ../tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
