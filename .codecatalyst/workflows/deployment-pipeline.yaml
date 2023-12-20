@@ -81,10 +81,13 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "go install -o=/tmp/go golang.org/dl/go1.21.5@latest",
+                                                        Run: "export GOPATH=/tmp/golang",
                                                     },
                                                     {
-                                                        Run: "cd tools && /tmp/go build -o=gotestsum gotest.tools/gotestsum",
+                                                        Run: "go install golang.org/dl/go1.21.5@latest",
+                                                    },
+                                                    {
+                                                        Run: "cd tools && go1.21.5 build -o=gotestsum gotest.tools/gotestsum",
                                                     },
                                                     {
                                                         Run: "cd ../intrastructure && ../tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
