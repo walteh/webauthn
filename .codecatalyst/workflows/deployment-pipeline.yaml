@@ -34,18 +34,21 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0",
+                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0 && go version",
                                                     },
-
-                                                    { Run: "go version" },
                                                     {
-                                                        Run: "go run gotest.tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                        Run: "cd tools && go build -o=gotestsum gotest.tools/gotestsum",
+                                                    },
+                                                    {
+                                                        Run: "./tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
                                                         Run: "go build -o ./bin/out ./cmd",
                                                     },
                                                 ],
                                         },
+                                    Compute:
+                                        { Type: EC2, Fleet: Linux.Arm64.Large },
                                 },
                             Synth:
                                 {
@@ -75,21 +78,21 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0",
-                                                    },
-
-                                                    {
-                                                        Run: "go version &&  cd infrastructure ",
-                                                    },
-
-                                                    {
-                                                        Run: "go run gotest.tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                        Run: "goenv install 1.21.0 && goenv global 1.21.0 && go version",
                                                     },
                                                     {
-                                                        Run: "npm install -g aws-cdk &&cdk synth --output cdk.out",
+                                                        Run: "cd tools && go build -o=gotestsum gotest.tools/gotestsum",
+                                                    },
+                                                    {
+                                                        Run: "cd intrastructure && ../tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                    },
+                                                    {
+                                                        Run: "npm install -g aws-cdk && cdk synth --output cdk.out",
                                                     },
                                                 ],
                                         },
+                                    Compute:
+                                        { Type: EC2, Fleet: Linux.Arm64.Large },
                                 },
                         },
                 },
