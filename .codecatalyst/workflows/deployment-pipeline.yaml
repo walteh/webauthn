@@ -93,13 +93,16 @@
                                                         Run: "export GOFLAGS=-mod=vendor && export GOWORK=off",
                                                     },
                                                     {
+                                                        Run: "npm install -g aws-cdk",
+                                                    },
+                                                    {
                                                         Run: "cd tools && go install gotest.tools/gotestsum && cd ..",
                                                     },
                                                     {
                                                         Run: "cd ./infrastructure && gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
-                                                        Run: "npm install -g aws-cdk && cdk synth --output cdk.out",
+                                                        Run: "cdk synth --output cdk.out",
                                                     },
                                                 ] },
                                     Compute:
