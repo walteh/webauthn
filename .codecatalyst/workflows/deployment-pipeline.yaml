@@ -103,10 +103,7 @@
                                                     },
                                                 ] },
                                     Compute:
-                                        {
-                                            Type: Lambda,
-                                            Fleet: Linux.Arm64.Large,
-                                        },
+                                        { Type: EC2, Fleet: Linux.Arm64.Large },
                                 },
                         },
                 },
