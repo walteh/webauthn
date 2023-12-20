@@ -40,10 +40,10 @@
                                                         Run: "goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
-                                                        Run: "cd tools && GOWORK=off go build -mod=vendor -o=gotestsum gotest.tools/gotestsum",
+                                                        Run: "cd tools && GOWORK=off go build -mod=vendor -o=gotestsum gotest.tools/gotestsum && cd ..",
                                                     },
                                                     {
-                                                        Run: "./tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                        Run: "GOWORK=off ./tools/gotestsum --junitfile test-reports/junit.xml -- -mod=vendor -v -coverprofile=coverage.out -coverpkg=./...",
                                                     },
                                                     {
                                                         Run: "go build -o ./bin/out ./cmd",
@@ -93,10 +93,10 @@
                                                         Run: "goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
-                                                        Run: "cd tools && GOWORK=off go build -mod=vendor -o=gotestsum gotest.tools/gotestsum",
+                                                        Run: "cd tools && GOWORK=off go build -mod=vendor -o=gotestsum gotest.tools/gotestsum && cd ..",
                                                     },
                                                     {
-                                                        Run: "cd ../infrastructure && ../tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                                                        Run: "cd ./infrastructure && GOWORK=off ./tools/gotestsum --junitfile test-reports/junit.xml -- -mod=vendor -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
                                                     {
                                                         Run: "npm install -g aws-cdk && cdk synth --output cdk.out",
