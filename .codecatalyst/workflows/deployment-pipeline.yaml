@@ -81,10 +81,7 @@
                                             Steps:
                                                 [
                                                     {
-                                                        Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd -",
-                                                    },
-                                                    {
-                                                        Run: "goenv install 1.21.5 && goenv global 1.21.5",
+                                                        Run: "go install golang.org/dl/1.21.5@latest",
                                                     },
                                                     {
                                                         Run: "cd tools && go build -o=gotestsum gotest.tools/gotestsum",
@@ -98,7 +95,7 @@
                                                 ],
                                         },
                                     Compute:
-                                        { Type: EC2, Fleet: Linux.Arm64.Large },
+                                        { Type: Lambda, Fleet: Linux.Arm64 },
                                 },
                         },
                 },
