@@ -34,9 +34,12 @@
                                         {
                                             Steps:
                                                 [
+                                                    { Run: "go version" },
+
                                                     {
                                                         Run: "yum install -y go",
                                                     },
+                                                    { Run: "go version" },
                                                     {
                                                         Run: "go run gotest.tools/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
@@ -72,9 +75,13 @@
                                         {
                                             Steps:
                                                 [
+                                                    { Run: "go version" },
+
                                                     {
                                                         Run: "yum install -y go",
                                                     },
+                                                    { Run: "go version" },
+
                                                     {
                                                         Run: "go test -v -coverprofile=coverage.out -coverpkg=./... ./...",
                                                     },
