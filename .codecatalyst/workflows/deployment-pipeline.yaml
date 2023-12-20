@@ -64,7 +64,9 @@
                                                     Enabled: true,
                                                     ReportNamePrefix: "synth",
                                                     IncludePaths:
-                                                        ["test-reports/*"],
+                                                        [
+                                                            "infrastructure/test-reports/*",
+                                                        ],
                                                     SuccessCriteria:
                                                         { PassRate: 100 },
                                                 },
@@ -114,10 +116,10 @@
                                 {
                                     Identifier: "aws/cdk-deploy@v1",
                                     DependsOn: ["Build"],
-                                    Inputs: { Artifacts: ["package"] },
+                                    Inputs: { Artifacts: ["synth"] },
                                     Environment:
                                         {
-                                            Name: "Beta",
+                                            Name: "beta",
                                             Connections:
                                                 [
                                                     {

@@ -7,6 +7,10 @@ import (
 	"github.com/walteh/webauthn/pkg/webauthn/extensions"
 )
 
+type Asserter interface {
+	VerifyAssertion(input VerifyAssertionInputArgs) (bool, error)
+}
+
 type VerifyAssertionInputArgs struct {
 	Input                          AssertionInput
 	StoredChallenge                CeremonyID
