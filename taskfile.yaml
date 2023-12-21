@@ -1,7 +1,4 @@
-{
-    version: 3,
-    tasks:
-        {
+{ version: 3, tasks: {
             buf-bin:
                 {
                     generates: ["bin/buf"],
@@ -56,12 +53,12 @@
                         ],
                     generates: ["bin/bun"],
                     dir: "tools",
-                    preconditions: ["which unzip", "which curl"],
+                    preconditions: ["which unzip", "which curl", "which npm"],
                     status: ["bun --version", "test -f ./bin/bun"],
                     cmds:
                         [
-                            "curl -fsSL https://bun.sh/install | bash",
                             "mkdir -p ./bin",
+                            "command -v npm && npm install -g bun || curl -fsSL https://bun.sh/install | bash",
                             "ln -s $(which bun) ./bin/bun",
                         ],
                 },
@@ -140,7 +137,11 @@
                         ],
                 },
 
-            test:
+            #
+            # TESTS
+            #
+
+            test-ci:
                 {
                     deps: ["gotestsum-bin"],
                     sources:
@@ -156,6 +157,23 @@
                         ],
                 },
 
+            test-cdk-ci:
+                {
+                    deps: ["gotestsum-bin"],
+                    sources:
+                        [
+                            "**/*.go",
+                            exclude: "tools/**/*",
+                            "./tools/bin/gotestsum",
+                        ],
+                    preconditions: ["which go"],
+                    dir: "infrastructure",
+
+                    cmds:
+                        [
+                            "GOWORK=off ../tools/bin/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./infrastructure/...",
+                        ],
+                },
+
             default: { deps: ["tools", "gen", "lint", "test"] },
-        },
-}
+        } }

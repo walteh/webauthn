@@ -25,7 +25,7 @@
                                                 [
                                                     {
                                                         Name: "package",
-                                                        Files: ["./bin/**/*"],
+                                                        Files: ["./bin/out"],
                                                     },
                                                 ],
                                         },
@@ -37,14 +37,9 @@
                                                         Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd - && goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
-                                                        Run: "export GOFLAGS=-mod=vendor && export GOWORK=off",
+                                                        Run: "npm install -g @go-task/cli",
                                                     },
-                                                    {
-                                                        Run: "cd tools && go install gotest.tools/gotestsum && cd ..",
-                                                    },
-                                                    {
-                                                        Run: "gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
-                                                    },
+                                                    { Run: "task test-ci" },
                                                     {
                                                         Run: "go build -o ./bin/out ./cmd",
                                                     },
@@ -89,18 +84,10 @@
                                                         Run: "cd /root/.goenv/plugins/go-build/../.. && git pull && cd - && goenv install 1.21.5 && goenv global 1.21.5",
                                                     },
                                                     {
-                                                        Run: "export GOFLAGS=-mod=vendor && export GOWORK=off",
+                                                        Run: "npm install -g @go-task/cli",
                                                     },
-                                                    {
-                                                        Run: "npm install -g aws-cdk",
-                                                    },
-                                                    {
-                                                        Run: "cd tools && go install gotest.tools/gotestsum && cd ..",
-                                                    },
-                                                    {
-                                                        Run: "cd ./infrastructure && gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
-                                                    },
-                                                    { Run: "cdk synth" },
+                                                    { Run: "task test-cdk-ci" },
+                                                    { Run: "task cdk-synth" },
                                                 ],
                                         },
                                     Compute:
