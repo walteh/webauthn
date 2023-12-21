@@ -54,18 +54,25 @@
                             "linux/arm64",
                             "darwin/arm64",
                         ],
+                    generates: ["bin/bun"],
+                    dir: "tools",
                     preconditions: ["which unzip", "which curl"],
-                    status: ["bun --version"],
-                    cmds: ["curl -fsSL https://bun.sh/install | bash"],
+                    status: ["bun --version", "test -f ./bin/bun"],
+                    cmds:
+                        [
+                            "curl -fsSL https://bun.sh/install | bash",
+                            "mkdir -p ./bin",
+                            "ln -s $(which bun) ./bin/bun",
+                        ],
                 },
 
             cdk-bin:
                 {
-                    generates: ["node_modules/.bin/cdk"],
-                    dir: "infrastructure/bun",
+                    dir: "tools",
                     deps: ["bun-bin"],
-                    sources: ["package.json", "bun.lockb"],
-                    cmds: ["bun install"],
+                    sources: ["package.json", "bun.lockb", "bin/bun"],
+                    generates: ["./node_modules/.bin/cdk"],
+                    cmds: ["./bin/bun install"],
                 },
 
             tools:
@@ -114,7 +121,7 @@
                     dir: "infrastructure",
                     generates: ["cdk.out"],
                     sources: ["**/*.go", "./.cdk.json"],
-                    cmds: ["./bun/node_modules/.bin/cdk synth"],
+                    cmds: ["../tools/node_modules/.bin/cdk synth"],
                 },
 
             lint:
@@ -142,10 +149,10 @@
                             exclude: "tools/**/*",
                             "./tools/bin/gotestsum",
                         ],
-
+                    preconditions: ["which go"],
                     cmds:
                         [
-                            "GOWORK=off ./tools/bin/gotestsum --format=junit --raw-command -- -coverprofile=coverage.out ./...",
+                            "GOWORK=off ./tools/bin/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                         ],
                 },
 
