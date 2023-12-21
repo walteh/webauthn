@@ -4,7 +4,6 @@
         {
             buf-bin:
                 {
-                    platform: ["darwin/amd64", "linux/amd64", "windows/amd64"],
                     generates: ["bin/buf"],
                     dir: "tools",
                     sources: ["**/*", exclude: "bin/**/*"],
@@ -15,7 +14,6 @@
                 },
             mockery-bin:
                 {
-                    platform: ["darwin/amd64", "linux/amd64", "windows/amd64"],
                     generates: ["bin/mockery"],
                     dir: "tools",
                     sources: ["**/*", exclude: "bin/**/*"],
@@ -27,7 +25,6 @@
 
             golangci-lint-bin:
                 {
-                    platform: ["darwin/amd64", "linux/amd64", "windows/amd64"],
                     generates: ["bin/golangci-lint"],
                     dir: "tools",
                     sources: ["**/*", exclude: "bin/**/*"],
@@ -36,14 +33,60 @@
                             "GOWORK=off go build -mod=vendor -o ./bin/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint",
                         ],
                 },
-            tools: { deps: ["buf-bin", "mockery-bin", "golangci-lint-bin"] },
+
+            gotestsum-bin:
+                {
+                    generates: ["bin/gotestsum"],
+                    dir: "tools",
+                    sources: ["**/*", exclude: "bin/**/*"],
+                    cmds:
+                        [
+                            "GOWORK=off go build -mod=vendor -o ./bin/gotestsum gotest.tools/gotestsum",
+                        ],
+                },
+
+            bun-bin:
+                {
+                    platforms:
+                        [
+                            "linux/amd64",
+                            "darwin/amd64",
+                            "linux/arm64",
+                            "darwin/arm64",
+                        ],
+                    preconditions: ["which unzip", "which curl"],
+                    status: ["bun --version"],
+                    cmds: ["curl -fsSL https://bun.sh/install | bash"],
+                },
+
+            cdk-bin:
+                {
+                    generates: ["node_modules/.bin/cdk"],
+                    dir: "infrastructure/bun",
+                    deps: ["bun-bin"],
+                    sources: ["package.json", "bun.lockb"],
+                    cmds: ["bun install"],
+                },
+
+            tools:
+                {
+                    deps:
+                        [
+                            "buf-bin",
+                            "mockery-bin",
+                            "golangci-lint-bin",
+                            "gotestsum-bin",
+                            "cdk-bin",
+                            "bun-bin",
+                        ],
+                },
 
             buf-gen:
                 {
                     deps: ["buf-bin"],
                     generates: ["gen/buf/**/*"],
                     dir: ".",
-                    sources: ["proto", "./tools/bin/buf"],
+                    sources: ["proto/**/*.proto", "./tools/bin/buf"],
                     cmds:
                         [
                             './tools/bin/buf generate --include-imports --include-wkt --exclude-path="tools/vendor" --template ./buf.gen.yaml --path=./proto',
@@ -65,6 +108,15 @@
 
             gen: { deps: ["buf-gen", "mockery-gen"] },
 
+            cdk-synth:
+                {
+                    deps: ["cdk-bin"],
+                    dir: "infrastructure",
+                    generates: ["cdk.out"],
+                    sources: ["**/*.go", "./.cdk.json"],
+                    cmds: ["./bun/node_modules/.bin/cdk synth"],
+                },
+
             lint:
                 {
                     deps: ["golangci-lint-bin"],
@@ -75,7 +127,28 @@
                             "./tools/bin/golangci-lint",
                         ],
 
-                    cmds: ["./tools/bin/golangci-lint run"],
+                    cmds:
+                        [
+                            "GOWORK=off ./tools/bin/golangci-lint run --config ./.golangci.yml",
+                        ],
                 },
+
+            test:
+                {
+                    deps: ["gotestsum-bin"],
+                    sources:
+                        [
+                            "**/*.go",
+                            exclude: "tools/**/*",
+                            "./tools/bin/gotestsum",
+                        ],
+
+                    cmds:
+                        [
+                            "GOWORK=off ./tools/bin/gotestsum --format=junit --raw-command -- -coverprofile=coverage.out ./...",
+                        ],
+                },
+
+            default: { deps: ["tools", "gen", "lint", "test"] },
         },
 }

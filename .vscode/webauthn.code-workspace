@@ -94,6 +94,16 @@
 			"editor.semanticHighlighting.enabled": false,
 		},
 		"editor.codeActionsOnSave": {},
-		""
+		"json.schemas": [
+			{
+				"fileMatch": [
+					"taskfile.yaml"
+				],
+				"url": "https://raw.githubusercontent.com/go-task/task/master/docs/v2/task.schema.json"
+			}
+		],
+		"yaml.schemas": {
+			"https://taskfile.dev/schema.json": "file:///Users/dub6ix/Developer/walteh/github/sideproject/webauthn/taskfile.yaml"
+		},
 	}
 }
