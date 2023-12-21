@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/walteh/webauthn/pkg/storage/dynamodb"
 	"github.com/walteh/webauthn/pkg/webauthn/challenge"
 
 	"github.com/k0kubun/pp/v3"
@@ -12,12 +14,14 @@ import (
 )
 
 func DummyHandler(t *testing.T) *Handler {
-	dynamoClient := indexable.NewMockClient(t)
+
+	awsc := aws.NewConfig()
+	dynamoClient := dynamodb.NewDynamoDBStorageClient(*awsc, "ceremonies", "credentials")
 
 	return &Handler{
 		Id:      "test",
 		Ctx:     context.Background(),
-		Dynamo:  dynamoClient,
+		Storage: dynamoClient,
 		Config:  nil,
 		logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 		counter: 0,

@@ -14,5 +14,5 @@ type Provider interface {
 	// REQUIREMENT: the credential must not exist in the db
 	// REQUIREMENT: the sessionid of the credential must match the sessionid of the ceremony in the db
 	WriteNewCredential(ctx context.Context, crm types.CeremonyID, cred *types.Credential) error
-	IncrementExistingCredential(ctx context.Context, crm types.CeremonyID, credid types.CredentialID) error
+	IncrementExistingCredential(ctx context.Context, crm types.CeremonyID, credid *types.Credential) error
 }

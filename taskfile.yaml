@@ -65,11 +65,11 @@
 
             cdk-bin:
                 {
-                    dir: "tools",
+                    dir: "tools/_bun",
                     deps: ["bun-bin"],
                     sources: ["package.json", "bun.lockb", "bin/bun"],
-                    generates: ["./node_modules/.bin/cdk"],
-                    cmds: ["./bin/bun install"],
+                    generates: ["./_bun/node_modules/.bin/cdk"],
+                    cmds: ["../bin/bun install"],
                 },
 
             tools:
@@ -118,7 +118,7 @@
                     dir: "infrastructure",
                     generates: ["cdk.out"],
                     sources: ["**/*.go", "./.cdk.json"],
-                    cmds: ["../tools/node_modules/.bin/cdk synth"],
+                    cmds: ["../tools/_bun/node_modules/.bin/cdk synth"],
                 },
 
             lint:

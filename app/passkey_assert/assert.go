@@ -92,7 +92,7 @@ func Assert(ctx context.Context, store storage.Provider, rp relyingparty.Provide
 	grp.Go(func() error {
 		// verify the aaguid matches
 		// verify the public key matches
-		err := store.IncrementExistingCredential(ctx, cd.Challenge, input.CredentialID)
+		err := store.IncrementExistingCredential(ctx, cd.Challenge, cred)
 		if err != nil {
 			return terrors.Wrap(err, "failed to increment credential")
 		}

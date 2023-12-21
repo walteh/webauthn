@@ -5,6 +5,7 @@ import (
 
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/storage"
+	"github.com/walteh/webauthn/pkg/storage/dynamodb"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
 
 	"os"
@@ -54,7 +55,7 @@ func main() {
 	abc := &Handler{
 		Id:      xid.New().String(),
 		Ctx:     ctx,
-		Storage: dynamo.NewClient(cfg, "", env.DynamoCeremoniesTableName(), ""),
+		Storage: dynamodb.NewDynamoDBStorageClient(cfg, "ceremonies", "credentials"),
 		Config:  cfg,
 		logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
 		counter: 0,
@@ -84,19 +85,26 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	case string(types.CreateCeremony):
 		break
 	default:
-		return inv.Error(nil, 400, "invalid x-nugg-utf-ceremony-type header")
+		return Output{
+			StatusCode: 400,
+		}, nil
 	}
 
 	cha := types.NewCeremony(types.CredentialID(credentialId), sessionId, types.CeremonyType(ceremonyType))
 
 	err := h.Storage.WriteNewCeremony(ctx, cha)
+	if err != nil {
+		return Output{
+			StatusCode: 500,
+		}, nil
+	}
 
-	return inv.Success(Output{
+	return Output{
 		StatusCode: 204,
 		Headers: map[string]string{
-			"x-nugg-hex-challenge": cha.ChallengeID.Hex(),
+			"x-nugg-hex-challenge": cha.ChallengeID.Ref().Hex(),
 		},
-	})
+	}, nil
 }
 
 // cer, err := dynamo.MakePut(h.Dynamo.MustCeremonyTableName(), cha)

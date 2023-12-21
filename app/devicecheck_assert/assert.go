@@ -79,7 +79,7 @@ func Assert(ctx context.Context, store storage.Provider, rp relyingparty.Provide
 		return nil, terrors.Wrap(validError, "failed to verify assertion input").WithCode(401)
 	}
 
-	err = store.IncrementExistingCredential(ctx, cerem.ChallengeID, parsed.CredentialID)
+	err = store.IncrementExistingCredential(ctx, cerem.ChallengeID, cred)
 	if err != nil {
 		return nil, terrors.Wrap(err, "failed to increment existing credential").WithCode(502)
 	}
