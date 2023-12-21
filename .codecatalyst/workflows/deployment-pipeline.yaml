@@ -110,8 +110,8 @@
                                             Connections:
                                                 [
                                                     {
-                                                        Name: "CodeCatalystWorkflowDevelopmentRole-nugg.xyz",
-                                                        Role: "codecatalyst",
+                                                        Name: "main",
+                                                        Role: "CodeCatalystWorkflowDevelopmentRole-nugg.xyz",
                                                     },
                                                 ],
                                         },
