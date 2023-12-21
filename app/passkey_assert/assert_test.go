@@ -80,7 +80,7 @@ func TestHandler_Invoke(t *testing.T) {
 			cpp := mockery.NewMockProvider_accesstoken(t)
 
 			stgp.EXPECT().GetExisting(mock.Anything, tt.existingCeremony.ChallengeID, tt.existingCredentials.RawID).Return(tt.existingCeremony, tt.existingCredentials, nil)
-			stgp.EXPECT().IncrementExistingCredential(mock.Anything, tt.existingCeremony.ChallengeID, tt.existingCredentials.RawID).Return(nil)
+			stgp.EXPECT().IncrementExistingCredential(mock.Anything, tt.existingCeremony.ChallengeID, tt.existingCredentials).Return(nil).Maybe()
 
 			rpp.EXPECT().RPID().Return("nugg.xyz")
 			rpp.EXPECT().RPOrigin().Return("https://nugg.xyz")

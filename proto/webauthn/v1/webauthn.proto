@@ -64,10 +64,22 @@ message AppleDeviceAssertResponse {
 	bool success = 1;
 }
 
-service WebAuthnService {
+service CreateChallengeService {
 	rpc CreateChallenge(CreateChallengeRequest) returns (CreateChallengeResponse) {}
+}
+
+service ApplePasskeyCreateService {
 	rpc ApplePasskeyCreate(ApplePasskeyCreateRequest) returns (ApplePasskeyCreateResponse) {}
+}
+
+service ApplePasskeyAssertService {
 	rpc ApplePasskeyAssert(ApplePasskeyAssertRequest) returns (ApplePasskeyAssertResponse) {}
+}
+
+service AppleDeviceCreateService {
 	rpc AppleDeviceCreate(AppleDeviceCreateRequest) returns (AppleDeviceCreateResponse) {}
+}
+
+service AppleDeviceAssertService {
 	rpc AppleDeviceAssert(AppleDeviceAssertRequest) returns (AppleDeviceAssertResponse) {}
 }

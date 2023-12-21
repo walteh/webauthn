@@ -2,26 +2,24 @@ package main
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/walteh/webauthn/pkg/storage/dynamodb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/walteh/webauthn/gen/buf/go/proto/webauthn/v1"
+	"github.com/walteh/webauthn/gen/mockery"
+	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/challenge"
+	"github.com/walteh/webauthn/pkg/webauthn/types"
 
-	"github.com/k0kubun/pp/v3"
 	"github.com/rs/zerolog"
 )
 
 func DummyHandler(t *testing.T) *Handler {
 
-	awsc := aws.NewConfig()
-	dynamoClient := dynamodb.NewDynamoDBStorageClient(*awsc, "ceremonies", "credentials")
-
 	return &Handler{
 		Id:      "test",
 		Ctx:     context.Background(),
-		Storage: dynamoClient,
 		Config:  nil,
 		logger:  zerolog.New(zerolog.NewConsoleWriter()).With().Caller().Timestamp().Logger(),
 		counter: 0,
@@ -34,58 +32,52 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		args    Input
-		want    Output
+		args    *InputBody
+		want    *OutputBody
 		wantErr bool
 	}{
 		{
 			name: "A",
-			args: Input{
-				Headers: map[string]string{
-					"Content-Type":          "application/json",
-					"x-nugg-hex-session-id": "0xff33ff",
+			args: &InputBody{
+				Msg: &webauthn.CreateChallengeRequest{
+					SessionId: hex.HexToHash("0xff33ff"),
 				},
 			},
-			want: Output{
-				StatusCode: 204,
-				Headers: map[string]string{
-					"Content-Length":       "0",
-					"x-nugg-hex-challenge": expected.CalculateDeterministicHash(1).Hex(),
+			want: &OutputBody{
+				Msg: &webauthn.CreateChallengeResponse{
+					Challenge: expected.CalculateDeterministicHash(1),
+					Ttl:       180000,
 				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "B",
-			args: Input{
-				Headers: map[string]string{
-					"Content-Type":             "application/json",
-					"x-nugg-hex-session-id":    "0xff33ff",
-					"x-nugg-hex-credential-id": "0x7053ed09000cfafdd6e1d98d929796f9c07c466b",
+			args: &InputBody{
+				Msg: &webauthn.CreateChallengeRequest{
+					SessionId:    hex.HexToHash("0xff33ff"),
+					CredentialId: hex.HexToHash("0x7053ed09000cfafdd6e1d98d929796f9c07c466b"),
 				},
 			},
-			want: Output{
-				StatusCode: 204,
-				Headers: map[string]string{
-					"Content-Length":       "0",
-					"x-nugg-hex-challenge": expected.CalculateDeterministicHash(1).Hex(),
+			want: &OutputBody{
+				Msg: &webauthn.CreateChallengeResponse{
+					Challenge: expected.CalculateDeterministicHash(1),
+					Ttl:       180000,
 				},
 			},
+
 			wantErr: false,
 		},
 		{
 			name: "C",
-			args: Input{
-				Headers: map[string]string{
-					"Content-Type":             "application/json",
-					"x-nugg-hex-session-id":    "0xff33ff",
-					"x-nugg-utf-ceremony-type": "webauthn.not-webauthn",
+			args: &InputBody{
+				Msg: &webauthn.CreateChallengeRequest{
+					SessionId:    hex.HexToHash("0xff33ff"),
+					CeremonyType: "webauthn.not-webauthn",
 				},
 			},
-			want: Output{
-				StatusCode: 400,
-			},
-			wantErr: false,
+			want:    nil,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -95,16 +87,31 @@ func TestHandler_Invoke_UnitTest1234(t *testing.T) {
 
 			Handler := DummyHandler(t)
 
-			got, err := Handler.Invoke(context.Background(), tt.args)
+			dynamoClient := mockery.NewMockProvider_storage(t)
+
+			Handler.Storage = dynamoClient
+
+			dynamoClient.EXPECT().WriteNewCeremony(mock.Anything, mock.MatchedBy(func(cer *types.Ceremony) bool {
+				assert.Equal(t, tt.args.Msg.GetCredentialId(), cer.CredentialID.Ref().Bytes())
+				assert.Equal(t, tt.args.Msg.GetSessionId(), cer.SessionID.Bytes())
+				if tt.args.Msg.GetCeremonyType() == "" {
+					assert.Equal(t, string(types.AssertCeremony), string(cer.CeremonyType))
+				} else {
+					assert.Equal(t, tt.args.Msg.GetCeremonyType(), string(cer.CeremonyType))
+				}
+				return true
+			})).Return(nil).Maybe()
+
+			got, err := Handler.CreateChallenge(context.Background(), tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Handler.Invoke() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				pp.Println(got)
-				pp.Println(tt.want)
-				t.Errorf("Handler.Invoke() = %v, want %v", got, tt.want)
-			}
+
+			assert.Equal(t, tt.want, got)
+
+			dynamoClient.AssertExpectations(t)
+
 		})
 	}
 }

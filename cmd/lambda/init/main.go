@@ -1,8 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"net/http"
 
+	"connectrpc.com/connect"
+	"github.com/walteh/terrors"
+	"github.com/walteh/webauthn/gen/buf/go/proto/webauthn/v1"
+	"github.com/walteh/webauthn/gen/buf/go/proto/webauthn/v1/webauthnconnect"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/storage"
 	"github.com/walteh/webauthn/pkg/storage/dynamodb"
@@ -20,6 +27,10 @@ import (
 
 type Input = events.APIGatewayV2HTTPRequest
 type Output = events.APIGatewayV2HTTPResponse
+
+type InputBody = connect.Request[webauthn.CreateChallengeRequest]
+
+type OutputBody = connect.Response[webauthn.CreateChallengeResponse]
 
 type Handler struct {
 	Id      string
@@ -61,19 +72,70 @@ func main() {
 		counter: 0,
 	}
 
-	lambda.Start(abc.Invoke)
+	_, hndl := webauthnconnect.NewCreateChallengeServiceHandler(abc)
+
+	// convert http handler to lambda handler manually
+	lmd := func(ctx context.Context, payload *Input) (*Output, error) {
+
+		unb64, err := base64.RawStdEncoding.DecodeString(payload.Body)
+		if err != nil {
+			return nil, terrors.Wrap(err, "failed to decode body")
+		}
+
+		rwrit := &DummyHttpWriter{
+			header: http.Header{},
+			status: 200,
+		}
+
+		req, err := http.NewRequest("POST", "http://localhost:8080", bytes.NewReader(unb64))
+		if err != nil {
+			return nil, terrors.Wrap(err, "failed to create request")
+		}
+
+		hndl.ServeHTTP(rwrit, req)
+
+		mvheaders := make(map[string][]string)
+		for k, v := range rwrit.header {
+			mvheaders[k] = v
+		}
+
+		return &Output{
+			StatusCode:        rwrit.status,
+			Body:              base64.StdEncoding.EncodeToString(rwrit.out),
+			IsBase64Encoded:   true,
+			MultiValueHeaders: mvheaders,
+			Cookies:           []string{},
+		}, nil
+	}
+
+	lambda.Start(lmd)
 }
 
-func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
+var (
+	_ webauthnconnect.CreateChallengeServiceHandler = (*Handler)(nil)
+)
 
-	sessionId := hex.HexToHash(payload.Headers["x-nugg-hex-session-id"])
-	ceremonyType := payload.Headers["x-nugg-utf-ceremony-type"]
-	credentialId := hex.HexToHash(payload.Headers["x-nugg-hex-credential-id"])
+func wrapConnect[Req any, Res any](f func(ctx context.Context, payload *Req) (*Res, error)) func(ctx context.Context, payload *connect.Request[Req]) (*connect.Request[Res], error) {
+	return func(ctx context.Context, payload *connect.Request[Req]) (*connect.Request[Res], error) {
+		res, err := f(ctx, payload.Msg)
+		if err != nil {
+			return nil, err
+		}
+
+		return &connect.Request[Res]{
+			Msg: res,
+		}, nil
+	}
+}
+
+func (h *Handler) CreateChallenge(ctx context.Context, payload *InputBody) (*OutputBody, error) {
+
+	sessionId := hex.BytesToHash(payload.Msg.GetSessionId())
+	credentialId := hex.BytesToHash(payload.Msg.GetCredentialId())
+	ceremonyType := payload.Msg.GetCeremonyType()
 
 	if sessionId.IsZero() {
-		return Output{
-			StatusCode: 400,
-		}, nil
+		return nil, terrors.New("session id is required")
 	}
 
 	if ceremonyType == "" {
@@ -85,26 +147,23 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 	case string(types.CreateCeremony):
 		break
 	default:
-		return Output{
-			StatusCode: 400,
-		}, nil
+		return nil, terrors.New("invalid ceremony type")
 	}
 
 	cha := types.NewCeremony(types.CredentialID(credentialId), sessionId, types.CeremonyType(ceremonyType))
 
 	err := h.Storage.WriteNewCeremony(ctx, cha)
 	if err != nil {
-		return Output{
-			StatusCode: 500,
-		}, nil
+		return nil, err
 	}
 
-	return Output{
-		StatusCode: 204,
-		Headers: map[string]string{
-			"x-nugg-hex-challenge": cha.ChallengeID.Ref().Hex(),
+	return &connect.Response[webauthn.CreateChallengeResponse]{
+		Msg: &webauthn.CreateChallengeResponse{
+			Challenge: cha.ChallengeID,
+			Ttl:       3 * 60 * 1000,
 		},
 	}, nil
+
 }
 
 // cer, err := dynamo.MakePut(h.Dynamo.MustCeremonyTableName(), cha)
@@ -116,3 +175,22 @@ func (h *Handler) Invoke(ctx context.Context, payload Input) (Output, error) {
 // if err != nil {
 // 	return inv.Error(err, 500, "Failed to save ceremony")
 // }
+
+type DummyHttpWriter struct {
+	header http.Header
+	out    []byte
+	status int
+}
+
+func (d *DummyHttpWriter) Header() http.Header {
+	return d.header
+}
+
+func (d *DummyHttpWriter) Write(ok []byte) (int, error) {
+	d.out = ok
+	return len(ok), nil
+}
+
+func (d *DummyHttpWriter) WriteHeader(stat int) {
+	d.status = stat
+}

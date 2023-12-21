@@ -120,7 +120,7 @@ func TestHandler_Invoke(t *testing.T) {
 			rpp := mockery.NewMockProvider_relyingparty(t)
 
 			stgp.EXPECT().GetExisting(ctx, tt.existingCeremony.ChallengeID, tt.existingCredentials.RawID).Return(tt.existingCeremony, tt.existingCredentials, nil)
-			stgp.EXPECT().IncrementExistingCredential(ctx, tt.existingCeremony.ChallengeID, tt.existingCredentials.RawID).Return(nil)
+			stgp.EXPECT().IncrementExistingCredential(ctx, tt.existingCeremony.ChallengeID, tt.existingCredentials).Return(nil)
 
 			rpp.EXPECT().RPID().Return("4497QJSAD3.xyz.nugg.app")
 			rpp.EXPECT().RPOrigin().Return("https://nugg.xyz")
