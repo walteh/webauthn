@@ -171,7 +171,7 @@
 
                     cmds:
                         [
-                            "GOWORK=off ../tools/bin/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./infrastructure/...",
+                            "GOWORK=off ../tools/bin/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
                         ],
                 },
 
