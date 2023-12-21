@@ -26,20 +26,40 @@ type Path struct {
 	Sep string
 }
 
-// NewPath returns a new OS path
-func NewPath(path string) *Path {
-	return NewPathAfero(path, afero.NewOsFs())
+type PathOpts func(p *Path)
+
+func PathWithAfero(fs afero.Fs) PathOpts {
+	return func(p *Path) {
+		p.fs = fs
+	}
 }
 
-// NewPathAfero returns a Path object with the given Afero object
-func NewPathAfero(path string, fs afero.Fs) *Path {
-	return &Path{
+func PathWithSeperator(sep string) PathOpts {
+	return func(p *Path) {
+		p.Sep = sep
+	}
+}
+
+// NewPath returns a new OS path
+func NewPath(path string, opts ...PathOpts) *Path {
+	p := &Path{
 		path:            path,
-		fs:              fs,
+		fs:              afero.NewOsFs(),
 		DefaultFileMode: DefaultFileMode,
 		DefaultDirMode:  DefaultDirMode,
 		Sep:             string(os.PathSeparator),
 	}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
+}
+
+// NewPathAfero returns a Path object with the given Afero object
+//
+// Deprecated: Use the PathWithAfero option in Newpath instead.
+func NewPathAfero(path string, fs afero.Fs) *Path {
+	return NewPath(path, PathWithAfero(fs))
 }
 
 // Glob returns all of the path objects matched by the given pattern
@@ -299,8 +319,6 @@ func (p *Path) Parent() *Path {
 //
 // This will fail if the underlying afero filesystem does not implement
 // afero.LinkReader.
-//
-// THIS METHOD IS NOT TYPE SAFE.
 func (p *Path) Readlink() (*Path, error) {
 	linkReader, ok := p.Fs().(afero.LinkReader)
 	if !ok {
@@ -361,8 +379,6 @@ func resolveAllHelper(path *Path) (*Path, error) {
 // should be identical to the `readlink -f` command from POSIX OSs.
 // This will fail if the underlying afero filesystem does not implement
 // afero.LinkReader. The path will be returned unchanged on errors.
-//
-// THIS METHOD IS NOT TYPE SAFE.
 func (p *Path) ResolveAll() (*Path, error) {
 	return resolveAllHelper(p)
 }
@@ -459,8 +475,6 @@ func (p *Path) RelativeToStr(other string) (*Path, error) {
 // afero.Lstater but returns false for the "lstat called" return value.
 //
 // A nil os.FileInfo is returned on errors.
-//
-// THIS METHOD IS NOT TYPE SAFE.
 func (p *Path) Lstat() (os.FileInfo, error) {
 	lStater, ok := p.Fs().(afero.Lstater)
 	if !ok {
@@ -473,22 +487,14 @@ func (p *Path) Lstat() (os.FileInfo, error) {
 	return stat, err
 }
 
-// *********************************
-// * filesystem-specific functions *
-// *********************************
-
 // SymlinkStr symlinks to the target location. This will fail if the underlying
 // afero filesystem does not implement afero.Linker.
-//
-// THIS METHOD IS NOT TYPE SAFE.
 func (p *Path) SymlinkStr(target string) error {
 	return p.Symlink(NewPathAfero(target, p.Fs()))
 }
 
 // Symlink symlinks to the target location. This will fail if the underlying
 // afero filesystem does not implement afero.Linker.
-//
-// THIS METHOD IS NOT TYPE SAFE.
 func (p *Path) Symlink(target *Path) error {
 	symlinker, ok := p.fs.(afero.Linker)
 	if !ok {
@@ -497,10 +503,6 @@ func (p *Path) Symlink(target *Path) error {
 
 	return symlinker.SymlinkIfPossible(target.path, p.path)
 }
-
-// ****************************************
-// * chigopher/pathlib-specific functions *
-// ****************************************
 
 // String returns the string representation of the path
 func (p *Path) String() string {
@@ -613,6 +615,24 @@ func (p *Path) Mtime() (time.Time, error) {
 		return time.Time{}, err
 	}
 	return Mtime(stat)
+}
+
+// Copy copies the path to another path using io.Copy.
+// Returned is the number of bytes copied and any error values.
+// The destination file is truncated if it exists, and is created
+// if it does not exist.
+func (p *Path) Copy(other *Path) (int64, error) {
+	srcFile, err := p.Open()
+	if err != nil {
+		return 0, fmt.Errorf("opening source file: %w", err)
+	}
+	defer srcFile.Close()
+	dstFile, err := other.OpenFile(os.O_TRUNC | os.O_CREATE | os.O_WRONLY)
+	if err != nil {
+		return 0, fmt.Errorf("opening destination file: %w", err)
+	}
+	defer dstFile.Close()
+	return io.Copy(dstFile, srcFile)
 }
 
 // Mtime returns the mtime described in the given os.FileInfo object

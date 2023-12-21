@@ -29,6 +29,7 @@ import (
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/common/types/traits"
 	"github.com/google/cel-go/ext"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 // DefaultEnv produces a cel.Env with the necessary cel.EnvOption and
@@ -37,6 +38,11 @@ import (
 // of the local timezone.
 func DefaultEnv(useUTC bool) (*cel.Env, error) {
 	return cel.NewEnv(
+		// we bind in the global type registry optimistically to ensure expressions
+		// operating against Any WKTs can resolve their underlying type if it's
+		// known to the application. They will otherwise fail with a runtime error
+		// if the type is unknown.
+		cel.TypeDescs(protoregistry.GlobalFiles),
 		cel.Lib(lib{
 			useUTC: useUTC,
 		}),
@@ -369,7 +375,7 @@ func (l lib) uniqueBytes(list traits.Lister) ref.Val {
 
 func (l lib) validateEmail(addr string) bool {
 	a, err := mail.ParseAddress(addr)
-	if err != nil || strings.ContainsRune(addr, '<') {
+	if err != nil || strings.ContainsRune(addr, '<') || a.Address != addr {
 		return false
 	}
 

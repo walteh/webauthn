@@ -181,10 +181,12 @@ func NewSyntaxNode(keyword *KeywordNode, equals *RuneNode, syntax StringValueNod
 	if syntax == nil {
 		panic("syntax is nil")
 	}
+	var children []Node
 	if semicolon == nil {
-		panic("semicolon is nil")
+		children = []Node{keyword, equals, syntax}
+	} else {
+		children = []Node{keyword, equals, syntax, semicolon}
 	}
-	children := []Node{keyword, equals, syntax, semicolon}
 	return &SyntaxNode{
 		compositeNode: compositeNode{
 			children: children,
@@ -273,10 +275,10 @@ func NewImportNode(keyword *KeywordNode, public *KeywordNode, weak *KeywordNode,
 	if name == nil {
 		panic("name is nil")
 	}
+	numChildren := 2
 	if semicolon == nil {
-		panic("semicolon is nil")
+		numChildren++
 	}
-	numChildren := 3
 	if public != nil || weak != nil {
 		numChildren++
 	}
@@ -287,7 +289,10 @@ func NewImportNode(keyword *KeywordNode, public *KeywordNode, weak *KeywordNode,
 	} else if weak != nil {
 		children = append(children, weak)
 	}
-	children = append(children, name, semicolon)
+	children = append(children, name)
+	if semicolon != nil {
+		children = append(children, semicolon)
+	}
 
 	return &ImportNode{
 		compositeNode: compositeNode{
@@ -326,10 +331,12 @@ func NewPackageNode(keyword *KeywordNode, name IdentValueNode, semicolon *RuneNo
 	if name == nil {
 		panic("name is nil")
 	}
+	var children []Node
 	if semicolon == nil {
-		panic("semicolon is nil")
+		children = []Node{keyword, name}
+	} else {
+		children = []Node{keyword, name, semicolon}
 	}
-	children := []Node{keyword, name, semicolon}
 	return &PackageNode{
 		compositeNode: compositeNode{
 			children: children,

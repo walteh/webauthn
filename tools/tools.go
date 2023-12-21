@@ -17,7 +17,8 @@ import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 
 	// mockery
-	_ "github.com/vektra/mockery/v2/cmd"
+	_ "github.com/vektra/mockery/v2"
 	// buf
 	_ "github.com/bufbuild/buf/cmd/buf"
+	// hello
 )
