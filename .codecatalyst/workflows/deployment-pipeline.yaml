@@ -72,6 +72,7 @@
                                                         Files:
                                                             [
                                                                 "infrastructure/cdk.out/**/*",
+                                                                "infrastructure/cdk.json",
                                                             ],
                                                     },
                                                 ],
@@ -128,7 +129,7 @@
                                     Identifier: "aws/managed-test@v1",
                                     Inputs:
                                         {
-                                            Artifacts: ["package"],
+                                            Artifacts: ["synth"],
                                             Variables:
                                                 [
                                                     {
@@ -175,7 +176,7 @@
                                 {
                                     Identifier: "aws/cdk-deploy@v1",
                                     DependsOn: ["Beta"],
-                                    Inputs: { Artifacts: ["package"] },
+                                    Inputs: { Artifacts: ["synth"] },
                                     Environment:
                                         {
                                             Name: "Gamma",
@@ -200,7 +201,7 @@
                                     Identifier: "aws/managed-test@v1",
                                     Inputs:
                                         {
-                                            Artifacts: ["package"],
+                                            Artifacts: ["synth"],
                                             Variables:
                                                 [
                                                     {
@@ -247,7 +248,7 @@
                                 {
                                     Identifier: "aws/cdk-deploy@v1",
                                     DependsOn: ["Beta"],
-                                    Inputs: { Artifacts: ["package"] },
+                                    Inputs: { Artifacts: ["synth"] },
                                     Environment:
                                         {
                                             Name: "Gamma",
@@ -272,7 +273,7 @@
                                     Identifier: "aws/managed-test@v1",
                                     Inputs:
                                         {
-                                            Artifacts: ["package"],
+                                            Artifacts: ["synth"],
                                             Variables:
                                                 [
                                                     {
@@ -320,7 +321,7 @@
                                     Identifier: "aws/cdk-deploy@v1",
                                     DependsOn:
                                         ["Gamma-us-west-2", "Gamma-us-east-1"],
-                                    Inputs: { Artifacts: ["package"] },
+                                    Inputs: { Artifacts: ["synth"] },
                                     Environment:
                                         {
                                             Name: "Production",
@@ -352,7 +353,7 @@
                                     Identifier: "aws/cdk-deploy@v1",
                                     DependsOn:
                                         ["Gamma-us-west-2", "Gamma-us-east-1"],
-                                    Inputs: { Artifacts: ["package"] },
+                                    Inputs: { Artifacts: ["synth"] },
                                     Environment:
                                         {
                                             Name: "Production",
