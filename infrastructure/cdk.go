@@ -2,6 +2,13 @@ package main
 
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2integrations"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
+
+	// "github.com/aws/aws-cdk-go/awscdk/v2/aws
+
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2"
 	"github.com/aws/constructs-go/constructs/v10"
@@ -22,16 +29,54 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 
 	// The code that defines your stack goes here
 
+	tbl := awsdynamodb.NewTable(stack, jsii.String("ceremony"), &awsdynamodb.TableProps{
+		PartitionKey: &awsdynamodb.Attribute{
+			Name: jsii.String("id"),
+			Type: awsdynamodb.AttributeType_STRING,
+		},
+		BillingMode: awsdynamodb.BillingMode_PAY_PER_REQUEST,
+	})
+
 	// // example resource
-	_ = awscdklambdagoalpha.NewGoFunction(stack, jsii.String("MyGoFunc"), &awscdklambdagoalpha.GoFunctionProps{
-		Entry:                 jsii.String("../cmd"),
+	funct := awscdklambdagoalpha.NewGoFunction(stack, jsii.String("create-ceremony"), &awscdklambdagoalpha.GoFunctionProps{
+		Entry:                 jsii.String("../cmd/lambda/init/main.go"),
 		CurrentVersionOptions: &awslambda.VersionOptions{},
 		Architecture:          awslambda.Architecture_ARM_64(),
 		Runtime:               awslambda.Runtime_PROVIDED_AL2023(),
-		AdotInstrumentation: &awslambda.AdotInstrumentationConfig{
-			ExecWrapper:  awslambda.AdotLambdaExecWrapper_REGULAR_HANDLER,
-			LayerVersion: awslambda.AdotLayerVersion_FromGenericLayerVersion(awslambda.AdotLambdaLayerGenericVersion_LATEST()),
+		Environment: &map[string]*string{
+			"CEREMONY_TABLE_NAME": tbl.TableName(),
 		},
+	})
+
+	tbl.Grant(funct, jsii.String("dynamodb:TransactWriteItems"), jsii.String("dynamodb:TransactGetItems"))
+
+	integ2 := awsapigatewayv2integrations.NewHttpLambdaIntegration(jsii.String("create-ceremony"), funct, &awsapigatewayv2integrations.HttpLambdaIntegrationProps{
+		ParameterMapping:     awsapigatewayv2.NewParameterMapping(),
+		PayloadFormatVersion: awsapigatewayv2.PayloadFormatVersion_VERSION_2_0(),
+	})
+
+	api := awsapigatewayv2.NewHttpApi(stack, jsii.String("CeremonyApi"), &awsapigatewayv2.HttpApiProps{
+		ApiName:            jsii.String("CeremonyApi"),
+		DefaultIntegration: integ2,
+	})
+
+	route := awsapigatewayv2.NewHttpRoute(stack, jsii.String("CreateCeremony"), &awsapigatewayv2.HttpRouteProps{
+		HttpApi: api,
+	})
+
+	awsapigatewayv2.NewHttpStage(stack, jsii.String("$default"), &awsapigatewayv2.HttpStageProps{
+		HttpApi:    api,
+		StageName:  jsii.String("$default"),
+		AutoDeploy: jsii.Bool(true),
+	})
+
+	funct.AddPermission(jsii.String("apigateway"), &awslambda.Permission{
+		Principal: awsiam.NewServicePrincipal(jsii.String("apigateway.amazonaws.com"), &awsiam.ServicePrincipalOpts{}),
+		SourceArn: route.RouteArn(),
+	})
+
+	api.AddStage(jsii.String("$default"), &awsapigatewayv2.HttpStageOptions{
+		AutoDeploy: jsii.Bool(true),
 	})
 
 	return stack
