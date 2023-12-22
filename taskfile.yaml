@@ -1,4 +1,9 @@
-{ version: 3, tasks: {
+{
+    version: 3,
+    env: { PATH: "$PATH:$(pwd)/tools/bin" },
+
+    #
+    tasks: {
             buf-bin:
                 {
                     generates: ["bin/buf"],
@@ -68,7 +73,7 @@
                     dir: "tools/_bun",
                     deps: ["bun-bin"],
                     sources: ["package.json", "bun.lockb"],
-                    generates: ["./node_modules/.bin/cdk"],
+                    generates: ["./node_modules/aws-cdk/bin/cdk.js"],
                     cmds: ["../bin/bun install"],
                 },
 
@@ -118,7 +123,10 @@
                     dir: "infrastructure",
                     generates: ["cdk.out"],
                     sources: ["**/*.go", "./.cdk.json"],
-                    cmds: ["../tools/_bun/node_modules/.bin/cdk synth"],
+                    cmds:
+                        [
+                            "bun ../tools/_bun/node_modules/aws-cdk/bin/cdk.js synth",
+                        ],
                 },
 
             lint:
@@ -176,4 +184,5 @@
                 },
 
             default: { deps: ["tools", "gen", "lint", "test"] },
-        } }
+        },
+}
