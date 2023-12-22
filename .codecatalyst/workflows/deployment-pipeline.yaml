@@ -59,9 +59,7 @@
                                                     Enabled: true,
                                                     ReportNamePrefix: "synth",
                                                     IncludePaths:
-                                                        [
-                                                            "infrastructure/test-reports/*",
-                                                        ],
+                                                        ["test-reports/*"],
                                                     SuccessCriteria:
                                                         { PassRate: 100 },
                                                 },
@@ -71,8 +69,8 @@
                                                         Name: "synth",
                                                         Files:
                                                             [
-                                                                "infrastructure/cdk.out/**/*",
-                                                                "infrastructure/cdk.json",
+                                                                "cdk.out/**/*",
+                                                                "cdk.json",
                                                             ],
                                                     },
                                                 ],
