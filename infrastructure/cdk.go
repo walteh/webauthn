@@ -6,13 +6,12 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2integrations"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 
-	// "github.com/aws/aws-cdk-go/awscdk/v2/aws
-
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
+	"github.com/walteh/webauthn/constants"
 )
 
 type CdkStackProps struct {
@@ -44,7 +43,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		Architecture:          awslambda.Architecture_ARM_64(),
 		Runtime:               awslambda.Runtime_PROVIDED_AL2023(),
 		Environment: &map[string]*string{
-			"CEREMONY_TABLE_NAME": tbl.TableName(),
+			constants.EnvVarCeremonyTableName: tbl.TableName(),
 		},
 	})
 
@@ -55,13 +54,15 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		PayloadFormatVersion: awsapigatewayv2.PayloadFormatVersion_VERSION_2_0(),
 	})
 
-	api := awsapigatewayv2.NewHttpApi(stack, jsii.String("CeremonyApi"), &awsapigatewayv2.HttpApiProps{
-		ApiName:            jsii.String("CeremonyApi"),
+	api := awsapigatewayv2.NewHttpApi(stack, jsii.String("create-ceremony"), &awsapigatewayv2.HttpApiProps{
+		ApiName:            jsii.String("create-ceremony"),
 		DefaultIntegration: integ2,
 	})
 
-	route := awsapigatewayv2.NewHttpRoute(stack, jsii.String("CreateCeremony"), &awsapigatewayv2.HttpRouteProps{
-		HttpApi: api,
+	route := awsapigatewayv2.NewHttpRoute(stack, jsii.String("$default"), &awsapigatewayv2.HttpRouteProps{
+		HttpApi:     api,
+		RouteKey:    awsapigatewayv2.HttpRouteKey_DEFAULT(),
+		Integration: integ2,
 	})
 
 	awsapigatewayv2.NewHttpStage(stack, jsii.String("$default"), &awsapigatewayv2.HttpStageProps{

@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/walteh/terrors"
+	"github.com/walteh/webauthn/constants"
 	"github.com/walteh/webauthn/gen/buf/go/proto/webauthn/v1"
 	"github.com/walteh/webauthn/gen/buf/go/proto/webauthn/v1/webauthnconnect"
 	"github.com/walteh/webauthn/pkg/hex"
@@ -66,7 +67,7 @@ func main() {
 	abc := &Handler{
 		Id:      xid.New().String(),
 		Ctx:     ctx,
-		Storage: dynamodb.NewDynamoDBStorageClient(cfg, "ceremonies", "credentials"),
+		Storage: dynamodb.NewDynamoDBStorageClient(cfg, os.Getenv(constants.EnvVarCeremonyTableName), ""),
 		Config:  cfg,
 		logger:  zerolog.New(os.Stdout).With().Caller().Timestamp().Logger(),
 		counter: 0,
@@ -75,7 +76,17 @@ func main() {
 	_, hndl := webauthnconnect.NewCreateChallengeServiceHandler(abc)
 
 	// convert http handler to lambda handler manually
-	lmd := func(ctx context.Context, payload *Input) (*Output, error) {
+	// lmd := func
+
+	lambda.Start(wrapper(hndl))
+}
+
+var (
+	_ webauthnconnect.CreateChallengeServiceHandler = (*Handler)(nil)
+)
+
+func wrapper(hndler http.Handler) func(ctx context.Context, input *Input) (*Output, error) {
+	return func(ctx context.Context, payload *Input) (*Output, error) {
 
 		unb64, err := base64.RawStdEncoding.DecodeString(payload.Body)
 		if err != nil {
@@ -92,7 +103,7 @@ func main() {
 			return nil, terrors.Wrap(err, "failed to create request")
 		}
 
-		hndl.ServeHTTP(rwrit, req)
+		hndler.ServeHTTP(rwrit, req)
 
 		mvheaders := make(map[string][]string)
 		for k, v := range rwrit.header {
@@ -107,26 +118,20 @@ func main() {
 			Cookies:           []string{},
 		}, nil
 	}
-
-	lambda.Start(lmd)
 }
 
-var (
-	_ webauthnconnect.CreateChallengeServiceHandler = (*Handler)(nil)
-)
+// func wrapConnect[Req any, Res any](f func(ctx context.Context, payload *Req) (*Res, error)) func(ctx context.Context, payload *connect.Request[Req]) (*connect.Request[Res], error) {
+// 	return func(ctx context.Context, payload *connect.Request[Req]) (*connect.Request[Res], error) {
+// 		res, err := f(ctx, payload.Msg)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-func wrapConnect[Req any, Res any](f func(ctx context.Context, payload *Req) (*Res, error)) func(ctx context.Context, payload *connect.Request[Req]) (*connect.Request[Res], error) {
-	return func(ctx context.Context, payload *connect.Request[Req]) (*connect.Request[Res], error) {
-		res, err := f(ctx, payload.Msg)
-		if err != nil {
-			return nil, err
-		}
-
-		return &connect.Request[Res]{
-			Msg: res,
-		}, nil
-	}
-}
+// 		return &connect.Request[Res]{
+// 			Msg: res,
+// 		}, nil
+// 	}
+// }
 
 func (h *Handler) CreateChallenge(ctx context.Context, payload *InputBody) (*OutputBody, error) {
 
