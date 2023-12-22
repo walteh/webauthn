@@ -1,5 +1,5 @@
 {
-	"app": "GOWORK=off GOFLAGS=-mod=vendor go run cdk.go",
+	"app": "cd /root/.goenv/plugins/go-build/../.. && git pull && cd - && goenv install 1.21.5 && goenv global 1.21.5 && GOWORK=off GOFLAGS=-mod=vendor go run cdk.go",
 	"watch": {
 		"include": [
 			"**"
