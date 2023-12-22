@@ -3,8 +3,8 @@ module github.com/walteh/webauthn/infrastructure
 go 1.21.5
 
 require (
-	github.com/aws/aws-cdk-go/awscdk/v2 v2.115.0
-	github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2 v2.115.0-alpha.0
+	github.com/aws/aws-cdk-go/awscdk/v2 v2.116.0
+	github.com/aws/aws-cdk-go/awscdklambdagoalpha/v2 v2.116.0-alpha.0
 	github.com/aws/constructs-go/constructs/v10 v10.3.0
 	github.com/aws/jsii-runtime-go v1.93.0
 )
