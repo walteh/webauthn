@@ -88,7 +88,10 @@
                                                     { Run: "task test-cdk-ci" },
                                                     { Run: "task cdk-synth" },
                                                     {
-                                                        Run: "cd infrastructure",
+                                                        Run: "mv infrastructure/cdk.out .",
+                                                    },
+                                                    {
+                                                        Run: "mv infrastructure/cdk.json .",
                                                     },
                                                 ],
                                         },
