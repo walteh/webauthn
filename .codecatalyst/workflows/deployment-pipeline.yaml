@@ -120,14 +120,12 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration:
-                                        {
+                                    Configuration: {
                                             StackName: "sample-cdk-pipeline",
                                             Region: "us-east-1",
                                             Context: '{"deploymentConfigurationName":"CodeDeployDefault.ECSCanary10Percent5Minutes"}',
-                                            Directory:
-                                                "infrastructure"
-                                                # CfnOutputVariables: '["endpointUrl"]',,
+                                            CdkRootPath: infrastructure,
+                                            # CfnOutputVariables: '["endpointUrl"]',,
                                         },
                                 },
                             Test:
