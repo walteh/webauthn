@@ -108,7 +108,7 @@
                                 {
                                     Identifier: "aws/cdk-deploy@v1",
                                     DependsOn: ["Build"],
-                                    Inputs: { Artifacts: ["synth"] },
+                                    Inputs: { Sources: ["WorkflowSource"] },
                                     Environment:
                                         {
                                             Name: "beta",
@@ -120,11 +120,14 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration: {
+                                    Configuration:
+                                        {
                                             StackName: "sample-cdk-pipeline",
                                             Region: "us-east-1",
                                             Context: '{"deploymentConfigurationName":"CodeDeployDefault.ECSCanary10Percent5Minutes"}',
-                                            # CfnOutputVariables: '["endpointUrl"]',
+                                            Directory:
+                                                "infrastructure"
+                                                # CfnOutputVariables: '["endpointUrl"]',,
                                         },
                                 },
                             Test:
