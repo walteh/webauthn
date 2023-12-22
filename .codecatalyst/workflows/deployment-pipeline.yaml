@@ -89,6 +89,9 @@
                                                     },
                                                     { Run: "task test-cdk-ci" },
                                                     { Run: "task cdk-synth" },
+                                                    {
+                                                        Run: "cd infrastructure",
+                                                    },
                                                 ],
                                         },
                                     Compute:
