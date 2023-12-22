@@ -116,12 +116,11 @@
                                                     },
                                                 ],
                                         },
-                                    Configuration:
-                                        {
-                                            StackName: "fruit-api",
-                                            Region: "us-west-2",
+                                    Configuration: {
+                                            StackName: "sample-cdk-pipeline",
+                                            Region: "us-east-1",
                                             Context: '{"deploymentConfigurationName":"CodeDeployDefault.ECSCanary10Percent5Minutes"}',
-                                            CfnOutputVariables: '["endpointUrl"]',
+                                            # CfnOutputVariables: '["endpointUrl"]',
                                         },
                                 },
                             Test:

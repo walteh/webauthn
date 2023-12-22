@@ -28,7 +28,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 
 	// The code that defines your stack goes here
 
-	tbl := awsdynamodb.NewTable(stack, jsii.String("ceremony"), &awsdynamodb.TableProps{
+	tbl := awsdynamodb.NewTable(stack, jsii.String("ceremonies"), &awsdynamodb.TableProps{
 		PartitionKey: &awsdynamodb.Attribute{
 			Name: jsii.String("id"),
 			Type: awsdynamodb.AttributeType_STRING,
@@ -37,7 +37,7 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	})
 
 	// // example resource
-	funct := awscdklambdagoalpha.NewGoFunction(stack, jsii.String("create-ceremony"), &awscdklambdagoalpha.GoFunctionProps{
+	funct := awscdklambdagoalpha.NewGoFunction(stack, jsii.String("create-ceremony-lambda"), &awscdklambdagoalpha.GoFunctionProps{
 		Entry:                 jsii.String("../cmd/lambda/init/main.go"),
 		CurrentVersionOptions: &awslambda.VersionOptions{},
 		Architecture:          awslambda.Architecture_ARM_64(),
@@ -49,23 +49,23 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 
 	tbl.Grant(funct, jsii.String("dynamodb:TransactWriteItems"), jsii.String("dynamodb:TransactGetItems"))
 
-	integ2 := awsapigatewayv2integrations.NewHttpLambdaIntegration(jsii.String("create-ceremony"), funct, &awsapigatewayv2integrations.HttpLambdaIntegrationProps{
+	integ2 := awsapigatewayv2integrations.NewHttpLambdaIntegration(jsii.String("create-ceremony-lambda-integration"), funct, &awsapigatewayv2integrations.HttpLambdaIntegrationProps{
 		ParameterMapping:     awsapigatewayv2.NewParameterMapping(),
 		PayloadFormatVersion: awsapigatewayv2.PayloadFormatVersion_VERSION_2_0(),
 	})
 
-	api := awsapigatewayv2.NewHttpApi(stack, jsii.String("create-ceremony"), &awsapigatewayv2.HttpApiProps{
+	api := awsapigatewayv2.NewHttpApi(stack, jsii.String("create-ceremony-api"), &awsapigatewayv2.HttpApiProps{
 		ApiName:            jsii.String("create-ceremony"),
 		DefaultIntegration: integ2,
 	})
 
-	route := awsapigatewayv2.NewHttpRoute(stack, jsii.String("$default"), &awsapigatewayv2.HttpRouteProps{
+	route := awsapigatewayv2.NewHttpRoute(stack, jsii.String("create-ceremoy-default-route"), &awsapigatewayv2.HttpRouteProps{
 		HttpApi:     api,
 		RouteKey:    awsapigatewayv2.HttpRouteKey_DEFAULT(),
 		Integration: integ2,
 	})
 
-	awsapigatewayv2.NewHttpStage(stack, jsii.String("$default"), &awsapigatewayv2.HttpStageProps{
+	awsapigatewayv2.NewHttpStage(stack, jsii.String("create-ceremony-default-stage"), &awsapigatewayv2.HttpStageProps{
 		HttpApi:    api,
 		StageName:  jsii.String("$default"),
 		AutoDeploy: jsii.Bool(true),

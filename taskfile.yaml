@@ -67,8 +67,8 @@
                 {
                     dir: "tools/_bun",
                     deps: ["bun-bin"],
-                    sources: ["package.json", "bun.lockb", "bin/bun"],
-                    generates: ["./_bun/node_modules/.bin/cdk"],
+                    sources: ["package.json", "bun.lockb"],
+                    generates: ["./node_modules/.bin/cdk"],
                     cmds: ["../bin/bun install"],
                 },
 
