@@ -105,8 +105,5 @@
 		"yaml.schemas": {
 			"https://taskfile.dev/schema.json": "file:///Users/dub6ix/Developer/walteh/github/sideproject/webauthn/taskfile.yaml"
 		},
-		"aws.codeWhisperer.importRecommendation": false,
-		"aws.codeWhisperer.includeSuggestionsWithCodeReferences": false,
-		"aws.telemetry": false,
 	}
 }
