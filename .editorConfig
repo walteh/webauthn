@@ -10,6 +10,7 @@ trim_trailing_whitespace = true
 trim_multiple_empty_lines = true
 
 
+
 [*.md]
 trim_trailing_whitespace = true
 
