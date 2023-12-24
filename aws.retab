@@ -21,8 +21,8 @@ file "deployment-pipeline.yaml" {
 			}
 			beta = {
 				Actions = {
-					deploy = action.beta.action.deploy,
-					test   = action.beta.action.test
+					deploy = action.beta.deploy,
+					test   = action.beta.test
 				}
 				DependsOn = ["build"]
 			}
@@ -86,12 +86,17 @@ environment "production" {
 	Name = "production"
 }
 
+region {
+	us_east_1 = "us-east-1"
+	us_west_2 = "us-west-2"
+}
+
 action "beta" {
-	action "deploy" {
+	deploy {
 		Configuration = {
 			CdkRootPath = "infrastructure"
 			Context     = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
-			Region      = "us-east-1"
+			Region      = region.us_east_1
 			StackName   = "sample-cdk-pipeline"
 		}
 		DependsOn   = ["Build"]
@@ -101,7 +106,7 @@ action "beta" {
 			Sources = ["WorkflowSource"]
 		}
 	}
-	action "test" {
+	test {
 		Configuration = {
 			Steps = [
 				{ Run = "mvn --batch-mode --no-transfer-progress soapui:test -Dsoapui.endpoint=$${endpointUrl}" },
@@ -209,7 +214,7 @@ action "gamma_us_east_1" {
 		Configuration = {
 			CfnOutputVariables = jsonencode(["endpointUrl"])
 			Context            = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
-			Region             = "us-east-1"
+			Region             = region.us_east_1
 			StackName          = "fruit-api"
 		}
 		DependsOn   = ["beta"]
@@ -251,7 +256,7 @@ action "gamma_us_west_2" {
 		Configuration = {
 			CfnOutputVariables = jsonencode(["endpointUrl"])
 			Context            = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
-			Region             = "us-west-2"
+			Region             = region.us_west_2
 			StackName          = "fruit-api"
 		}
 		DependsOn   = ["beta"]
@@ -293,7 +298,7 @@ action "prod_us_east_1" {
 		Configuration = {
 			CfnOutputVariables = jsonencode(["endpointUrl"])
 			Context            = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
-			Region             = "us-east-1"
+			Region             = region.us_east_1
 			StackName          = "fruit-api"
 		}
 		DependsOn   = ["gamma_us_west_2", "gamma_us_east_1"]
@@ -312,7 +317,7 @@ action "prod_us_west_2" {
 		Configuration = {
 			CfnOutputVariables = jsonencode(["endpointUrl"])
 			Context            = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
-			Region             = "us-west-2"
+			Region             = region.us_west_2
 			StackName          = "fruit-api"
 		}
 		DependsOn   = ["gamma_us_west_2", "gamma_us_east_1"]
