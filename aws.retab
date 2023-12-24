@@ -162,7 +162,7 @@ action "build" {
 		Outputs = {
 			Artifacts = [{
 				Files = ["./bin/out"]
-				Name  = "package"
+				Name  = "build_package"
 			}]
 			AutoDiscoverReports = {
 				Enabled          = true
@@ -195,7 +195,7 @@ action "build" {
 		Outputs = {
 			Artifacts = [{
 				Files = ["cdk.out/**/*", "cdk.json"]
-				Name  = "synth"
+				Name  = "build_synth"
 			}]
 			AutoDiscoverReports = {
 				Enabled          = true

@@ -33,7 +33,7 @@ Actions:
                     Artifacts:
                         - Files:
                             - ./bin/out
-                          Name: package
+                          Name: build_package
                     AutoDiscoverReports:
                         Enabled: true
                         ReportNamePrefix: build
@@ -60,7 +60,7 @@ Actions:
                         - Files:
                             - cdk.out/**/*
                             - cdk.json
-                          Name: synth
+                          Name: build_synth
                     AutoDiscoverReports:
                         Enabled: true
                         IncludePaths:
