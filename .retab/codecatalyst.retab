@@ -1,6 +1,7 @@
 
-file "deployment-pipeline.yaml" {
-	dir = "./.codecatalyst/workflows"
+gen "deployment-pipeline" {
+	path   = "./.codecatalyst/workflows/deployment-pipeline.yaml"
+	schema = ""
 	data = {
 		Name          = "deployment-pipeline"
 		RunMode       = "SUPERSEDED"
@@ -14,8 +15,8 @@ file "deployment-pipeline.yaml" {
 		Actions = {
 			build = {
 				Actions = {
-					package = action.build.action.package,
-					synth   = action.build.action.synth
+					package = action.build.package,
+					synth   = action.build.synth
 				}
 				DependsOn = []
 			}
@@ -24,33 +25,33 @@ file "deployment-pipeline.yaml" {
 					deploy = action.beta.deploy,
 					test   = action.beta.test
 				}
-				DependsOn = ["build"]
+				DependsOn = [label(action.build)]
 			}
 			gamma_us_east_1 = {
 				Actions = {
-					deploy = action.gamma_us_east_1.action.deploy,
-					test   = action.gamma_us_east_1.action.test
+					deploy = action.gamma_us_east_1.deploy,
+					test   = action.gamma_us_east_1.test
 				}
-				DependsOn = ["beta"]
+				DependsOn = [label(action.beta)]
 			}
 			gamma_us_west_2 = {
 				Actions = {
-					deploy = action.gamma_us_west_2.action.deploy,
-					test   = action.gamma_us_west_2.action.test
+					deploy = action.gamma_us_west_2.deploy,
+					test   = action.gamma_us_west_2.test
 				}
-				DependsOn = ["beta"]
+				DependsOn = [label(action.beta)]
 			}
 			prod_us_east_1 = {
 				Actions = {
-					deploy = action.prod_us_east_1.action.deploy
+					deploy = action.prod_us_east_1.deploy
 				}
-				DependsOn = ["gamma_us_west_2", "gamma_us_east_1"]
+				DependsOn = [label(action.gamma_us_east_1), label(action.gamma_us_west_2)]
 			}
 			prod_us_west_2 = {
 				Actions = {
-					deploy = action.prod_us_west_2.action.deploy
+					deploy = action.prod_us_west_2.deploy
 				}
-				DependsOn = ["gamma_us_west_2", "gamma_us_east_1"]
+				DependsOn = [label(action.gamma_us_east_1), label(action.gamma_us_west_2)]
 			}
 		}
 	}
@@ -99,7 +100,7 @@ action "beta" {
 			Region      = region.us_east_1
 			StackName   = "sample-cdk-pipeline"
 		}
-		DependsOn   = ["Build"]
+		DependsOn   = [label(action.build)]
 		Environment = environment.beta
 		Identifier  = "aws/cdk-deploy@v1"
 		Inputs = {
@@ -119,7 +120,7 @@ action "beta" {
 		}
 		Identifier = "aws/managed-test@v1"
 		Inputs = {
-			Artifacts = ["synth"]
+			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 			Variables = [{
 				Name  = "endpointUrl"
 				Value = "$${Deploy.endpointUrl}"
@@ -134,11 +135,11 @@ action "beta" {
 			}
 		}
 	}
-	DependsOn = ["Build"]
+	DependsOn = [label(action.build)]
 }
 
 action "build" {
-	action "package" {
+	package {
 		Compute = {
 			Fleet = "Linux.Arm64.Large"
 			Type  = "EC2"
@@ -173,7 +174,7 @@ action "build" {
 			}
 		}
 	}
-	action "synth" {
+	synth {
 		Compute = {
 			Fleet = "Linux.Arm64.Large"
 			Type  = "EC2"
@@ -210,21 +211,21 @@ action "build" {
 }
 
 action "gamma_us_east_1" {
-	action "deploy" {
+	deploy {
 		Configuration = {
 			CfnOutputVariables = jsonencode(["endpointUrl"])
 			Context            = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
 			Region             = region.us_east_1
 			StackName          = "fruit-api"
 		}
-		DependsOn   = ["beta"]
+		DependsOn   = [label(action.beta)]
 		Environment = environment.gamma
 		Identifier  = "aws/cdk-deploy@v1"
 		Inputs = {
-			Artifacts = ["synth"]
+			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 		}
 	}
-	action "test" {
+	test {
 		Configuration = {
 			Steps = [
 				{ Run = "mvn --batch-mode --no-transfer-progress soapui:test -Dsoapui.endpoint=$${endpointUrl}" },
@@ -233,7 +234,7 @@ action "gamma_us_east_1" {
 		}
 		Identifier = "aws/managed-test@v1"
 		Inputs = {
-			Artifacts = ["synth"]
+			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 			Variables = [{
 				Name  = "endpointUrl"
 				Value = "$${Deploy.endpointUrl}"
@@ -248,25 +249,25 @@ action "gamma_us_east_1" {
 			}
 		}
 	}
-	DependsOn = ["beta"]
+	DependsOn = [label(action.beta)]
 }
 
 action "gamma_us_west_2" {
-	action "deploy" {
+	deploy {
 		Configuration = {
 			CfnOutputVariables = jsonencode(["endpointUrl"])
 			Context            = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
 			Region             = region.us_west_2
 			StackName          = "fruit-api"
 		}
-		DependsOn   = ["beta"]
+		DependsOn   = [label(action.beta)]
 		Environment = environment.gamma
 		Identifier  = "aws/cdk-deploy@v1"
 		Inputs = {
-			Artifacts = ["synth"]
+			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 		}
 	}
-	action "test" {
+	test {
 		Configuration = {
 			Steps = [
 				{ Run = "mvn --batch-mode --no-transfer-progress soapui:test -Dsoapui.endpoint=$${endpointUrl}" },
@@ -275,7 +276,7 @@ action "gamma_us_west_2" {
 		}
 		Identifier = "aws/managed-test@v1"
 		Inputs = {
-			Artifacts = ["synth"]
+			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 			Variables = [{
 				Name  = "endpointUrl"
 				Value = "$${Deploy.endpointUrl}"
@@ -290,42 +291,42 @@ action "gamma_us_west_2" {
 			}
 		}
 	}
-	DependsOn = ["beta"]
+	DependsOn = [label(action.beta)]
 }
 
 action "prod_us_east_1" {
-	action "deploy" {
+	deploy {
 		Configuration = {
 			CfnOutputVariables = jsonencode(["endpointUrl"])
 			Context            = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
 			Region             = region.us_east_1
 			StackName          = "fruit-api"
 		}
-		DependsOn   = ["gamma_us_west_2", "gamma_us_east_1"]
+		DependsOn   = [label(action.gamma_us_east_1), label(action.gamma_us_west_2)]
 		Environment = environment.production
 		Identifier  = "aws/cdk-deploy@v1"
 		Inputs = {
-			Artifacts = ["synth"]
+			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 
 		}
 	}
-	DependsOn = ["gamma_us_west_2", "gamma_us_east_1"]
+	DependsOn = [label(action.gamma_us_east_1), label(action.gamma_us_west_2)]
 }
 
 action "prod_us_west_2" {
-	action "deploy" {
+	deploy {
 		Configuration = {
 			CfnOutputVariables = jsonencode(["endpointUrl"])
 			Context            = jsonencode({ deploymentConfigurationName = "CodeDeployDefault.ECSCanary10Percent5Minutes" })
 			Region             = region.us_west_2
 			StackName          = "fruit-api"
 		}
-		DependsOn   = ["gamma_us_west_2", "gamma_us_east_1"]
+		DependsOn   = [label(action.gamma_us_east_1), label(action.gamma_us_west_2)]
 		Environment = environment.production
 		Identifier  = "aws/cdk-deploy@v1"
 		Inputs = {
-			Artifacts = ["synth"]
+			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 		}
 	}
-	DependsOn = ["gamma_us_west_2", "gamma_us_east_1"]
+	DependsOn = [label(action.gamma_us_east_1), label(action.gamma_us_west_2)]
 }
