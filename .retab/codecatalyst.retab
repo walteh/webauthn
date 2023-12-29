@@ -123,7 +123,7 @@ action "beta" {
 			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 			Variables = [{
 				Name  = "endpointUrl"
-				Value = "$${Deploy.endpointUrl}"
+				Value = "$${deploy.endpointUrl}"
 			}]
 		}
 		Outputs "AutoDiscoverReports" {
@@ -237,7 +237,7 @@ action "gamma_us_east_1" {
 			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 			Variables = [{
 				Name  = "endpointUrl"
-				Value = "$${Deploy.endpointUrl}"
+				Value = "$${deploy.endpointUrl}"
 			}]
 		}
 		Outputs "AutoDiscoverReports" {
@@ -279,7 +279,7 @@ action "gamma_us_west_2" {
 			Artifacts = [action.build.synth.Outputs.Artifacts[0].Name]
 			Variables = [{
 				Name  = "endpointUrl"
-				Value = "$${Deploy.endpointUrl}"
+				Value = "$${deploy.endpointUrl}"
 			}]
 		}
 		Outputs "AutoDiscoverReports" {
