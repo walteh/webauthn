@@ -3,13 +3,8 @@ package main
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/pipelines"
-
-	// "github.com/cdklabs/cdk-pipelines-github-go/cdkpipelinesgithub"
-
-	// "github.com/aws/aws-cdk-go/awscdk/v2/d"
-
 	"github.com/aws/constructs-go/constructs/v10"
-	jsii "github.com/aws/jsii-runtime-go"
+	"github.com/aws/jsii-runtime-go"
 )
 
 func NewPipelineStack(scope constructs.Construct, id string, opts *CdkStackProps) awscdk.Stack {

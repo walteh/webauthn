@@ -4,7 +4,6 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigatewayv2integrations"
-	"github.com/aws/aws-cdk-go/awscdk/v2/awsbackup"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awskms"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslogs"
@@ -57,23 +56,8 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 	lamkey := awskms.NewKey(stack, jsii.String("key"), &awskms.KeyProps{
 		EnableKeyRotation: jsii.Bool(true),
 		Enabled:           jsii.Bool(true),
-	})
-
-	backupvault := awsbackup.NewBackupVault(stack, jsii.String("backup-vault"), &awsbackup.BackupVaultProps{
-		BackupVaultName: jsii.String("create-ceremony"),
-		EncryptionKey:   lamkey,
-	})
-
-	lamkey.GrantEncryptDecrypt(awsiam.NewArnPrincipal(backupvault.BackupVaultArn())).AssertSuccess()
-
-	rule := awsbackup.BackupPlanRule_Daily(backupvault)
-
-	backupplan := awsbackup.NewBackupPlan(stack, jsii.String("backup-plan"), &awsbackup.BackupPlanProps{
-		BackupPlanName: jsii.String("create-ceremony"),
-		BackupPlanRules: &[]awsbackup.BackupPlanRule{
-			rule,
-		},
-		BackupVault: backupvault,
+		KeyUsage:          awskms.KeyUsage_ENCRYPT_DECRYPT,
+		RemovalPolicy:     awscdk.RemovalPolicy_DESTROY,
 	})
 
 	// The code that defines your stack goes here
@@ -89,70 +73,12 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		Encryption:          awsdynamodb.TableEncryption_CUSTOMER_MANAGED,
 	})
 
-	lamkey.GrantEncryptDecrypt(awsiam.NewArnPrincipal(tbl.TableArn())).AssertSuccess()
-
-	bu := awsbackup.BackupResource_FromDynamoDbTable(tbl)
-
-	fancy := awscdk.Arn_Format(&awscdk.ArnComponents{
-		Service:      jsii.String("dynamodb"),
-		Resource:     jsii.String("table"),
-		ResourceName: jsii.String(*tbl.TableName() + "/backup/*"),
-	}, stack)
-
-	buboundry := awsiam.NewManagedPolicy(stack, jsii.String("boundary"), &awsiam.ManagedPolicyProps{
-		Statements: &[]awsiam.PolicyStatement{
-			awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
-				Actions: &[]*string{
-					jsii.String("dynamodb:*"),
-				},
-				Resources: &[]*string{
-					fancy,
-					tbl.TableArn(),
-				},
-			}),
-		},
-	})
-
-	cdknag.NagSuppressions_AddResourceSuppressions(buboundry, &[]*cdknag.NagPackSuppression{
+	cdknag.NagSuppressions_AddResourceSuppressions(tbl, &[]*cdknag.NagPackSuppression{
 		{
-			Id:     jsii.String("AwsSolutions-IAM5"),
-			Reason: jsii.String("This is a boundary policy and is ok to have full access"),
-		},
-		{
-			Id:     jsii.String("HIPAA.Security-IAMPolicyNoStatementsWithFullAccess"),
-			Reason: jsii.String("This is a boundary policy and is ok to have full access"),
-		},
-		{
-			Id:     jsii.String("PCI.DSS.321-IAMPolicyNoStatementsWithFullAccess"),
-			Reason: jsii.String("This is a boundary policy and is ok to have full access"),
+			Id:     jsii.String("HIPAA.Security-DynamoDBInBackupPlan"),
+			Reason: jsii.String("This table is for short lived data, we do not need to backup"),
 		},
 	}, jsii.Bool(true))
-
-	burole := awsiam.NewRole(stack, jsii.String("db-role"), &awsiam.RoleProps{
-		AssumedBy: awsiam.NewServicePrincipal(jsii.String("backup.amazonaws.com"), &awsiam.ServicePrincipalOpts{}),
-		ManagedPolicies: &[]awsiam.IManagedPolicy{
-			awsiam.ManagedPolicy_FromAwsManagedPolicyName(jsii.String("service-role/AWSBackupServiceRolePolicyForBackup")),
-		},
-		PermissionsBoundary: buboundry,
-	})
-
-	cdknag.NagSuppressions_AddResourceSuppressions(burole, &[]*cdknag.NagPackSuppression{
-		{
-			Id:     jsii.String("AwsSolutions-IAM4"),
-			Reason: jsii.String("We have applied a boundry to this aws managed policy"),
-			AppliesTo: &[]any{
-				jsii.String("Policy::arn:<AWS::Partition>:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"),
-			},
-		},
-	}, jsii.Bool(true))
-
-	backupplan.AddSelection(jsii.String("table"), &awsbackup.BackupSelectionOptions{
-		Resources:                  &[]awsbackup.BackupResource{bu},
-		DisableDefaultBackupPolicy: jsii.Bool(true),
-		Role:                       burole,
-	})
-
-	lamkey.GrantEncryptDecrypt(burole).AssertSuccess()
 
 	lamgrp := awslogs.NewLogGroup(stack, jsii.String("log-group"), &awslogs.LogGroupProps{
 		LogGroupName:  jsii.String("/aws/lambda/create-ceremony"),
@@ -160,14 +86,10 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		EncryptionKey: lamkey,
 	})
 
-	lamkey.GrantEncryptDecrypt(awsiam.NewArnPrincipal(lamgrp.LogGroupArn())).AssertSuccess()
-
 	snsdlq := awssns.NewTopic(stack, jsii.String("sns-dlq"), &awssns.TopicProps{
 		DisplayName: jsii.String("create-ceremony-dlq"),
 		MasterKey:   lamkey,
 	})
-
-	lamkey.GrantEncryptDecrypt(awsiam.NewArnPrincipal(snsdlq.TopicArn())).AssertSuccess()
 
 	emailsub := awssnssubscriptions.NewEmailSubscription(jsii.String("walter@nugg.xyz"), &awssnssubscriptions.EmailSubscriptionProps{
 		Json: jsii.Bool(true),
@@ -204,6 +126,17 @@ func NewCdkStack(scope constructs.Construct, id string, props *CdkStackProps) aw
 		{
 			Id:     jsii.String("PCI.DSS.321-IAMNoInlinePolicy"),
 			Reason: jsii.String("This role is ok to have an inline policy"),
+		},
+	}, jsii.Bool(true))
+
+	cdknag.NagSuppressions_AddResourceSuppressions(funct, &[]*cdknag.NagPackSuppression{
+		{
+			Id:     jsii.String("HIPAA.Security-LambdaInsideVPC"),
+			Reason: jsii.String("This lambda is not inside a VPC, but we may need to change this in the future"),
+		},
+		{
+			Id:     jsii.String("PCI.DSS.321-LambdaInsideVPC"),
+			Reason: jsii.String("This lambda is not inside a VPC, but we may need to change this in the future"),
 		},
 	}, jsii.Bool(true))
 
