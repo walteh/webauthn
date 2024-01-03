@@ -7,10 +7,9 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/asn1"
-	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
+	"github.com/walteh/terrors"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/webauthn/types"
 )
@@ -69,31 +68,32 @@ func (me *AppAttest) WithRootCert(rootCert string) *AppAttest {
 	return me
 }
 
-func (me *AppAttest) ID() string {
-	return "apple-appattest"
-}
-
-var (
-	ErrAppleAppAttest = errors.New("ErrAppleAppAttest")
-)
-
-func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
-
-	// 7. Verify that the authenticator data’s counter field equals 0.
-	if att.AuthData.Counter != 0 {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, fmt.Sprintf("Counter was not 0, but %d\n", att.AuthData.Counter))
-	}
-
-	// 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the development environment,
-	// or appattest followed by seven 0x00 bytes if operating in the production environment.
+func (me *AppAttest) AAGUID() hex.Hash {
 	aaguid := make([]byte, 16)
 	if me.production {
 		copy(aaguid, []byte("appattest"))
 	} else {
 		copy(aaguid, []byte("appattestdevelop"))
 	}
+	return aaguid
+}
+
+func (me *AppAttest) ID() string {
+	return "apple-appattest"
+}
+
+func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) (hex.Hash, string, []interface{}, error) {
+
+	// 7. Verify that the authenticator data’s counter field equals 0.
+	if att.AuthData.Counter != 0 {
+		return nil, "", nil, terrors.Errorf("Counter was not 0, but %d\n", att.AuthData.Counter)
+	}
+
+	// 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the development environment,
+	// or appattest followed by seven 0x00 bytes if operating in the production environment.
+	aaguid := me.AAGUID()
 	if !bytes.Equal(att.AuthData.AttData.AAGUID, aaguid) {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "AAGUID was not appattestdevelop\n")
+		return nil, "", nil, terrors.Errorf("AAGUID was not %s\n", aaguid)
 	}
 
 	roots := x509.NewCertPool()
@@ -102,27 +102,27 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	// Add Apple root Cert
 	ok := roots.AppendCertsFromPEM([]byte(me.rootCert))
 	if !ok {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error adding root certificate to pool.")
+		return nil, "", nil, terrors.Errorf("Error adding root certificate to pool.")
 	}
 
 	x5c, x509present := att.AttStatement["x5c"].([]interface{})
 	if !x509present {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error retrieving x5c value")
+		return nil, "", nil, terrors.Errorf("Error retrieving x5c value")
 	}
 
 	_, receiptPresent := att.AttStatement["receipt"].([]byte)
 	if !receiptPresent {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error retreiving receipt value")
+		return nil, "", nil, terrors.Errorf("Error retreiving receipt value")
 	}
 
 	for _, c := range x5c {
 		cb, cv := c.([]byte)
 		if !cv {
-			return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error getting certificate from x5c cert chain 1")
+			return nil, "", nil, terrors.Errorf("Error getting certificate from x5c cert chain 1")
 		}
 		ct, err := x509.ParseCertificate(cb)
 		if err != nil {
-			return nil, "", nil, errors.Wrap(ErrAppleAppAttest, fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+			return nil, "", nil, terrors.Errorf("Error parsing certificate from ASN.1 data: %+v", err)
 		}
 		if ct.IsCA {
 			intermediates.AddCert(ct)
@@ -131,12 +131,12 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 
 	credCertBytes, valid := x5c[0].([]byte)
 	if !valid {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Error getting certificate from x5c cert chain 2")
+		return nil, "", nil, terrors.Errorf("Error getting certificate from x5c cert chain 2")
 	}
 
 	credCert, err := x509.ParseCertificate(credCertBytes)
 	if err != nil {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, fmt.Sprintf("Error parsing certificate from ASN.1 data: %+v", err))
+		return nil, "", nil, terrors.Errorf("Error parsing certificate from ASN.1 data: %+v", err)
 	}
 
 	// Create verification options.
@@ -154,7 +154,7 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	// Verify the validity of the certificates using Apple’s root certificate.
 	_, err = credCert.Verify(verifyOptions)
 	if err != nil {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, fmt.Sprintf("Invalid certificate %+v", err))
+		return nil, "", nil, terrors.Errorf("Invalid certificate %+v", err)
 	}
 
 	// 2. Create clientDataHash as the SHA256 hash of the one-time challenge sent to your app before performing the attestation,
@@ -176,7 +176,7 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	}
 
 	if len(credCertId) <= 0 {
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Certificate did not contain credCert extension")
+		return nil, "", nil, terrors.Errorf("Certificate did not contain credCert extension")
 	}
 	var unMarshalledCredCertOctet []asn1.RawValue
 	var unMarshalledCredCert asn1.RawValue
@@ -184,7 +184,7 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 	asn1.Unmarshal(unMarshalledCredCertOctet[0].Bytes, &unMarshalledCredCert)
 	if !bytes.Equal(nonce[:], unMarshalledCredCert.Bytes) {
 		// TODO .WithKV("nonce", nonce[:]).WithKV("credCert", unMarshalledCredCert.Bytes)
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Certificate CredCert extension does not match nonce.")
+		return nil, "", nil, terrors.Errorf("Certificate CredCert extension does not match nonce.")
 	}
 
 	// 5. Create the SHA256 hash of the public key in credCert, and verify that it matches the key identifier from your app.
@@ -194,10 +194,10 @@ func (me *AppAttest) Attest(att types.AttestationObject, clientDataHash []byte) 
 		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
 		pubKeyHash := sha256.Sum256(publicKeyBytes)
 		if !bytes.Equal(pubKeyHash[:], att.AuthData.AttData.CredentialID) {
-			return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "The key id is not a valid SHA256 hash of the certificate public key.")
+			return nil, "", nil, terrors.Errorf("The key id is not a valid SHA256 hash of the certificate public key.")
 		}
 	default:
-		return nil, "", nil, errors.Wrap(ErrAppleAppAttest, "Wrong algorithm")
+		return nil, "", nil, terrors.Errorf("Wrong algorithm")
 	}
 
 	// Return x963-encoded public key and receipt.

@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package proto.webauthn.v1;
+
+
+option go_package = "github.com/walteh/webauthn/gen/buf/go/proto/webauthn/v1;webauthn";
+
+message CreateChallengeRequest {
+	bytes session_id = 1;
+	string ceremony_type = 2;
+	bytes credential_id = 3;
+}
+
+message CreateChallengeResponse {
+	bytes challenge = 1;
+	int64 ttl = 2;
+}
+
+message ApplePasskeyCreateRequest {
+	bytes session_id = 1;
+	bytes credential_id = 2;
+	bytes client_data_hash = 3;
+	bytes authenticator_data = 4;
+	bytes signature = 5;
+}
+
+message ApplePasskeyCreateResponse {
+	bool success = 1;
+}
+
+message ApplePasskeyAssertRequest {
+	bytes session_id = 1;
+	bytes credential_id = 2;
+	bytes client_data_hash = 3;
+	bytes authenticator_data = 4;
+	bytes signature = 5;
+}
+
+message ApplePasskeyAssertResponse {
+	bool success = 1;
+}
+
+message AppleDeviceCreateRequest {
+	bytes session_id = 1;
+	bytes credential_id = 2;
+	bytes client_data_hash = 3;
+	bytes authenticator_data = 4;
+	bytes signature = 5;
+}
+
+message AppleDeviceCreateResponse {
+	bool success = 1;
+}
+
+message AppleDeviceAssertRequest {
+	bytes session_id = 1;
+	bytes credential_id = 2;
+	bytes client_data_hash = 3;
+	bytes authenticator_data = 4;
+	bytes signature = 5;
+}
+
+message AppleDeviceAssertResponse {
+	bool success = 1;
+}
+
+service CreateChallengeService {
+	rpc CreateChallenge(CreateChallengeRequest) returns (CreateChallengeResponse) {}
+}
+
+service ApplePasskeyCreateService {
+	rpc ApplePasskeyCreate(ApplePasskeyCreateRequest) returns (ApplePasskeyCreateResponse) {}
+}
+
+service ApplePasskeyAssertService {
+	rpc ApplePasskeyAssert(ApplePasskeyAssertRequest) returns (ApplePasskeyAssertResponse) {}
+}
+
+service AppleDeviceCreateService {
+	rpc AppleDeviceCreate(AppleDeviceCreateRequest) returns (AppleDeviceCreateResponse) {}
+}
+
+service AppleDeviceAssertService {
+	rpc AppleDeviceAssert(AppleDeviceAssertRequest) returns (AppleDeviceAssertResponse) {}
+}

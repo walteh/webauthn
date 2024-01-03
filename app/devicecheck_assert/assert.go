@@ -22,56 +22,47 @@ type DeviceCheckAssertionInput struct {
 }
 
 type DeviceCheckAssertionOutput struct {
-	SuggestedStatusCode int
-	OK                  bool
+	OK bool
 }
 
-func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.Provider, input DeviceCheckAssertionInput) (DeviceCheckAssertionOutput, error) {
+func Assert(ctx context.Context, store storage.Provider, rp relyingparty.Provider, input *DeviceCheckAssertionInput) (*DeviceCheckAssertionOutput, error) {
 	var err error
 
 	if input.RawAssertionObject.IsZero() || input.ClientDataToValidate.IsZero() {
-		return DeviceCheckAssertionOutput{400, false}, err
+		return nil, terrors.New("invalid input").WithCode(400)
 	}
 
 	parsed, err := assertion.ParseFidoAssertionInput(ctx, input.RawAssertionObject)
 	if err != nil {
-		return DeviceCheckAssertionOutput{400, false}, err
+		return nil, terrors.Wrap(err, "failed to parse assertion input").WithCode(400)
 	}
 
 	cd, err := clientdata.ParseClientData(parsed.RawClientDataJSON)
 	if err != nil {
-		return DeviceCheckAssertionOutput{400, false}, err
+		return nil, terrors.Wrap(err, "failed to parse client data").WithCode(400)
 	}
 
-	cerem, cred, err := dynamoClient.GetExisting(ctx, cd.Challenge.String(), parsed.CredentialID.String())
+	cerem, cred, err := store.GetExisting(ctx, cd.Challenge, parsed.CredentialID)
 	if err != nil {
-		return DeviceCheckAssertionOutput{502, false}, err
+		return nil, terrors.Wrap(err, "failed to get existing ceremony").WithCode(502)
 	}
 
-	// cerem, err := dynamoClient.GetExistingCeremony(ctx, cd.Challenge.String())
-	// if err != nil {
-	// 	return DeviceCheckAssertionOutput{502, false}, err
-	// }
-
-	if cred.RawID.Hex() != cerem.CredentialID.Hex() {
-
-		return DeviceCheckAssertionOutput{401, false}, terrors.Errorf("credential id does not match ceremony id")
+	if cred.RawID.Ref().Hex() != cerem.CredentialID.Ref().Hex() {
+		return nil, terrors.Errorf("credential id does not match ceremony id").WithCode(401)
 	}
 
-	if !cerem.ChallengeID.Equals(cd.Challenge) {
-		// err :=
-		// zerolog.Ctx(ctx).Error().Err(err).Msg("assertion failed")
-		return DeviceCheckAssertionOutput{401, false}, terrors.Errorf("challenge ids do not match")
+	if !cerem.ChallengeID.Ref().Equals(cd.Challenge.Ref()) {
+		return nil, terrors.Errorf("challenge ids do not match").WithCode(401)
 	}
 
 	attestationProvider := providers.NewAppAttestSandbox()
 
 	if attestationProvider.ID() != cred.AttestationType {
-		return DeviceCheckAssertionOutput{401, false}, terrors.Errorf("attestation type does not match")
+		return nil, terrors.Errorf("attestation type does not match").WithCode(401)
 	}
 
 	// Handle steps 4 through 16
-	if validError := assertion.VerifyAssertionInput(ctx, types.VerifyAssertionInputArgs{
+	if validError := assertion.VerifyAssertionInput(ctx, &types.VerifyAssertionInputArgs{
 		Input:                          parsed,
 		StoredChallenge:                cerem.ChallengeID,
 		RelyingPartyID:                 rp.RPID(),
@@ -85,13 +76,13 @@ func Assert(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.
 		DataSignedByClient:             append(input.ClientDataToValidate, cerem.ChallengeID...),
 		UseSavedAttestedCredentialData: true,
 	}); validError != nil {
-		return DeviceCheckAssertionOutput{401, false}, validError
+		return nil, terrors.Wrap(validError, "failed to verify assertion input").WithCode(401)
 	}
 
-	err = dynamoClient.IncrementExistingCredential(ctx, cerem, parsed.CredentialID.String())
+	err = store.IncrementExistingCredential(ctx, cerem.ChallengeID, cred)
 	if err != nil {
-		return DeviceCheckAssertionOutput{502, false}, err
+		return nil, terrors.Wrap(err, "failed to increment existing credential").WithCode(502)
 	}
 
-	return DeviceCheckAssertionOutput{204, true}, nil
+	return &DeviceCheckAssertionOutput{true}, nil
 }

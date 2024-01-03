@@ -7,9 +7,13 @@ import (
 	"github.com/walteh/webauthn/pkg/webauthn/extensions"
 )
 
+type Asserter interface {
+	VerifyAssertion(input VerifyAssertionInputArgs) (bool, error)
+}
+
 type VerifyAssertionInputArgs struct {
 	Input                          AssertionInput
-	StoredChallenge                hex.Hash
+	StoredChallenge                CeremonyID
 	CredentialAttestationType      CredentialAttestationType
 	AttestationProvider            AttestationProvider
 	VerifyUser                     bool
@@ -30,9 +34,9 @@ type AssertionObject struct {
 }
 
 type AssertionInput struct {
-	UserID            hex.Hash `json:"userID"`
-	CredentialID      hex.Hash `json:"credentialID"`
-	RawClientDataJSON string   `json:"rawClientDataJSON"`
+	UserID            hex.Hash     `json:"userID"`
+	CredentialID      CredentialID `json:"credentialID"`
+	RawClientDataJSON string       `json:"rawClientDataJSON"`
 	// RawAuthenticatorData hex.Hash `json:"rawAuthenticatorData"`
 	RawAssertionObject hex.Hash `json:"signature"`
 	// Type            string   `json:"credentialType"`

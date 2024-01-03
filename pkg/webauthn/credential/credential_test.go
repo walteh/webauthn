@@ -13,7 +13,7 @@ import (
 	"github.com/walteh/webauthn/pkg/webauthn/webauthncbor"
 )
 
-var byteID = hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g")
+var byteID = types.CredentialID(hex.MustBase64ToHash("6xrtBhJQW6QU4tOaB4rrHaS2Ks0yDDL_q8jDC16DEjZ-VLVf4kCRkvl2xp2D71sTPYns-exsHQHTy3G-zJRK8g"))
 var byteClientDataJSON = `{\"challenge\":\"W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}`
 var byteAttObject = hex.MustBase64ToHash("o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YVjEdKbqkhPJnC90siSSsyDPQCYqlMGpUKA5fyklC2CEHvBBAAAAAAAAAAAAAAAAAAAAAAAAAAAAQOsa7QYSUFukFOLTmgeK6x2ktirNMgwy_6vIwwtegxI2flS1X-JAkZL5dsadg-9bEz2J7PnsbB0B08txvsyUSvKlAQIDJiABIVggLKF5xS0_BntttUIrm2Z2tgZ4uQDwllbdIfrrBMABCNciWCDHwin8Zdkr56iSIh0MrB5qZiEzYLQpEOREhMUkY6q4Vw")
 var clientDataJson = "{\"challenge\":\"W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE\",\"origin\":\"https://webauthn.io\",\"type\":\"webauthn.create\"}"
@@ -50,7 +50,7 @@ func TestParseCredentialCreationResponse(t *testing.T) {
 			want: &types.AttestationObject{
 				ClientData: types.CollectedClientData{
 					Type:      types.CeremonyType("webauthn.create"),
-					Challenge: hex.MustBase64ToHash("W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE"),
+					Challenge: types.CeremonyID(hex.MustBase64ToHash("W8GzFU8pGjhoRbWrLDlamAfq_y4S1CZG1VuoeRLARrE")),
 					Origin:    "https://webauthn.io",
 				},
 				AuthData: types.AuthenticatorData{
@@ -173,7 +173,7 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 					UTF8ClientDataJSON: clientDataJson,
 					AttestationObject:  byteAttObject,
 				},
-				StoredChallenge:    byteChallenge,
+				StoredChallenge:    types.CeremonyID(byteChallenge),
 				VerifyUser:         false,
 				RelyingPartyID:     `webauthn.io`,
 				RelyingPartyOrigin: `https://webauthn.io`,
@@ -196,7 +196,7 @@ func TestParsedCredentialCreationData_Verify(t *testing.T) {
 
 var testCredentialRequestBody = fmt.Sprintf(
 	`{"id":"%s","rawId":"%s","type":"public-key","clientExtensionResults":{"appid":true},"response":{"attestationObject":"%s","clientDataJSON":"%s"}}`,
-	byteID.Hex(), byteID.Hex(), byteAttObject.Hex(), byteClientDataJSON)
+	byteID.Ref().Hex(), byteID.Ref().Hex(), byteAttObject.Hex(), byteClientDataJSON)
 
 // &{{0x74a6ea9213c99c2f74b22492b320cf40262a94c1a950a0397f29250b60841ef0 65 0 {0x00000000000000000000000000000000 0xeb1aed0612505ba414e2d39a078aeb1da4b62acd320c32ffabc8c30b5e8312367e54b55fe2409192f976c69d83ef5b133d89ecf9ec6c1d01d3cb71becc944af2 0xa50102032620012158202ca179c52d3f067b6db5422b9b6676b60678b900f09656dd21faeb04c00108d7225820c7c229fc65d92be7a892221d0cac1e6a66213360b42910e44484c52463aab857} 0x} 0x74a6ea9213c99c2f74b22492b320cf40262a94c1a950a0397f29250b60841ef04100000000000000000000000000000000000000000040eb1aed0612505ba414e2d39a078aeb1da4b62acd320c32ffabc8c30b5e8312367e54b55fe2409192f976c69d83ef5b133d89ecf9ec6c1d01d3cb71becc944af2a50102032620012158202ca179c52d3f067b6db5422b9b6676b60678b900f09656dd21faeb04c00108d7225820c7c229fc65d92be7a892221d0cac1e6a66213360b42910e44484c52463aab857 none map[] {webauthn.create 0x5bc1b3154f291a386845b5ab2c395a9807eaff2e12d42646d55ba87912c046b1 https://webauthn.io <nil> } map[]}
 // &{{0x74a6ea9213c99c2f74b22492b320cf40262a94c1a950a0397f29250b60841ef0 65 0 {0x00000000000000000000000000000000 0xeb1aed0612505ba414e2d39a078aeb1da4b62acd320c32ffabc8c30b5e8312367e54b55fe2409192f976c69d83ef5b133d89ecf9ec6c1d01d3cb71becc944af2 0xa5225820c7c229fc65d92be7a892221d0cac1e6a66213360b42910e44484c52463aab8570102032620012158202ca179c52d3f067b6db5422b9b6676b60678b900f09656dd21faeb04c00108d7} 0x} 0x74a6ea9213c99c2f74b22492b320cf40262a94c1a950a0397f29250b60841ef04100000000000000000000000000000000000000000040eb1aed0612505ba414e2d39a078aeb1da4b62acd320c32ffabc8c30b5e8312367e54b55fe2409192f976c69d83ef5b133d89ecf9ec6c1d01d3cb71becc944af2a50102032620012158202ca179c52d3f067b6db5422b9b6676b60678b900f09656dd21faeb04c00108d7225820c7c229fc65d92be7a892221d0cac1e6a66213360b42910e44484c52463aab857 none map[] {webauthn.create 0x5bc1b3154f291a386845b5ab2c395a9807eaff2e12d42646d55ba87912c046b1 https://webauthn.io <nil> } map[appid:true]}

@@ -2,8 +2,9 @@ package googletpm
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
+
+	"github.com/walteh/terrors"
 )
 
 // DecodePublic decodes a TPMT_PUBLIC message. No error is returned if
@@ -13,7 +14,7 @@ func DecodePublic(buf []byte) (Public, error) {
 	var pub Public
 	var err error
 	if err = UnpackBuf(in, &pub.Type, &pub.NameAlg, &pub.Attributes, &pub.AuthPolicy); err != nil {
-		return pub, fmt.Errorf("decoding TPMT_PUBLIC: %v", err)
+		return pub, terrors.Errorf("decoding TPMT_PUBLIC: %v", err)
 	}
 
 	switch pub.Type {
@@ -22,7 +23,7 @@ func DecodePublic(buf []byte) (Public, error) {
 	case AlgECC:
 		pub.ECCParameters, err = decodeECCParams(in)
 	default:
-		err = fmt.Errorf("unsupported type in TPMT_PUBLIC: %v", pub.Type)
+		err = terrors.Errorf("unsupported type in TPMT_PUBLIC: %v", pub.Type)
 	}
 	return pub, err
 }
@@ -72,14 +73,14 @@ func decodeRSAParams(in *bytes.Buffer) (*RSAParams, error) {
 	var err error
 
 	if params.Symmetric, err = decodeSymScheme(in); err != nil {
-		return nil, fmt.Errorf("decoding Symmetric: %v", err)
+		return nil, terrors.Errorf("decoding Symmetric: %v", err)
 	}
 	if params.Sign, err = decodeSigScheme(in); err != nil {
-		return nil, fmt.Errorf("decoding Sign: %v", err)
+		return nil, terrors.Errorf("decoding Sign: %v", err)
 	}
 	var modBytes []byte
 	if err := UnpackBuf(in, &params.KeyBits, &params.Exponent, &modBytes); err != nil {
-		return nil, fmt.Errorf("decoding KeyBits, Exponent, Modulus: %v", err)
+		return nil, terrors.Errorf("decoding KeyBits, Exponent, Modulus: %v", err)
 	}
 	if params.Exponent == 0 {
 		params.encodeDefaultExponentAsZero = true
@@ -128,17 +129,17 @@ type SigScheme struct {
 func decodeSigScheme(in *bytes.Buffer) (*SigScheme, error) {
 	var scheme SigScheme
 	if err := UnpackBuf(in, &scheme.Alg); err != nil {
-		return nil, fmt.Errorf("decoding Alg: %v", err)
+		return nil, terrors.Errorf("decoding Alg: %v", err)
 	}
 	if scheme.Alg == AlgNull {
 		return nil, nil
 	}
 	if err := UnpackBuf(in, &scheme.Hash); err != nil {
-		return nil, fmt.Errorf("decoding Hash: %v", err)
+		return nil, terrors.Errorf("decoding Hash: %v", err)
 	}
 	if scheme.Alg.UsesCount() {
 		if err := UnpackBuf(in, &scheme.Count); err != nil {
-			return nil, fmt.Errorf("decoding Count: %v", err)
+			return nil, terrors.Errorf("decoding Count: %v", err)
 		}
 	}
 	return &scheme, nil
@@ -152,26 +153,26 @@ func (a Algorithm) UsesCount() bool {
 func decodeKDFScheme(in *bytes.Buffer) (*KDFScheme, error) {
 	var scheme KDFScheme
 	if err := UnpackBuf(in, &scheme.Alg); err != nil {
-		return nil, fmt.Errorf("decoding Alg: %v", err)
+		return nil, terrors.Errorf("decoding Alg: %v", err)
 	}
 	if scheme.Alg == AlgNull {
 		return nil, nil
 	}
 	if err := UnpackBuf(in, &scheme.Hash); err != nil {
-		return nil, fmt.Errorf("decoding Hash: %v", err)
+		return nil, terrors.Errorf("decoding Hash: %v", err)
 	}
 	return &scheme, nil
 }
 func decodeSymScheme(in *bytes.Buffer) (*SymScheme, error) {
 	var scheme SymScheme
 	if err := UnpackBuf(in, &scheme.Alg); err != nil {
-		return nil, fmt.Errorf("decoding Alg: %v", err)
+		return nil, terrors.Errorf("decoding Alg: %v", err)
 	}
 	if scheme.Alg == AlgNull {
 		return nil, nil
 	}
 	if err := UnpackBuf(in, &scheme.KeyBits, &scheme.Mode); err != nil {
-		return nil, fmt.Errorf("decoding KeyBits, Mode: %v", err)
+		return nil, terrors.Errorf("decoding KeyBits, Mode: %v", err)
 	}
 	return &scheme, nil
 }
@@ -180,20 +181,20 @@ func decodeECCParams(in *bytes.Buffer) (*ECCParams, error) {
 	var err error
 
 	if params.Symmetric, err = decodeSymScheme(in); err != nil {
-		return nil, fmt.Errorf("decoding Symmetric: %v", err)
+		return nil, terrors.Errorf("decoding Symmetric: %v", err)
 	}
 	if params.Sign, err = decodeSigScheme(in); err != nil {
-		return nil, fmt.Errorf("decoding Sign: %v", err)
+		return nil, terrors.Errorf("decoding Sign: %v", err)
 	}
 	if err := UnpackBuf(in, &params.CurveID); err != nil {
-		return nil, fmt.Errorf("decoding CurveID: %v", err)
+		return nil, terrors.Errorf("decoding CurveID: %v", err)
 	}
 	if params.KDF, err = decodeKDFScheme(in); err != nil {
-		return nil, fmt.Errorf("decoding KDF: %v", err)
+		return nil, terrors.Errorf("decoding KDF: %v", err)
 	}
 	var x, y []byte
 	if err := UnpackBuf(in, &x, &y); err != nil {
-		return nil, fmt.Errorf("decoding Point: %v", err)
+		return nil, terrors.Errorf("decoding Point: %v", err)
 	}
 	params.Point.X = new(big.Int).SetBytes(x)
 	params.Point.Y = new(big.Int).SetBytes(y)

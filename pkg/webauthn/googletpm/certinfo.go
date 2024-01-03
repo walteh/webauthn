@@ -5,8 +5,9 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/sha512"
-	"fmt"
 	"hash"
+
+	"github.com/walteh/terrors"
 )
 
 // DecodeAttestationData decode a TPMS_ATTEST message. No error is returned if
@@ -16,15 +17,15 @@ func DecodeAttestationData(in []byte) (*AttestationData, error) {
 
 	var ad AttestationData
 	if err := UnpackBuf(buf, &ad.Magic, &ad.Type); err != nil {
-		return nil, fmt.Errorf("decoding Magic/Type: %v", err)
+		return nil, terrors.Errorf("decoding Magic/Type: %v", err)
 	}
 	n, err := decodeName(buf)
 	if err != nil {
-		return nil, fmt.Errorf("decoding QualifiedSigner: %v", err)
+		return nil, terrors.Errorf("decoding QualifiedSigner: %v", err)
 	}
 	ad.QualifiedSigner = *n
 	if err := UnpackBuf(buf, &ad.ExtraData, &ad.ClockInfo, &ad.FirmwareVersion); err != nil {
-		return nil, fmt.Errorf("decoding ExtraData/ClockInfo/FirmwareVersion: %v", err)
+		return nil, terrors.Errorf("decoding ExtraData/ClockInfo/FirmwareVersion: %v", err)
 	}
 
 	// The spec specifies several other types of attestation data. We only need
@@ -33,18 +34,18 @@ func DecodeAttestationData(in []byte) (*AttestationData, error) {
 	switch ad.Type {
 	case TagAttestCertify:
 		if ad.AttestedCertifyInfo, err = decodeCertifyInfo(buf); err != nil {
-			return nil, fmt.Errorf("decoding AttestedCertifyInfo: %v", err)
+			return nil, terrors.Errorf("decoding AttestedCertifyInfo: %v", err)
 		}
 	case TagAttestCreation:
 		if ad.AttestedCreationInfo, err = decodeCreationInfo(buf); err != nil {
-			return nil, fmt.Errorf("decoding AttestedCreationInfo: %v", err)
+			return nil, terrors.Errorf("decoding AttestedCreationInfo: %v", err)
 		}
 	case TagAttestQuote:
 		if ad.AttestedQuoteInfo, err = decodeQuoteInfo(buf); err != nil {
-			return nil, fmt.Errorf("decoding AttestedQuoteInfo: %v", err)
+			return nil, terrors.Errorf("decoding AttestedQuoteInfo: %v", err)
 		}
 	default:
-		return nil, fmt.Errorf("only Certify & Creation attestation structures are supported, got type 0x%x", ad.Type)
+		return nil, terrors.Errorf("only Certify & Creation attestation structures are supported, got type 0x%x", ad.Type)
 	}
 
 	return &ad, nil
@@ -127,13 +128,13 @@ func decodeName(in *bytes.Buffer) (*Name, error) {
 	case 4:
 		name.Handle = new(Handle)
 		if err := UnpackBuf(bytes.NewBuffer(nameBuf), name.Handle); err != nil {
-			return nil, fmt.Errorf("decoding Handle: %v", err)
+			return nil, terrors.Errorf("decoding Handle: %v", err)
 		}
 	default:
 		var err error
 		name.Digest, err = decodeHashValue(bytes.NewBuffer(nameBuf))
 		if err != nil {
-			return nil, fmt.Errorf("decoding Digest: %v", err)
+			return nil, terrors.Errorf("decoding Digest: %v", err)
 		}
 	}
 	return name, nil
@@ -142,15 +143,15 @@ func decodeName(in *bytes.Buffer) (*Name, error) {
 func decodeHashValue(in *bytes.Buffer) (*HashValue, error) {
 	var hv HashValue
 	if err := UnpackBuf(in, &hv.Alg); err != nil {
-		return nil, fmt.Errorf("decoding Alg: %v", err)
+		return nil, terrors.Errorf("decoding Alg: %v", err)
 	}
 	hfn, ok := hashConstructors[hv.Alg]
 	if !ok {
-		return nil, fmt.Errorf("unsupported hash algorithm type 0x%x", hv.Alg)
+		return nil, terrors.Errorf("unsupported hash algorithm type 0x%x", hv.Alg)
 	}
 	hv.Value = make([]byte, hfn().Size())
 	if _, err := in.Read(hv.Value); err != nil {
-		return nil, fmt.Errorf("decoding Value: %v", err)
+		return nil, terrors.Errorf("decoding Value: %v", err)
 	}
 	return &hv, nil
 }
@@ -161,7 +162,7 @@ func decodeHashValue(in *bytes.Buffer) (*HashValue, error) {
 func (a Algorithm) HashConstructor() (func() hash.Hash, error) {
 	c, ok := hashConstructors[a]
 	if !ok {
-		return nil, fmt.Errorf("algorithm not supported: 0x%x", a)
+		return nil, terrors.Errorf("algorithm not supported: 0x%x", a)
 	}
 	return c, nil
 }
@@ -190,13 +191,13 @@ func decodeCertifyInfo(in *bytes.Buffer) (*CertifyInfo, error) {
 
 	n, err := decodeName(in)
 	if err != nil {
-		return nil, fmt.Errorf("decoding Name: %v", err)
+		return nil, terrors.Errorf("decoding Name: %v", err)
 	}
 	ci.Name = *n
 
 	n, err = decodeName(in)
 	if err != nil {
-		return nil, fmt.Errorf("decoding QualifiedName: %v", err)
+		return nil, terrors.Errorf("decoding QualifiedName: %v", err)
 	}
 	ci.QualifiedName = *n
 
@@ -208,12 +209,12 @@ func decodeCreationInfo(in *bytes.Buffer) (*CreationInfo, error) {
 
 	n, err := decodeName(in)
 	if err != nil {
-		return nil, fmt.Errorf("decoding Name: %v", err)
+		return nil, terrors.Errorf("decoding Name: %v", err)
 	}
 	ci.Name = *n
 
 	if err := UnpackBuf(in, &ci.OpaqueDigest); err != nil {
-		return nil, fmt.Errorf("decoding Digest: %v", err)
+		return nil, terrors.Errorf("decoding Digest: %v", err)
 	}
 
 	return &ci, nil
@@ -223,11 +224,11 @@ func decodeQuoteInfo(in *bytes.Buffer) (*QuoteInfo, error) {
 	var out QuoteInfo
 	sel, err := decodeTPMLPCRSelection(in)
 	if err != nil {
-		return nil, fmt.Errorf("decoding PCRSelection: %v", err)
+		return nil, terrors.Errorf("decoding PCRSelection: %v", err)
 	}
 	out.PCRSelection = sel
 	if err := UnpackBuf(in, &out.PCRDigest); err != nil {
-		return nil, fmt.Errorf("decoding PCRDigest: %v", err)
+		return nil, terrors.Errorf("decoding PCRDigest: %v", err)
 	}
 	return &out, nil
 }
@@ -244,7 +245,7 @@ func decodeTPMLPCRSelection(buf *bytes.Buffer) (PCRSelection, error) {
 		return sel, nil
 	case 1: // We only support decoding of a single PCRSelection.
 	default:
-		return sel, fmt.Errorf("decoding TPML_PCR_SELECTION list longer than 1 is not supported (got length %d)", count)
+		return sel, terrors.Errorf("decoding TPML_PCR_SELECTION list longer than 1 is not supported (got length %d)", count)
 	}
 
 	// See comment in encodeTPMLPCRSelection for details on this format.

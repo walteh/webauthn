@@ -1,0 +1,187 @@
+{
+    version: 3,
+
+    #
+    tasks: {
+            buf-bin:
+                {
+                    generates: ["bin/buf"],
+                    dir: "tools",
+                    sources: ["**/*", exclude: "bin/**/*"],
+                    cmds:
+                        [
+                            "GOWORK=off go build -mod=vendor -o ./bin/buf github.com/bufbuild/buf/cmd/buf",
+                        ],
+                },
+            mockery-bin:
+                {
+                    generates: ["bin/mockery"],
+                    dir: "tools",
+                    sources: ["**/*", exclude: "bin/**/*"],
+                    cmds:
+                        [
+                            "GOWORK=off go build -mod=vendor -o ./bin/mockery github.com/vektra/mockery/v2",
+                        ],
+                },
+
+            golangci-lint-bin:
+                {
+                    generates: ["bin/golangci-lint"],
+                    dir: "tools",
+                    sources: ["**/*", exclude: "bin/**/*"],
+                    cmds:
+                        [
+                            "GOWORK=off go build -mod=vendor -o ./bin/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint",
+                        ],
+                },
+
+            gotestsum-bin:
+                {
+                    generates: ["bin/gotestsum"],
+                    dir: "tools",
+                    sources: ["**/*", exclude: "bin/**/*"],
+                    cmds:
+                        [
+                            "GOWORK=off go build -mod=vendor -o ./bin/gotestsum gotest.tools/gotestsum",
+                        ],
+                },
+
+            bun-bin:
+                {
+                    platforms:
+                        [
+                            "linux/amd64",
+                            "darwin/amd64",
+                            "linux/arm64",
+                            "darwin/arm64",
+                        ],
+                    generates: ["bin/bun"],
+                    dir: "tools",
+                    preconditions: ["which unzip", "which curl", "which npm"],
+                    status: ["bun --version", "test -f ./bin/bun"],
+                    cmds:
+                        [
+                            "mkdir -p ./bin",
+                            "command -v npm && npm install -g bun || curl -fsSL https://bun.sh/install | bash",
+                            "ln -s $(which bun) ./bin/bun",
+                        ],
+                },
+
+            cdk-bin:
+                {
+                    dir: "tools/_bun",
+                    deps: ["bun-bin"],
+                    sources: ["package.json", "bun.lockb"],
+                    generates: ["./node_modules/aws-cdk/bin/cdk.js"],
+                    cmds: ["../bin/bun install"],
+                },
+
+            tools:
+                {
+                    deps:
+                        [
+                            "buf-bin",
+                            "mockery-bin",
+                            "golangci-lint-bin",
+                            "gotestsum-bin",
+                            "cdk-bin",
+                            "bun-bin",
+                        ],
+                },
+
+            buf-gen:
+                {
+                    deps: ["buf-bin"],
+                    generates: ["gen/buf/**/*"],
+                    dir: ".",
+                    sources: ["proto/**/*.proto", "./tools/bin/buf"],
+                    cmds:
+                        [
+                            './tools/bin/buf generate --include-imports --include-wkt --exclude-path="tools/vendor" --template ./buf.gen.yaml --path=./proto',
+                        ],
+                },
+
+            mockery-gen:
+                {
+                    deps: ["mockery-bin"],
+                    generates: ["gen/mockery/**/*"],
+                    dir: ".",
+                    sources:
+                        ["**/*.go", "./.mockery.yaml", "./tools/bin/mockery"],
+                    cmds:
+                        [
+                            "./tools/bin/mockery --dir ./gen/mockery --config ./.mockery.yaml",
+                        ],
+                },
+
+            gen: { deps: ["buf-gen", "mockery-gen"] },
+
+            cdk-synth:
+                {
+                    deps: ["cdk-bin"],
+                    dir: "infrastructure",
+                    generates: ["cdk.out"],
+                    sources: ["**/*.go", "./.cdk.json"],
+                    cmds:
+                        [
+                            "bun ../tools/_bun/node_modules/aws-cdk/bin/cdk.js synth",
+                        ],
+                },
+
+            lint:
+                {
+                    deps: ["golangci-lint-bin"],
+                    sources:
+                        [
+                            "**/*.go",
+                            exclude: "tools/**/*",
+                            "./tools/bin/golangci-lint",
+                        ],
+
+                    cmds:
+                        [
+                            "GOWORK=off ./tools/bin/golangci-lint run --config ./.golangci.yml",
+                        ],
+                },
+
+            #
+            # TESTS
+            #
+
+            test-ci:
+                {
+                    deps: ["gotestsum-bin"],
+                    sources:
+                        [
+                            "**/*.go",
+                            exclude: "tools/**/*",
+                            "./tools/bin/gotestsum",
+                        ],
+                    preconditions: ["which go"],
+                    cmds:
+                        [
+                            "GOWORK=off ./tools/bin/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                        ],
+                },
+
+            test-cdk-ci:
+                {
+                    deps: ["gotestsum-bin"],
+                    sources:
+                        [
+                            "**/*.go",
+                            exclude: "tools/**/*",
+                            "./tools/bin/gotestsum",
+                        ],
+                    preconditions: ["which go"],
+                    dir: "infrastructure",
+
+                    cmds:
+                        [
+                            "GOWORK=off ../tools/bin/gotestsum --junitfile test-reports/junit.xml -- -v -coverprofile=coverage.out -coverpkg=./... ./...",
+                        ],
+                },
+
+            default: { deps: ["tools", "gen", "lint", "test"] },
+        },
+}

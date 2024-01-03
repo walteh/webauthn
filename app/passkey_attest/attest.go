@@ -2,10 +2,11 @@ package passkey_attest
 
 import (
 	"context"
-	"errors"
 
+	"golang.org/x/sync/errgroup"
+
+	"github.com/walteh/terrors"
 	"github.com/walteh/webauthn/pkg/accesstoken"
-	"github.com/walteh/webauthn/pkg/errd"
 	"github.com/walteh/webauthn/pkg/hex"
 	"github.com/walteh/webauthn/pkg/relyingparty"
 	"github.com/walteh/webauthn/pkg/storage"
@@ -19,86 +20,79 @@ type PasskeyAttestationInput struct {
 	RawAttestationObject hex.Hash
 	UTF8ClientDataJSON   string
 	RawCredentialID      hex.Hash
+	RawSessionID         hex.Hash
 }
 
 type PasskeyAttestationOutput struct {
-	SuggestedStatusCode int
-	AccessToken         string
+	AccessToken string
 }
 
-var (
-	ErrPasskeyAttestInvalidInput = errors.New("ErrPasskeyAttestInvalidInput")
-
-	ErrPasskeyAttestInvalidSessionID = errors.New("ErrPasskeyAttestInvalidSessionID")
-
-	ErrPasskeyAttestInvalidCredentialID = errors.New("ErrPasskeyAttestInvalidCredentialID")
-
-	ErrPasskeyAttestInvalidChallenge = errors.New("ErrPasskeyAttestInvalidChallenge")
-
-	ErrPasskeyAttestJWTGeneration = errors.New("ErrPasskeyAttestJWTGeneration")
-
-	ErrPasskeyAttestDataRead = errors.New("ErrPasskeyAttestDataRead")
-
-	ErrPasskeyAttestDataWrite = errors.New("ErrPasskeyAttestDataWrite")
-)
-
-func Attest(ctx context.Context, dynamoClient storage.Provider, rp relyingparty.Provider, tknp accesstoken.Provider, assert PasskeyAttestationInput) (PasskeyAttestationOutput, error) {
+func Attest(ctx context.Context, store storage.Provider, rp relyingparty.Provider, tknp accesstoken.Provider, assert *PasskeyAttestationInput) (*PasskeyAttestationOutput, error) {
 	var err error
 
 	parsedResponse := types.AttestationInput{
 		AttestationObject:  assert.RawAttestationObject,
 		UTF8ClientDataJSON: assert.UTF8ClientDataJSON,
-		CredentialID:       assert.RawCredentialID,
+		CredentialID:       types.CredentialID(assert.RawCredentialID),
 		ClientExtensions:   nil,
 	}
 
 	cd, err := clientdata.ParseClientData(parsedResponse.UTF8ClientDataJSON)
 	if err != nil {
-		return PasskeyAttestationOutput{400, ""}, err
+		return nil, terrors.Wrap(err, "failed to parse client data").WithCode(400)
 	}
 
-	// cerem := types.NewUnsafeGettableCeremony(cd.Challenge)
-
-	cerem, err := dynamoClient.GetExistingCeremony(ctx, cd.Challenge.String())
-	if err != nil {
-		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestDataRead)
-	}
+	// cerem, _, err := store.GetExisting(ctx, cd.Challenge, nil)
+	// if err != nil {
+	// 	return nil, terrors.Wrap(err, "failed to get existing ceremony").WithCode(502)
+	// }
 
 	cred, invalidErr := credential.VerifyAttestationInput(ctx, types.VerifyAttestationInputArgs{
 		Provider:           providers.NewNoneAttestationProvider(),
 		Input:              parsedResponse,
-		StoredChallenge:    cerem.ChallengeID,
-		SessionId:          cerem.SessionID,
+		StoredChallenge:    cd.Challenge,
+		SessionId:          assert.RawSessionID,
 		VerifyUser:         false,
 		RelyingPartyID:     rp.RPID(),
 		RelyingPartyOrigin: rp.RPOrigin(),
 	})
 
 	if invalidErr != nil {
-		return PasskeyAttestationOutput{401, ""}, invalidErr
+		return nil, terrors.Wrap(invalidErr, "failed to verify attestation input").WithCode(401)
 	}
 
-	tkn, err := tknp.AccessTokenForUserID(ctx, cerem.CredentialID.String())
+	// make error group
+
+	grp, ctx := errgroup.WithContext(ctx)
+
+	grp.SetLimit(2)
+
+	var tkn string
+
+	grp.Go(func() error {
+		tknd, err := tknp.AccessTokenForUserID(ctx, assert.RawSessionID.Hex())
+		if err != nil {
+			return terrors.Wrap(err, "failed to generate access token").WithCode(502)
+		}
+
+		tkn = tknd
+
+		return nil
+	})
+
+	grp.Go(func() error {
+
+		err = store.WriteNewCredential(ctx, cd.Challenge, cred)
+		if err != nil {
+			return terrors.Wrap(err, "failed to write new credential")
+		}
+		return nil
+	})
+
+	err = grp.Wait()
 	if err != nil {
-		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestJWTGeneration)
+		return nil, err
 	}
 
-	// z, err := cognitoClient.GetDevCreds(ctx, cerem.CredentialID)
-	// if err != nil {
-	// 	return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestJWTGeneration)
-	// }
-
-	// // put
-	// credput := indexable.IndexablePut(cred, false)
-
-	// // should be a delete
-	// ceremput := indexable.IndexablePut(cerem, true)
-
-	err = dynamoClient.IncrementExistingCredential(ctx, string(cerem.ChallengeID), string(cred.RawID))
-
-	if err != nil {
-		return PasskeyAttestationOutput{502, ""}, errd.Wrap(ctx, ErrPasskeyAttestDataWrite)
-	}
-
-	return PasskeyAttestationOutput{204, tkn}, nil
+	return &PasskeyAttestationOutput{AccessToken: tkn}, nil
 }

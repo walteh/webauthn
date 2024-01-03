@@ -5,9 +5,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
-
-	"github.com/walteh/snake"
-	myversion "github.com/walteh/webauthn/version"
 )
 
 func Build(ctx context.Context) (*cobra.Command, error) {
@@ -23,9 +20,6 @@ func Build(ctx context.Context) (*cobra.Command, error) {
 			// Do Stuff Here
 		},
 	}
-
-	rootCmd.AddCommand(myversion.Build(ctx))
-	rootCmd.AddCommand(snake.Build(ctx))
 
 	return rootCmd, nil
 }

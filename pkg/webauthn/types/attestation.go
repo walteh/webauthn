@@ -8,7 +8,7 @@ import (
 	"github.com/walteh/webauthn/pkg/webauthn/extensions"
 )
 
-func NewDefaultCredentialIdentifier(CredentialID hex.Hash) *CredentialIdentifier {
+func NewDefaultCredentialIdentifier(CredentialID CredentialID) *CredentialIdentifier {
 	return &CredentialIdentifier{
 		ID:               CredentialID,
 		Type:             "public-key",
@@ -18,7 +18,7 @@ func NewDefaultCredentialIdentifier(CredentialID hex.Hash) *CredentialIdentifier
 
 type CredentialIdentifier struct {
 	// ID of the credential
-	ID   hex.Hash
+	ID   CredentialID
 	Type CredentialType
 
 	ExtensionResults extensions.ClientOutputs
@@ -27,7 +27,7 @@ type CredentialIdentifier struct {
 type VerifyAttestationInputArgs struct {
 	Provider           AttestationProvider
 	Input              AttestationInput
-	StoredChallenge    hex.Hash
+	StoredChallenge    CeremonyID
 	SessionId          hex.Hash
 	VerifyUser         bool
 	RelyingPartyID     string
@@ -63,7 +63,7 @@ type AttestationInput struct {
 	// validate the authenticator data along with the JSON-serialized client data.
 	AttestationObject hex.Hash `json:"attestation_object"`
 
-	CredentialID     hex.Hash                 `json:"credential_id"`
+	CredentialID     CredentialID             `json:"credential_id"`
 	CredentialType   CredentialType           `json:"credential_type"`
 	ClientExtensions extensions.ClientOutputs `json:"client_extensions"`
 }
@@ -96,10 +96,11 @@ type AttestationProvider interface {
 	Attest(AttestationObject, []byte) (hex.Hash, string, []interface{}, error)
 	ID() string
 	Time() time.Time
+	AAGUID() hex.Hash
 }
 
 func (me CredentialIdentifier) Verify() error {
-	if me.ID.IsZero() {
+	if me.ID.Ref().IsZero() {
 		return errors.New("missing id")
 	}
 

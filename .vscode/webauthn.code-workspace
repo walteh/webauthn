@@ -4,6 +4,9 @@
 			"path": "..",
 			"name": "root"
 		},
+		{
+			"path": "../infrastructure"
+		}
 	],
 	"settings": {
 		/* //////////////////////////////////////////////
@@ -13,6 +16,7 @@
 		"editor.formatOnSave": true,
 		"search.useIgnoreFiles": true,
 		"debug.console.wordWrap": false,
+		"explorer.sortOrder": "type",
 		/* //////////////////////////////////////////////
 							FILES
 		////////////////////////////////////////////// */
@@ -45,6 +49,12 @@
 		////////////////////////////////////////////// */
 		"go.testTimeout": "30s",
 		"go.enableCodeLens": {},
+		"go.testFlags": [
+			"-mod=vendor"
+		],
+		"go.testEnvVars": {
+			"GOWORK": "off",
+		},
 		/* //////////////////////////////////////////////
 							YAML
 		////////////////////////////////////////////// */
@@ -56,6 +66,7 @@
 		},
 		"yaml.style.flowSequence": "allow",
 		"yaml.style.flowMapping": "allow",
+		"yaml.format.bracketSpacing": true,
 		"yaml.format.proseWrap": "preserve",
 		"yaml.format.singleQuote": false,
 		"yaml.extension.recommendations": true,
@@ -82,6 +93,17 @@
 		// },
 		"[dockerfile]": {
 			"editor.semanticHighlighting.enabled": false,
+		},
+		"json.schemas": [
+			{
+				"fileMatch": [
+					"taskfile.yaml"
+				],
+				"url": "https://raw.githubusercontent.com/go-task/task/master/docs/v2/task.schema.json"
+			}
+		],
+		"yaml.schemas": {
+			"https://taskfile.dev/schema.json": "file:///Users/dub6ix/Developer/walteh/github/sideproject/webauthn/taskfile.yaml"
 		},
 	}
 }

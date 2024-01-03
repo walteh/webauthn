@@ -19,7 +19,7 @@ func setupCollectedClientData(challenge []byte) types.CollectedClientData {
 		Origin: "example.com",
 	}
 
-	ccd.Challenge = hex.BytesToHash(challenge)
+	ccd.Challenge = types.CeremonyID(hex.BytesToHash(challenge))
 	return ccd
 }
 
@@ -38,7 +38,7 @@ func TestVerifyCollectedClientData(t *testing.T) {
 	originURL, _ := url.Parse(ccd.Origin)
 	err = clientdata.Verify(ctx, types.VerifyClientDataArgs{
 		ClientData:         ccd,
-		StoredChallenge:    storedChallenge,
+		StoredChallenge:    types.CeremonyID(storedChallenge),
 		CeremonyType:       ccd.Type,
 		RelyingPartyOrigin: types.FullyQualifiedOrigin(originURL)})
 	if err != nil {
@@ -61,7 +61,7 @@ func TestVerifyCollectedClientDataIncorrectChallenge(t *testing.T) {
 	storedChallenge := (bogusChallenge)
 	err = clientdata.Verify(ctx, types.VerifyClientDataArgs{
 		ClientData:         ccd,
-		StoredChallenge:    storedChallenge,
+		StoredChallenge:    types.CeremonyID(storedChallenge),
 		CeremonyType:       ccd.Type,
 		RelyingPartyOrigin: ccd.Origin,
 	})

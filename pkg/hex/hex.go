@@ -10,6 +10,8 @@ import (
 	"math/rand"
 	"reflect"
 	"strings"
+
+	"github.com/walteh/terrors"
 )
 
 // Hash represents the 32 byte Keccak256 hash of arbitrary data.
@@ -51,6 +53,8 @@ func BigToHash(b *big.Int) Hash { return BytesToHash(b.Bytes()) }
 // HexToHash sets byte representation of s to hash.
 // If b is larger than len(h), b will be cropped from the left.
 func HexToHash(s string) Hash { return BytesToHash(FromHex(s)) }
+
+func HexToHash2[T Hash](s string) T { return T(BytesToHash(FromHex(s))) }
 
 // Bytes gets the byte representation of the underlying hash.
 func (h Hash) Bytes() []byte { return h[:] }
@@ -180,10 +184,10 @@ func (h Hash) Generate(rand *rand.Rand, size int) reflect.Value {
 func (h *Hash) Scan(src interface{}) error {
 	srcB, ok := src.([]byte)
 	if !ok {
-		return fmt.Errorf("can't scan %T into Hash", src)
+		return terrors.Errorf("can't scan %T into Hash", src)
 	}
 	if len(srcB) != len(*h) {
-		return fmt.Errorf("can't scan []byte of len %d into Hash, want %d", len(srcB), len(*h))
+		return terrors.Errorf("can't scan []byte of len %d into Hash, want %d", len(srcB), len(*h))
 	}
 	copy((*h)[:], srcB)
 	return nil
@@ -204,7 +208,7 @@ func (h *Hash) UnmarshalGraphQL(input interface{}) error {
 	case string:
 		err = h.UnmarshalText([]byte(input))
 	default:
-		err = fmt.Errorf("unexpected type %T for Hash", input)
+		err = terrors.Errorf("unexpected type %T for Hash", input)
 	}
 	return err
 }

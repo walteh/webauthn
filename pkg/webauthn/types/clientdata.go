@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-
-	"github.com/walteh/webauthn/pkg/hex"
 )
 
 type VerifyClientDataArgs struct {
 	ClientData         CollectedClientData
-	StoredChallenge    hex.Hash
+	StoredChallenge    CeremonyID
 	CeremonyType       CeremonyType
 	RelyingPartyOrigin string
 }
@@ -26,7 +24,7 @@ type CollectedClientData struct {
 	// purpose of this member is to prevent certain types of signature confusion attacks
 	//(where an attacker substitutes one legitimate signature for another).
 	Type         CeremonyType  `json:"type"`
-	Challenge    hex.Hash      `json:"challenge"`
+	Challenge    CeremonyID    `json:"challenge"`
 	Origin       string        `json:"origin"`
 	TokenBinding *TokenBinding `json:"tokenBinding,omitempty"`
 	// Chromium (Chrome) returns a hint sometimes about how to handle clientDataJSON in a safe manner
@@ -49,7 +47,7 @@ func (c *CollectedClientData) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	c.Challenge = hex.Hash(challenge)
+	c.Challenge = CeremonyID(challenge)
 	return nil
 }
 

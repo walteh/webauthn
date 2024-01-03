@@ -1,15 +1,15 @@
 {
-    version: v1,
+    version: "v1",
     plugins:
         [
             {
                 plugin: buf.build/connectrpc/go,
-                out: ./buf/go,
+                out: ./gen/buf/go,
                 opt: [paths=source_relative],
             },
             {
                 plugin: buf.build/protocolbuffers/go,
-                out: ./buf/go,
+                out: ./gen/buf/go,
                 opt: [paths=source_relative],
             },
         ],

@@ -148,7 +148,7 @@ func TestParsedCredentialAssertionData_Verify(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		args    types.VerifyAssertionInputArgs
+		args    *types.VerifyAssertionInputArgs
 		wantErr bool
 	}{
 		// TODO: Add test cases.

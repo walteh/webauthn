@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewClientWithUrlString(t *testing.T) {
@@ -29,10 +30,11 @@ func TestNewClientWithUrlString(t *testing.T) {
 
 func TestGetUniqueID(t *testing.T) {
 	tests := []struct {
-		name    string
-		idToken *applepublickey.SafeJwtToken
-		want    string
-		wantErr bool
+		name          string
+		idToken       *applepublickey.SafeJwtToken
+		want          string
+		wantErr       bool
+		wantErrString string
 	}{
 		{
 			name:    "successful decode",
@@ -41,23 +43,25 @@ func TestGetUniqueID(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "bad token",
-			idToken: applepublickey.MockSafeJwtWithClaims(jwt.MapClaims{"notsub": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"}),
-			want:    "",
-			wantErr: true,
+			name:          "bad token",
+			idToken:       applepublickey.MockSafeJwtWithClaims(jwt.MapClaims{"notsub": "001437.def535ddd9e24c4fa4367dca50fdfedb.1951"}),
+			want:          "",
+			wantErr:       true,
+			wantErrString: "token does not contain a sub claim",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
 			got, err := tt.idToken.GetUniqueID()
-			if !tt.wantErr {
-				assert.NoError(t, err, "expected no error but received %s", err)
+			if tt.wantErr {
+				require.ErrorContains(t, err, tt.wantErrString, "expected error to contain %q but got %q", tt.wantErrString, err)
+			} else {
+				require.NoError(t, err)
 			}
 
-			if tt.want != "" {
-				assert.Equal(t, tt.want, got)
-			}
+			assert.Equal(t, tt.want, got)
+
 		})
 	}
 }
@@ -133,7 +137,7 @@ func TestDoRequestNewRequestFail(t *testing.T) {
 }
 
 func TestVerifyAppToken(t *testing.T) {
-	req := AppValidationTokenRequest{
+	req := &AppValidationTokenRequest{
 		ClientID:     "123",
 		ClientSecret: "foo",
 		Code:         "bar",
@@ -145,7 +149,7 @@ func TestVerifyAppToken(t *testing.T) {
 }
 
 func TestVerifyNonAppToken(t *testing.T) {
-	req := WebValidationTokenRequest{
+	req := &WebValidationTokenRequest{
 		ClientID:     "123",
 		ClientSecret: "foo",
 		Code:         "bar",
@@ -159,7 +163,7 @@ func TestVerifyNonAppToken(t *testing.T) {
 }
 
 func TestVerifyRefreshToken(t *testing.T) {
-	req := ValidationRefreshRequest{
+	req := &ValidationRefreshRequest{
 		ClientID:     "123",
 		ClientSecret: "foo",
 		RefreshToken: "bar",

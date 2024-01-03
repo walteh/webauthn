@@ -41,3 +41,12 @@ v4/modules
 
 archive
 .archive
+
+*.make-hash
+
+.task/checksum/*
+
+# we want to keep the generated files from being
+!.task/checksum/*-gen
+
+node_modules
